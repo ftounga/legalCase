@@ -423,6 +423,22 @@ export interface TravailExtractedData {
    */
   accord_interessement_present?: boolean | null;
   /**
+   * SF-218-42 : flag de visibilité CONTEXTUAL — true si l'IA détecte un
+   * dispositif d'ÉPARGNE SALARIALE dans les pièces (intéressement art. L.3312-1
+   * et s. CT, participation art. L.3322-1 et s. CT, PEE/PERCO, « abondement
+   * employeur », « réserve spéciale de participation »). Déclenche l'apparition
+   * de F-DT-53-epargne-salariale-conformite (FR uniquement). Clé JSON
+   * SNAKE_CASE (Sf218dDetail `@JsonProperty`).
+   */
+  epargne_salariale_detectee?: boolean | null;
+  /**
+   * SF-218-42 : présence d'un accord (ou régime) de participation dans
+   * l'entreprise, détectée par l'IA. Pré-fill du champ
+   * `accordParticipationPresent` de F-DT-53-epargne-salariale-conformite (FR
+   * uniquement). Clé JSON SNAKE_CASE (Sf218dDetail `@JsonProperty`).
+   */
+  accord_participation_present?: boolean | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de

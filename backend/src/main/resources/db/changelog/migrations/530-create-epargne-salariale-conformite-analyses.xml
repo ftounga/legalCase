@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="230790b0-c8c2-44a1-a487-458c3e530b13" author="legalcase">
+        <comment>
+            SF-218-41 — table `epargne_salariale_conformite_analyses` pour l'outil
+            decisionnel "Epargne salariale — conformite (interessement /
+            participation / partage de la valeur)"
+            (F-DT-53-epargne-salariale-conformite, FRANCE).
+
+            Outil single-country FR : apprecie la conformite aux obligations
+            d'epargne salariale (art. L.3311-1 et s., L.3321-1 et s., L.3322-2 CT
+            + loi n° 2023-1107 du 29/11/2023 sur le partage de la valeur).
+            Participation obligatoire si effectif d'au moins 50 salaries
+            (L.3322-2) → si absente = OBLIGATION_NON_REMPLIE. Obligation de
+            dispositif de partage de la valeur pour les entreprises de 11 a 49
+            salaries rentables (benefice net fiscal au moins egal a 1 % du CA sur
+            3 exercices consecutifs) a compter de 2025 → si aucun dispositif
+            (participation ni interessement) = OBLIGATION_NON_REMPLIE. Sinon
+            CONFORME. NON_REQUIS si effectif inferieur a 11 ou entreprise de 11 a
+            49 non rentable. Persiste l'analyse 1:1 par dossier (upsert).
+
+            Distinct de F-DT-52 PPV exoneration (invariant « un outil = une
+            situation ») : F-DT-52 porte sur l'exoneration d'une prime versee,
+            F-DT-53 sur l'obligation de mettre en place un dispositif.
+
+            Source juridique : art. L.3311-1 et s., L.3321-1 et s., L.3322-2 CT +
+            loi n° 2023-1107 du 29/11/2023.
+        </comment>
+
+        <createTable tableName="epargne_salariale_conformite_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_epargne_salariale_conformite_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="effectif" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accord_participation_present" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accord_interessement_present" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="benefice_net_fiscal_positif_3ans" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entreprise_11_a_49" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="obligations_applicables" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="obligations_non_remplies" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="epargne_salariale_conformite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

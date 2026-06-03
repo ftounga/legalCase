@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="8b26f569-a167-4b90-b6a4-564eaad49674" author="legalcase">
+        <comment>
+            SF-218-41 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Epargne salariale — conformite (interessement /
+            participation / partage de la valeur)"
+            (F-DT-53-epargne-salariale-conformite, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux d'epargne salariale (mentions « accord de participation »,
+            « accord d'interessement », « participation aux resultats »,
+            « dispositif de partage de la valeur », « reserve speciale de
+            participation », « PEE/PERCO »). Flag pivot
+            `epargne_salariale_detectee` = true. trigger_field =
+            'epargne_salariale_detectee', trigger_value = 'true'. priority 93 —
+            valeur libre pre-assignee pour le couple (DROIT_DU_TRAVAIL, FRANCE)
+            au-dela du seed CONTEXTUAL FR le plus recent (F-DT-52 PPV = 92).
+
+            Source juridique : art. L.3311-1 et s., L.3321-1 et s., L.3322-2 CT +
+            loi n° 2023-1107 du 29/11/2023.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('8b26f569-a167-4b90-b6a4-564eaad49674', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-53-epargne-salariale-conformite', 'CONTEXTUAL', 'epargne_salariale_detectee', 'true', 93);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '8b26f569-a167-4b90-b6a4-564eaad49674';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

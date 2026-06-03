@@ -97,6 +97,8 @@ import { ReglementInterieurValiditeSectionComponent } from '../reglement-interie
 import { RttMonetisationSectionComponent } from '../rtt-monetisation-section/rtt-monetisation-section.component';
 // SF-218-40 : composant complet F-DT-52-ppv-exoneration — conformité au plafond d'exonération sociale de la prime de partage de la valeur (loi n° 2022-1158 du 16/08/2022 + loi n° 2023-1107 du 29/11/2023) (Travail FR).
 import { PpvExonerationSectionComponent } from '../ppv-exoneration-section/ppv-exoneration-section.component';
+// SF-218-42 : composant complet F-DT-53-epargne-salariale-conformite — conformité aux obligations d'épargne salariale (participation obligatoire ≥ 50 salariés art. L.3322-2 CT ; dispositif de partage de la valeur 11–49 salariés rentables, loi n° 2023-1107 du 29/11/2023) (Travail FR).
+import { EpargneSalarialeConformiteSectionComponent } from '../epargne-salariale-conformite-section/epargne-salariale-conformite-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -1992,6 +1994,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-52-ppv-exoneration', {
         displayLabel: 'PPV — exonération (FR)',
         component: PpvExonerationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-42 : composant complet F-DT-53-epargne-salariale-conformite —
+      // analyseur de conformité aux obligations d'épargne salariale (Travail FR).
+      // FR uniquement, CONTEXTUAL (flag epargneSalarialeDetectee). Art. L.3311-1
+      // et s., L.3321-1 et s., L.3322-2 CT + loi n° 2023-1107 du 29/11/2023 :
+      // participation obligatoire au-delà de 50 salariés (L.3322-2) ; obligation
+      // de dispositif de partage de la valeur pour les entreprises de 11 à 49
+      // salariés rentables (bénéfice net fiscal ≥ 1 % du CA sur 3 exercices), à
+      // compter de 2025. Checklist de conformité + verdict CONFORME /
+      // OBLIGATION_NON_REMPLIE / NON_REQUIS. Distinct de F-DT-52 PPV exonération.
+      // Pré-fill IA 2 champs (accordParticipationPresent, accordInteressementPresent)
+      // via static getPrefillCount + EpargneSalarialeConformitePrefillRules.
+      ['F-DT-53-epargne-salariale-conformite', {
+        displayLabel: 'Épargne salariale — conformité (FR)',
+        component: EpargneSalarialeConformiteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5362,6 +5385,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // calculateur d'exonération (montant exonéré / imposable, plafond 3000/6000),
     // thème INDEMNITES & calculs (FR-only).
     ['F-DT-52-ppv-exoneration', 'INDEMNITES'],
+    // SF-218-42 : F-DT-53 épargne salariale — conformité (intéressement /
+    // participation / partage de la valeur) — analyseur de conformité aux
+    // obligations légales (checklist + verdict CONFORME / OBLIGATION_NON_REMPLIE
+    // / NON_REQUIS), thème DIAGNOSTIC : diagnostic de la situation de conformité
+    // de l'employeur (FR-only).
+    ['F-DT-53-epargne-salariale-conformite', 'DIAGNOSTIC'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).

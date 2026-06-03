@@ -1,0 +1,220 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">savings</mat-icon>
+    <span class="is-title">ÉPARGNE SALARIALE — CONFORMITÉ (FR)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statut)" data-testid="statut-chip">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Épargne salariale — régime français uniquement</div>
+            <div class="is-banner-sub">
+              Les obligations d'épargne salariale (participation obligatoire au-delà
+              de 50 salariés, art. L.3322-2 CT ; dispositif de partage de la valeur
+              pour les entreprises de 11 à 49 salariés rentables, loi n° 2023-1107
+              du 29/11/2023) sont propres au droit du travail français : elles n'ont
+              pas d'équivalent en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>savings</mat-icon>
+                <span>Conformité aux obligations d'épargne salariale : participation obligatoire au-delà de 50 salariés (art. L.3322-2 CT) et dispositif de partage de la valeur pour les entreprises de 11 à 49 salariés rentables (loi n° 2023-1107 du 29/11/2023).</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Effectif de l'entreprise (nombre de salariés)</mat-label>
+                  <input matInput type="number" min="1" step="1"
+                         [ngModel]="effectif()"
+                         (ngModelChange)="onEffectifChange($event)"
+                         name="effectif"
+                         data-testid="effectif-input" required />
+                  <mat-hint>Effectif habituel de l'entreprise — au moins 50 salariés rend la participation obligatoire.</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="accordParticipationPresent()"
+                              (ngModelChange)="onParticipationChange($event)"
+                              name="accordParticipationPresent"
+                              data-testid="participation-checkbox">
+                  Un accord de participation est en place dans l'entreprise
+                </mat-checkbox>
+                @if (provenanceParticipation() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-participation"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().ACCORD_PARTICIPATION; as alert) {
+                  <span class="is-coherence-badge"
+                        data-testid="coherence-participation"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning_amber</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="accordInteressementPresent()"
+                              (ngModelChange)="onInteressementChange($event)"
+                              name="accordInteressementPresent"
+                              data-testid="interessement-checkbox">
+                  Un accord d'intéressement est en place dans l'entreprise (facultatif)
+                </mat-checkbox>
+                @if (provenanceInteressement() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-interessement"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().ACCORD_INTERESSEMENT; as alert) {
+                  <span class="is-coherence-badge"
+                        data-testid="coherence-interessement"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning_amber</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="entreprise11a49()"
+                              (ngModelChange)="onEntreprise11a49Change($event)"
+                              name="entreprise11a49"
+                              data-testid="entreprise11a49-checkbox">
+                  L'entreprise compte entre 11 et 49 salariés
+                </mat-checkbox>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="beneficeNetFiscalPositif3Ans()"
+                              (ngModelChange)="onBeneficeChange($event)"
+                              name="beneficeNetFiscalPositif3Ans"
+                              data-testid="benefice-checkbox">
+                  Bénéfice net fiscal au moins égal à 1 % du chiffre d'affaires sur les 3 derniers exercices
+                </mat-checkbox>
+              </div>
+
+              @if (participationObligatoirePrevisible()) {
+                <div class="is-badges">
+                  <span class="is-chip is-chip--neutral is-mono" data-testid="seuil-previsible-chip">
+                    Participation obligatoire (effectif ≥ 50)
+                  </span>
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la conformité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="is-banner-sub">
+                    @if (result()!.statut === 'OBLIGATION_NON_REMPLIE') {
+                      Au moins une obligation d'épargne salariale applicable n'est pas satisfaite (à vérifier par avocat).
+                    } @else if (result()!.statut === 'CONFORME') {
+                      Toutes les obligations d'épargne salariale applicables sont remplies.
+                    } @else {
+                      Aucune obligation d'épargne salariale n'est applicable en l'état (la mise en place d'un dispositif reste facultative).
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="is-badges">
+                <span class="is-chip is-chip--neutral is-mono" data-testid="obligations-applicables-chip">
+                  Obligations applicables : {{ result()!.obligationsApplicables }}
+                </span>
+                <span class="is-chip is-mono"
+                      [class.is-chip--success]="result()!.obligationsNonRemplies === 0"
+                      [class.is-chip--danger]="result()!.obligationsNonRemplies > 0"
+                      data-testid="obligations-non-remplies-chip">
+                  Obligations non remplies : {{ result()!.obligationsNonRemplies }}
+                </span>
+              </div>
+
+              <ul class="is-checklist" data-testid="checklist">
+                @for (c of result()!.checklist; track c.item) {
+                  <li class="is-checklist-item"
+                      [class.is-checklist-item--ko]="c.type === 'OBLIGATION' && !c.conforme"
+                      data-testid="checklist-item">
+                    <mat-icon class="is-checklist-icon"
+                              [class.is-checklist-icon--ok]="c.conforme"
+                              [class.is-checklist-icon--ko]="!c.conforme">
+                      {{ c.conforme ? 'check_circle' : 'cancel' }}
+                    </mat-icon>
+                    <div class="is-checklist-text">
+                      <span class="is-checklist-label">
+                        {{ c.item }}
+                        <span class="is-checklist-type is-mono">[{{ c.type }}]</span>
+                      </span>
+                      <span class="is-checklist-comment">{{ c.commentaire }}</span>
+                    </div>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.notes && result()!.notes.length > 0) {
+                <ul class="is-consequences" data-testid="notes">
+                  @for (n of result()!.notes; track n) {
+                    <li class="is-consequence-item">
+                      <mat-icon>arrow_right</mat-icon>
+                      <span>{{ n }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base is-mono">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
