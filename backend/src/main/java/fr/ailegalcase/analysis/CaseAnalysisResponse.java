@@ -5835,11 +5835,26 @@ public record CaseAnalysisResponse(
             // SF-223-04 — lien génétique du parent intentionnel pré-rempli si
             // factualisable (PERE_INTENTIONNEL / MERE_INTENTIONNELLE / AUCUN /
             // LES_DEUX), sinon null.
-            String gpaBeLienGenetiqueDetecte
+            String gpaBeLienGenetiqueDetecte,
+            // SF-223-05 — flag pivot CONTEXTUAL de l'outil regime-algerien-be
+            // (corridor algérien : mariage / talaq / dot relevant du droit
+            // algérien — CDIP, Convention algéro-belge). Lu à plat sur le nœud
+            // famille (@JsonUnwrapped) par DecisionToolVisibilityService →
+            // trigger `regime_algerien_be_detecte`. BELGIQUE UNIQUEMENT.
+            Boolean regimeAlgerienBeDetecte,
+            // SF-223-05 — nature de l'acte pré-remplie si factualisable
+            // (MARIAGE_ALGERIEN / TALAQ_ALGERIEN / DOT_MAHR), sinon null.
+            String regimeAlgerienBeNatureActeDetecte,
+            // SF-223-05 — date de l'acte (ISO YYYY-MM-DD), sinon null.
+            String regimeAlgerienBeDateActeDetectee,
+            // SF-223-05 — montant de la dot (mahr) pré-rempli si factualisable
+            // (chaîne numérique), sinon null.
+            String regimeAlgerienBeMontantDotDetecte
     ) {
         /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
         public static Sf223Detail empty() {
-            return new Sf223Detail(null, null, null, null, null, null, null, null, null, null);
+            return new Sf223Detail(null, null, null, null, null, null, null, null, null, null,
+                    null, null, null, null);
         }
     }
 
@@ -7428,6 +7443,10 @@ public record CaseAnalysisResponse(
     /** SF-223-04 : whitelist lien génétique du parent intentionnel BE (gpa-be-situation-contentieuse). */
     private static final java.util.Set<String> GPA_BE_LIEN_WHITELIST = java.util.Set.of(
             "PERE_INTENTIONNEL", "MERE_INTENTIONNELLE", "AUCUN", "LES_DEUX");
+
+    /** SF-223-05 : whitelist nature de l'acte du corridor algérien BE (regime-algerien-be). */
+    private static final java.util.Set<String> REGIME_ALGERIEN_BE_NATURE_WHITELIST = java.util.Set.of(
+            "MARIAGE_ALGERIEN", "TALAQ_ALGERIEN", "DOT_MAHR");
 
     /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
     private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
@@ -9393,6 +9412,21 @@ public record CaseAnalysisResponse(
                 ? normalizeEnumCode(textOrNull(gpaBe, "lieu_gpa"), GPA_BE_LIEU_WHITELIST) : null;
         String gpaBeLienGenetiqueDetecte = gpaBeObject
                 ? normalizeEnumCode(textOrNull(gpaBe, "lien_genetique"), GPA_BE_LIEN_WHITELIST) : null;
+        // SF-223-05 : flag pivot `regime_algerien_be_detecte` (lu à plat,
+        // @JsonUnwrapped) + sous-objet `regime_algerien_be_detection` — outil
+        // regime-algerien-be (corridor algérien : mariage / talaq / dot — CDIP,
+        // Convention algéro-belge). BELGIQUE UNIQUEMENT — null si dossier FR. Le
+        // flag gouverne la visibilité CONTEXTUAL de l'outil.
+        Boolean regimeAlgerienBeDetecte =
+                booleanOrNull(node, "regime_algerien_be_detecte");
+        JsonNode raBe = node.get("regime_algerien_be_detection");
+        boolean raBeObject = raBe != null && raBe.isObject();
+        String regimeAlgerienBeNatureActeDetecte = raBeObject
+                ? normalizeEnumCode(textOrNull(raBe, "nature_acte"), REGIME_ALGERIEN_BE_NATURE_WHITELIST) : null;
+        String regimeAlgerienBeDateActeDetectee = raBeObject
+                ? textOrNull(raBe, "date_acte") : null;
+        String regimeAlgerienBeMontantDotDetecte = raBeObject
+                ? textOrNull(raBe, "montant_dot") : null;
         Sf223Detail sf223Detail = new Sf223Detail(
                 declarationCohabitationLegaleMentionneeBeDetectee,
                 domicileCommunBeDetecte,
@@ -9403,7 +9437,11 @@ public record CaseAnalysisResponse(
                 kafalaDateActeDetectee,
                 gpaBeSituationContentieuseDetectee,
                 gpaBeLieuDetecte,
-                gpaBeLienGenetiqueDetecte);
+                gpaBeLienGenetiqueDetecte,
+                regimeAlgerienBeDetecte,
+                regimeAlgerienBeNatureActeDetecte,
+                regimeAlgerienBeDateActeDetectee,
+                regimeAlgerienBeMontantDotDetecte);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.

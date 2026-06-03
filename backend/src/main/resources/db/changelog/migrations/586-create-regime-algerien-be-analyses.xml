@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="586-create-regime-algerien-be-analyses" author="legalcase">
+        <comment>
+            SF-223-05 : table dédiée à l'outil décisionnel "Régime algérien —
+            reconnaissance mariage / talaq / dot (Belgique)" (CDIP, loi du
+            16/07/2004 ; Convention algéro-belge — à vérifier par avocat belge).
+
+            Outil unique (1 outil = 1 situation « sort en Belgique d'un mariage,
+            d'un talaq ou d'une dot relevant du droit algérien ») cadrant la
+            SPÉCIFICITÉ ALGÉRIENNE : Code de la famille algérien (capacité,
+            consentement, absence d'empêchement), dot / mahr (qualification de
+            l'effet patrimonial) et jeu de la Convention bilatérale algéro-belge.
+
+            DISTINCT de `mariage-etranger-be-reconnaissance` (F-217) qui traite
+            la mécanique CDIP générale de reconnaissance (dont le talaq) : pour
+            cette mécanique générale, l'outil renvoie vers F-217. Ici seul le
+            corridor algérien est instruit (dot/mahr, conditions du Code algérien,
+            Convention bilatérale).
+
+            Verdict en 4 niveaux : RECONNAISSANCE_DE_PLEIN_DROIT /
+            RECONNAISSANCE_SOUS_CONDITIONS / RECONNAISSANCE_REFUSEE_ORDRE_PUBLIC
+            / QUALIFICATION_INCOMPLETE.
+
+            BELGIQUE UNIQUEMENT — BE-only pur (reporté à F-223 par le
+            PRODUCT_SPEC). Aucune citation jurisprudentielle (F-JU-04 parké).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 587
+            livrée dans le même bundle SF-223-05 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 586 = numéro libre suivant après 585 (seed SF-223-04
+            gpa-be-situation-contentieuse).
+        </comment>
+
+        <createTable tableName="regime_algerien_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_regime_algerien_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="regime_algerien_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_regime_algerien_be_analyses_case_file"/>
+
+        <createIndex tableName="regime_algerien_be_analyses"
+                     indexName="idx_regime_algerien_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="regime_algerien_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

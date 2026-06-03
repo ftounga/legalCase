@@ -1,0 +1,171 @@
+<section class="ralg-section">
+  <header class="ralg-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ralg-body">
+    <mat-icon class="ralg-icon">family_restroom</mat-icon>
+    <span class="ralg-title">RÉGIME ALGÉRIEN (BELGIQUE)</span>
+    @if (result()) {
+      <span class="ralg-chip-summary"
+            [class.ralg-chip-summary--ok]="result()!.verdict === 'RECONNAISSANCE_DE_PLEIN_DROIT'"
+            [class.ralg-chip-summary--warn]="result()!.verdict === 'RECONNAISSANCE_SOUS_CONDITIONS'"
+            [class.ralg-chip-summary--danger]="result()!.verdict === 'RECONNAISSANCE_REFUSEE_ORDRE_PUBLIC'"
+            [class.ralg-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="ralg-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ralg-body" class="ralg-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="ralg-country-banner" data-testid="ralg-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — reconnaissance d'un mariage, d'un talaq (répudiation) ou d'une dot (mahr) relevant du droit algérien (CDIP, Convention algéro-belge — à vérifier par avocat belge). Pour la mécanique générale de reconnaissance, voir l'outil « mariage étranger » (F-217).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="ralg-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="ralg-form" (ngSubmit)="calculate()">
+            <div class="ralg-block ralg-full">
+              <span class="ralg-block-label">Nature de l'acte algérien</span>
+              <mat-form-field appearance="outline" class="ralg-inline-field">
+                <mat-label>Nature</mat-label>
+                <mat-select [ngModel]="natureActe()"
+                            (ngModelChange)="natureActe.set($event)"
+                            name="natureActe" required>
+                  @for (opt of natureOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="ralg-block ralg-full">
+              <span class="ralg-block-label">Rattachement à la Belgique</span>
+              <mat-form-field appearance="outline" class="ralg-inline-field">
+                <mat-label>Lien de rattachement</mat-label>
+                <mat-select [ngModel]="lienRattachementBelgique()"
+                            (ngModelChange)="lienRattachementBelgique.set($event)"
+                            name="lienRattachementBelgique" required>
+                  @for (opt of rattachementOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="ralg-block ralg-full">
+              <span class="ralg-block-label">Éléments complémentaires</span>
+              <mat-form-field appearance="outline" class="ralg-inline-field">
+                <mat-label>Date de l'acte (facultatif)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateActe()"
+                       (ngModelChange)="dateActe.set($event)"
+                       name="dateActe">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="ralg-inline-field">
+                <mat-label>Montant de la dot / mahr (facultatif)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="montantDotConnu()"
+                       (ngModelChange)="montantDotConnu.set($event)"
+                       name="montantDotConnu">
+              </mat-form-field>
+              <mat-slide-toggle [ngModel]="consentementEpouxEpouse()"
+                                (ngModelChange)="consentementEpouxEpouse.set($event)"
+                                name="consentementEpouxEpouse">
+                Consentement libre des deux époux documenté
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="dotMahrPrevue()"
+                                (ngModelChange)="dotMahrPrevue.set($event)"
+                                name="dotMahrPrevue">
+                Une dot (mahr) est prévue
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="conventionAlgeroBelgeInvoquee()"
+                                (ngModelChange)="conventionAlgeroBelgeInvoquee.set($event)"
+                                name="conventionAlgeroBelgeInvoquee">
+                Convention algéro-belge invoquée
+              </mat-slide-toggle>
+            </div>
+
+            <div class="ralg-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Analyser le régime algérien
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="ralg-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="ralg-verdict-text">
+                <span class="ralg-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="ralg-verdict-type">{{ natureLabel(r.natureActe) }} — {{ rattachementLabel(r.lienRattachementBelgique) }}</span>
+              </div>
+            </div>
+
+            @if (r.messages.length) {
+              <ul class="ralg-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.motifs.length) {
+              <div class="ralg-list-block">
+                <span class="ralg-list-title">Motifs de la qualification</span>
+                <ul>
+                  @for (mo of r.motifs; track mo) {
+                    <li [innerHTML]="mo | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.effetsDot) {
+              <div class="ralg-list-block">
+                <span class="ralg-list-title">Effets de la dot (mahr)</span>
+                <p class="ralg-effets" [innerHTML]="r.effetsDot | legalCitations"></p>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="ralg-list-block ralg-bases">
+                <span class="ralg-list-title">Bases juridiques (à vérifier par avocat belge — Convention algéro-belge + CDIP)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="ralg-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>
