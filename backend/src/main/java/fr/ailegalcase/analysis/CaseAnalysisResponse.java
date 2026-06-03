@@ -5886,13 +5886,30 @@ public record CaseAnalysisResponse(
             String dipFamilleBeNationaliteCommuneDetectee,
             // SF-223-07 — loi choisie par les parties / professio juris
             // pré-remplie (code pays ISO 3166-1 alpha-2), sinon null.
-            String dipFamilleBeChoixLoiDetecte
+            String dipFamilleBeChoixLoiDetecte,
+            // SF-223-08 — flag pivot CONTEXTUAL de l'outil
+            // dip-be-reconnaissance-decision-etrangere (reconnaissance /
+            // exequatur d'une décision familiale étrangère hors UE OU mariage
+            // religieux non précédé d'un mariage civil — CDIP art. 22-27 ;
+            // art. 21 Const. / CC art. 161). Lu à plat sur le nœud famille
+            // (@JsonUnwrapped) par DecisionToolVisibilityService → trigger
+            // `dip_reconnaissance_decision_be_detectee`. BELGIQUE UNIQUEMENT.
+            Boolean dipReconnaissanceDecisionBeDetectee,
+            // SF-223-08 — nature de la décision pré-remplie si factualisable
+            // (JUGEMENT_ETRANGER_HORS_UE / MARIAGE_RELIGIEUX_NON_CIVIL), sinon null.
+            String dipReconnaissanceNatureDetectee,
+            // SF-223-08 — pays d'origine de la décision pré-rempli (code pays
+            // ISO 3166-1 alpha-2), sinon null.
+            String dipReconnaissancePaysDetecte,
+            // SF-223-08 — date de la décision pré-remplie (ISO YYYY-MM-DD), sinon null.
+            String dipReconnaissanceDateDetectee
     ) {
         /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
         public static Sf223Detail empty() {
             return new Sf223Detail(null, null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null, null, null, null, null,
-                    null, null, null, null, null);
+                    null, null, null, null, null,
+                    null, null, null, null);
         }
     }
 
@@ -7493,6 +7510,10 @@ public record CaseAnalysisResponse(
     /** SF-223-07 : whitelist matière DIP loi applicable famille BE (dip-be-loi-applicable-famille). */
     private static final java.util.Set<String> DIP_FAMILLE_BE_MATIERE_WHITELIST = java.util.Set.of(
             "DIVORCE", "REGIME_MATRIMONIAL", "SUCCESSION");
+
+    /** SF-223-08 : whitelist nature de la décision pour la reconnaissance / exequatur BE (CDIP art. 22-27). */
+    private static final java.util.Set<String> DIP_RECONNAISSANCE_BE_NATURE_WHITELIST = java.util.Set.of(
+            "JUGEMENT_ETRANGER_HORS_UE", "MARIAGE_RELIGIEUX_NON_CIVIL");
 
     /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
     private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
@@ -9520,6 +9541,23 @@ public record CaseAnalysisResponse(
                 ? normalizeIso2(textOrNull(dipBe, "nationalite_commune")) : null;
         String dipFamilleBeChoixLoiDetecte = dipBeObject
                 ? normalizeIso2(textOrNull(dipBe, "choix_loi_parties")) : null;
+        // SF-223-08 : flag pivot `dip_reconnaissance_decision_be_detectee` (lu à
+        // plat, @JsonUnwrapped) + sous-objet `dip_reconnaissance_decision_be_detection`
+        // — outil dip-be-reconnaissance-decision-etrangere (reconnaissance /
+        // exequatur d'une décision familiale étrangère — CDIP art. 22-27 ;
+        // art. 21 Const. / CC art. 161). BELGIQUE UNIQUEMENT — null si dossier
+        // FR. Le flag gouverne la visibilité CONTEXTUAL de l'outil.
+        Boolean dipReconnaissanceDecisionBeDetectee =
+                booleanOrNull(node, "dip_reconnaissance_decision_be_detectee");
+        JsonNode dipRecoBe = node.get("dip_reconnaissance_decision_be_detection");
+        boolean dipRecoBeObject = dipRecoBe != null && dipRecoBe.isObject();
+        String dipReconnaissanceNatureDetectee = dipRecoBeObject
+                ? normalizeEnumCode(textOrNull(dipRecoBe, "nature_decision"),
+                        DIP_RECONNAISSANCE_BE_NATURE_WHITELIST) : null;
+        String dipReconnaissancePaysDetecte = dipRecoBeObject
+                ? normalizeIso2(textOrNull(dipRecoBe, "pays_origine")) : null;
+        String dipReconnaissanceDateDetectee = dipRecoBeObject
+                ? textOrNull(dipRecoBe, "date_decision") : null;
         Sf223Detail sf223Detail = new Sf223Detail(
                 declarationCohabitationLegaleMentionneeBeDetectee,
                 domicileCommunBeDetecte,
@@ -9544,7 +9582,11 @@ public record CaseAnalysisResponse(
                 dipFamilleBeMatiereDetectee,
                 dipFamilleBeResidenceCommuneDetectee,
                 dipFamilleBeNationaliteCommuneDetectee,
-                dipFamilleBeChoixLoiDetecte);
+                dipFamilleBeChoixLoiDetecte,
+                dipReconnaissanceDecisionBeDetectee,
+                dipReconnaissanceNatureDetectee,
+                dipReconnaissancePaysDetecte,
+                dipReconnaissanceDateDetectee);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="592-create-dip-be-reconnaissance-decision-etrangere-analyses" author="legalcase">
+        <comment>
+            SF-223-08 : table dédiée à l'outil décisionnel "Reconnaissance /
+            exequatur d'une décision familiale étrangère (Belgique — DIP)" :
+            Code de droit international privé belge (loi du 16/07/2004),
+            art. 22-27 (reconnaissance de plein droit, déclaration de force
+            exécutoire / exequatur, motifs de refus), complété par l'art. 21 de
+            la Constitution / CC art. 161 pour le mariage religieux non précédé
+            d'un mariage civil — à vérifier par avocat belge.
+
+            Outil unique (1 outil = 1 situation « reconnaissance / exequatur
+            d'une décision juridictionnelle étrangère déjà rendue + mariage
+            religieux non-civil »).
+
+            DISTINCT de dip-be-loi-applicable-famille (SF-223-07 : quelle loi
+            régit une situation à instruire). DISTINCT de
+            mariage-etranger-be-reconnaissance (F-217 : reconnaissance d'un
+            mariage / divorce valablement célébré à l'étranger) : ici on traite
+            la décision juridictionnelle étrangère et le mariage religieux non
+            précédé d'un mariage civil (≠ mariage étranger valable). Ne tranche
+            pas la reconnaissance des décisions UE (Bruxelles II ter — de plein
+            droit, hors périmètre V1).
+
+            Verdict 4 niveaux : RECONNAISSANCE_DE_PLEIN_DROIT / EXEQUATUR_REQUIS
+            / RECONNAISSANCE_REFUSEE / QUALIFICATION_INCOMPLETE.
+
+            BELGIQUE UNIQUEMENT — BE-only pur (P3 Famille BE — F-223). Aucune
+            citation jurisprudentielle (F-JU-04 parké).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 593
+            livrée dans le même bundle SF-223-08 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 592 = numéro libre suivant après 591 (seed SF-223-07
+            dip-be-loi-applicable-famille).
+        </comment>
+
+        <createTable tableName="dip_be_reconnaissance_decision_etrangere_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_dip_be_reconnaissance_decision_etrangere_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="dip_be_reconnaissance_decision_etrangere_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_dip_be_reconnaissance_decision_etrangere_case_file"/>
+
+        <createIndex tableName="dip_be_reconnaissance_decision_etrangere_analyses"
+                     indexName="idx_dip_be_reconnaissance_decision_etrangere_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="dip_be_reconnaissance_decision_etrangere_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
