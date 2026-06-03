@@ -506,6 +506,30 @@ export interface TravailExtractedData {
    */
   horaire_hebdomadaire_collectif?: number | null;
   /**
+   * SF-218-52 : flag pivot CONTEXTUAL — l'IA a détecté des signaux de temps de
+   * trajet / déplacement professionnel (mentions « temps de trajet », « temps de
+   * déplacement professionnel », « contrepartie au temps de trajet », « salarié
+   * itinérant », « déplacement domicile-client », « dépassement du temps normal
+   * de trajet »). Déclenche l'apparition de F-DT-81-temps-trajet-deplacement
+   * (FR uniquement). Clé JSON SNAKE_CASE (Sf218dDetail `@JsonProperty`).
+   */
+  temps_trajet_detecte?: boolean | null;
+  /**
+   * SF-218-52 : type de trajet professionnel détecté par l'IA, pour pré-fill du
+   * champ `typeTrajet` de F-DT-81-temps-trajet-deplacement (FR uniquement).
+   * Valeur alignée sur l'enum backend {@code TypeTrajet}
+   * (DOMICILE_TRAVAIL_HABITUEL / DOMICILE_CLIENT_DEPASSEMENT /
+   * ITINERANT_SANS_LIEU_FIXE). Clé JSON SNAKE_CASE (Sf218dDetail `@JsonProperty`).
+   */
+  type_trajet?: string | null;
+  /**
+   * SF-218-52 : temps de trajet quotidien (minutes) extrait par l'IA, pour
+   * pré-fill du champ `tempsTrajetQuotidienMinutes` de
+   * F-DT-81-temps-trajet-deplacement (FR uniquement). Clé JSON SNAKE_CASE
+   * (Sf218dDetail `@JsonProperty`).
+   */
+  temps_trajet_quotidien_minutes?: number | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de

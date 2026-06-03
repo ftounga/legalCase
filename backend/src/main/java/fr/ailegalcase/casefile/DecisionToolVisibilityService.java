@@ -299,6 +299,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "conge_proche_aidant_detecte");
         // SF-218-49 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-80 RTT / acquisition selon accord d'aménagement.
         addBooleanFlagIfTrue(detected, travailNode, "rtt_acquisition_detectee");
+        // SF-218-51 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-81 temps de trajet / déplacement professionnel.
+        addBooleanFlagIfTrue(detected, travailNode, "temps_trajet_detecte");
         // SF-218-33 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-69 délégué syndical / RSS : désignation et protection.
         addBooleanFlagIfTrue(detected, travailNode, "delegation_syndicale_detectee");
         // SF-218-31 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-67 accord d'entreprise / validité.

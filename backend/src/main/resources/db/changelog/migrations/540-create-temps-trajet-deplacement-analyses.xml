@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d" author="legalcase">
+        <comment>
+            SF-218-51 — table `temps_trajet_deplacement_analyses` pour l'outil
+            decisionnel "Temps de trajet / deplacement professionnel"
+            (F-DT-81-temps-trajet-deplacement, FRANCE).
+
+            Outil single-country FR : qualifie le temps de trajet professionnel
+            (temps de travail effectif ou non) et determine si une contrepartie
+            (repos ou financiere) est due (art. L.3121-4 CT ; CJUE 10/09/2015
+            C-266/14 « Tyco »). Le trajet domicile - lieu habituel de travail n'est
+            pas du temps de travail effectif ; s'il depasse le temps normal de
+            trajet, il ouvre droit a une contrepartie sauf si une contrepartie est
+            deja prevue par accord. Pour un salarie itinerant sans lieu de travail
+            fixe, le deplacement domicile - premier/dernier client est qualifie de
+            temps de travail effectif. depassement_minutes = max(0, quotidien -
+            normal). Persiste l'analyse 1:1 par dossier (upsert).
+
+            DISTINCT du remboursement de frais de deplacement et de l'astreinte —
+            invariant « un outil = une situation ».
+
+            Source juridique : art. L.3121-4 du Code du travail ; CJUE C-266/14.
+        </comment>
+
+        <createTable tableName="temps_trajet_deplacement_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_temps_trajet_deplacement_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="qualification" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_trajet" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="temps_trajet_quotidien_minutes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="temps_trajet_normal_minutes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contrepartie_prevue_accord" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contrepartie_due" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="depassement_minutes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="temps_trajet_deplacement_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

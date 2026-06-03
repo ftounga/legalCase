@@ -1136,6 +1136,15 @@ class DashboardTileToolIdIntegrityIT {
             // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
             "F-DT-80-rtt-acquisition",
+            // SF-218-51 : outil F-DT-81 temps de trajet / déplacement professionnel
+            // (art. L.3121-4 CT ; CJUE C-266/14 « Tyco » — qualification du temps de
+            // trajet en temps de travail effectif ou non + verdict de contrepartie
+            // due, FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-52
+            // (même PR). DISTINCT du remboursement de frais de déplacement et de
+            // l'astreinte. Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme
+            // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-81-temps-trajet-deplacement",
             // SF-218-33 : outil F-DT-69 délégué syndical / RSS : désignation et
             // protection (art. L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT,
             // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-34 à
