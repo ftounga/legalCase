@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="544-restore-fdt08-fdt09-fr-contextual-visibility" author="legalcase">
+        <comment>
+            HF-2026-06-03 : bug prod — F-DT-08-licenciement-validity et
+            F-DT-09-comparateur-indemnites sont invisibles sur tout dossier de
+            licenciement FRANCE.
+
+            Cause racine (decision_tool_visibility_rules, country=FRANCE) :
+              - 105 (seed) : 2 CONTEXTUAL FR par outil (type_rupture LICENCIEMENT
+                + LICENCIEMENT_ECONOMIQUE).
+              - 106 : DELETE des CONTEXTUAL (sans filtre country) puis INSERT
+                d ALWAYS_ON FR + BE.
+              - 194 (F-165 SF-165-02) : DELETE des ALWAYS_ON FR (les CONTEXTUAL
+                avaient deja ete supprimes en 106).
+              - Net FR : 0 regle pour ces 2 outils -> jamais dans le catalogue,
+                jamais affiches. BE = ALWAYS_ON intact (toujours visibles).
+
+            Fix : re-insertion des 4 regles CONTEXTUAL FRANCE / DROIT_DU_TRAVAIL
+            de l etat seed-105 (hors RUPTURE_CONVENTIONNELLE, decision migr. 196
+            non rouverte). BE inchange.
+
+            UUID namespace neuf `f1a04001-0000-0000-0000-ffff0008/0009XX`
+            (les anciens aaaaaaaaaa05/06/07/08 supprimes ne sont pas reutilises
+            pour eviter toute ambiguite). Colonnes verifiees vs createTable (104).
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- F-DT-08-licenciement-validity — FRANCE (2 CONTEXTUAL)
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ffff00080001', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-08-licenciement-validity', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 10);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ffff00080002', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-08-licenciement-validity', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 10);
+
+-- =========================================================================
+-- F-DT-09-comparateur-indemnites — FRANCE (2 CONTEXTUAL)
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ffff00090001', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 20);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ffff00090002', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 20);
+        </sql>
+
+        <rollback>
+            DELETE FROM decision_tool_visibility_rules WHERE id IN (
+                'f1a04001-0000-0000-0000-ffff00080001',
+                'f1a04001-0000-0000-0000-ffff00080002',
+                'f1a04001-0000-0000-0000-ffff00090001',
+                'f1a04001-0000-0000-0000-ffff00090002'
+            );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

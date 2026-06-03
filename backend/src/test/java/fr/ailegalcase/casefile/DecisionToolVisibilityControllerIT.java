@@ -237,6 +237,54 @@ class DecisionToolVisibilityControllerIT {
     }
 
     @Test
+    void HF_2026_06_03_travailFr_avecAnalyseLicenciement_returns200_contextualContains_FDT08_FDT09() throws Exception {
+        // Regression HF-2026-06-03 : F-DT-08 (validité licenciement) et F-DT-09
+        // (comparateur indemnités) étaient invisibles sur tout dossier de
+        // licenciement FR (0 règle de visibilité FR après migrations 106 + 194).
+        // La migration 544 ré-insère les 2 CONTEXTUAL FR par outil sur type_rupture
+        // LICENCIEMENT / LICENCIEMENT_ECONOMIQUE. Ce test ÉCHOUE sans la migration
+        // 544 (les deux outils tombent dans le catalog/nulle part) et PASSE avec.
+        persistAnalysis(travailCf, """
+                { "compensation_data": { "type_rupture": "LICENCIEMENT" } }
+                """);
+
+        mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/decision-tools-visibility")
+                        .with(authentication(authTravailFr)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
+                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")));
+    }
+
+    @Test
+    void HF_2026_06_03_travailFr_avecAnalyseLicenciementEconomique_returns200_contextualContains_FDT08_FDT09() throws Exception {
+        // Regression HF-2026-06-03 — variante LICENCIEMENT_ECONOMIQUE.
+        persistAnalysis(travailCf, """
+                { "compensation_data": { "type_rupture": "LICENCIEMENT_ECONOMIQUE" } }
+                """);
+
+        mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/decision-tools-visibility")
+                        .with(authentication(authTravailFr)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
+                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")));
+    }
+
+    @Test
+    void HF_2026_06_03_travailFr_avecAnalyseRuptureConv_FDT08_FDT09_nonContextuels() throws Exception {
+        // Non-régression : sur RUPTURE_CONVENTIONNELLE, F-DT-08/F-DT-09 ne sont PAS
+        // activés (état seed-105 conservé, pas de trigger RC — décision migr. 196).
+        persistAnalysis(travailCf, """
+                { "compensation_data": { "type_rupture": "RUPTURE_CONVENTIONNELLE" } }
+                """);
+
+        mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/decision-tools-visibility")
+                        .with(authentication(authTravailFr)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity"))))
+                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites"))));
+    }
+
+    @Test
     void GET_immigrationFr_sansAnalyse_returns200_alwaysOnContientToutLesOutilsImm() throws Exception {
         // Après migration 106 : F-IM-01 et F-IM-06 sont ALWAYS_ON (rétrocompat), plus dans catalog.
         mockMvc.perform(get("/api/v1/case-files/" + immCf.getId() + "/decision-tools-visibility")
