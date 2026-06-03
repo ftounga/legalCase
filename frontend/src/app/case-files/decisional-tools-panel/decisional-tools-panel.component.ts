@@ -485,6 +485,7 @@ import { CohabitationLegaleBeSectionComponent } from '../cohabitation-legale-be-
 import { AdoptionBeSectionComponent } from '../adoption-be-section/adoption-be-section.component';
 import { KafalaBeRecueilLegalSectionComponent } from '../kafala-be-recueil-legal-section/kafala-be-recueil-legal-section.component';
 import { GpaBeSituationContentieuseSectionComponent } from '../gpa-be-situation-contentieuse-section/gpa-be-situation-contentieuse-section.component';
+import { RegimeAlgerienBeSectionComponent } from '../regime-algerien-be-section/regime-algerien-be-section.component';
 // F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
 import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
 // F-217 SF-217-19 — section décisionnelle Vague 3 Famille BE — Contestation de filiation (CC art. 318 nouveau).
@@ -5835,6 +5836,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // SF-223-05 : corridor algérien BE — reconnaissance d'un mariage, d'un
+      // talaq ou d'une dot (mahr) relevant du droit algérien (CDIP, Convention
+      // algéro-belge — à vérifier). Cadre la SPÉCIFICITÉ ALGÉRIENNE (dot/mahr,
+      // conditions du Code algérien, Convention bilatérale) → DISTINCT de l'outil
+      // GÉNÉRAL `mariage-etranger-be-reconnaissance` (F-217), vers lequel il
+      // renvoie pour la mécanique CDIP générale. Migration 587 — CONTEXTUAL,
+      // NOUVEAU flag pivot `regime_algerien_be_detecte` (Sf223Detail). Pré-fill
+      // IA F-246 : nature + date + montant dot (sous-objet
+      // `regime_algerien_be_detection`). Backend SF-223-05 bundle.
+      ['regime-algerien-be', {
+        displayLabel: 'Régime algérien — mariage / talaq / dot (Belgique)',
+        component: RegimeAlgerienBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
       // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
       // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
       // Migration 281 — CONTEXTUAL avec trigger non extrait V1
@@ -6602,6 +6622,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-223-04 : situation contentieuse post-GPA BE (vide juridique). VALIDITE
     // — cadrage de l'établissement de la filiation (voies de droit commun), pas un délai.
     ['gpa-be-situation-contentieuse', 'VALIDITE'],
+    // SF-223-05 : corridor algérien BE (mariage / talaq / dot — CDIP, Convention
+    // algéro-belge). VALIDITE — qualification du sort de l'acte (reconnaissance /
+    // refus ordre public / effet patrimonial de la dot), pas un délai.
+    ['regime-algerien-be', 'VALIDITE'],
     // F-217 SF-217-15 : protection du majeur BE — outil d'orientation /
     // qualification de la mesure adéquate (loi 17/03/2013). VALIDITE plutôt
     // que DELAIS malgré l'urgence potentielle (qui est qualifiée à l'audience,

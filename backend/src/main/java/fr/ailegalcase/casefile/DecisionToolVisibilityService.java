@@ -564,6 +564,11 @@ public class DecisionToolVisibilityService {
         // post-GPA (vide juridique GPA en Belgique — à vérifier). Consolidé dans
         // Sf223Detail (@JsonUnwrapped) → aplati sur familleNode → lu à plat.
         addBooleanFlagIfTrue(detected, familleNode, "gpa_be_situation_contentieuse_detectee");
+        // SF-223-05 — flag pivot CONTEXTUAL Famille BE : corridor algérien
+        // (reconnaissance mariage / talaq / dot relevant du droit algérien —
+        // CDIP, Convention algéro-belge). Consolidé dans Sf223Detail
+        // (@JsonUnwrapped) → aplati sur familleNode → lu à plat.
+        addBooleanFlagIfTrue(detected, familleNode, "regime_algerien_be_detecte");
         return detected;
     }
 

@@ -39,6 +39,7 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'adoption-be', label: 'Adoption — recevabilité (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'kafala-be-recueil-legal', label: 'Recueil légal (kafala) — Belgique', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'gpa-be-situation-contentieuse', label: 'Filiation post-GPA — Belgique', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'regime-algerien-be', label: 'Régime algérien — mariage / talaq / dot (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'pacte-successoral-be-2018', label: 'Pacte successoral 2018 (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'protection-majeur-be', label: 'Protection du majeur (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'regime-mat-be-communaute-legale', label: 'Régime de communauté légale (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
