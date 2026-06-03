@@ -509,6 +509,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `tgd_detection.detecte` (même pattern, art. 41-3-1 CPP).
         addBooleanFlagIfTrueNested(detected, familleNode, "tgd_detection", "detecte",
                 "tgd_detecte");
+        // === SF-222-03 — 1 flag CONTEXTUAL Famille FR : habilitation familiale ===
+        // Lire depuis sous-objet `habilitation_familiale_detection.detecte` (même pattern, art. 494-1 et s. Cciv).
+        addBooleanFlagIfTrueNested(detected, familleNode, "habilitation_familiale_detection", "detecte",
+                "habilitation_familiale_detectee");
         // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");

@@ -4568,7 +4568,19 @@ public record CaseAnalysisResponse(
             Boolean tgdViolences,                       // FR — true si violences avérées ou vraisemblables documentées
             Boolean tgdInterdictionContact,             // FR — true si interdiction de contact issue d'une procédure (OP / CJ / SME / condamnation)
             Boolean tgdNonCohabitation,                 // FR — true si auteur et victime ne cohabitent pas
-            Boolean tgdConsentement) {                  // FR — true si la victime consent expressément au dispositif
+            Boolean tgdConsentement,                    // FR — true si la victime consent expressément au dispositif
+            // SF-222-03 : 7 champs IA habilitation familiale FR (F-FA-HABILITATION-FAMILIALE, art. 494-1 et s. Cciv).
+            // Source : `famille_extracted_data.habilitation_familiale_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // `habilitationFamilialeDetectee` (flag CONTEXTUAL F-IA-04) active la visibilité de l'outil.
+            // Anti-doublon F-FA-25 : conditions PROPRES de l'habilitation familiale, distinct du sélecteur de régime.
+            Boolean habilitationFamilialeDetectee,      // FR — CONTEXTUAL : mention habilitation familiale / art. 494-1 Cciv / proche majeur vulnérable + consensus familial
+            Boolean hfAlteration,                       // FR — true si altération des facultés médicalement constatée (art. 425 Cciv)
+            String hfLienFamilial,                      // FR — ASCENDANT | DESCENDANT | FRERE_SOEUR | CONJOINT_PARTENAIRE | AUTRE | null
+            Boolean hfConsensus,                        // FR — true si consensus familial (absence d'opposition d'un proche)
+            Boolean hfActesPatrimoniaux,                // FR — true si besoin d'actes patrimoniaux
+            Boolean hfActesPersonnels,                  // FR — true si besoin d'actes relatifs à la personne
+            String hfEtendue) {                         // FR — PONCTUELLE | GENERALE | null
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -5036,6 +5048,21 @@ public record CaseAnalysisResponse(
             public Builder tgdInterdictionContact(Boolean v) { this.tgdInterdictionContact = v; return this; }
             public Builder tgdNonCohabitation(Boolean v) { this.tgdNonCohabitation = v; return this; }
             public Builder tgdConsentement(Boolean v) { this.tgdConsentement = v; return this; }
+            // SF-222-03 : setters des 7 champs IA habilitation familiale FR (F-FA-HABILITATION-FAMILIALE).
+            private Boolean habilitationFamilialeDetectee;
+            private Boolean hfAlteration;
+            private String hfLienFamilial;
+            private Boolean hfConsensus;
+            private Boolean hfActesPatrimoniaux;
+            private Boolean hfActesPersonnels;
+            private String hfEtendue;
+            public Builder habilitationFamilialeDetectee(Boolean v) { this.habilitationFamilialeDetectee = v; return this; }
+            public Builder hfAlteration(Boolean v) { this.hfAlteration = v; return this; }
+            public Builder hfLienFamilial(String v) { this.hfLienFamilial = v; return this; }
+            public Builder hfConsensus(Boolean v) { this.hfConsensus = v; return this; }
+            public Builder hfActesPatrimoniaux(Boolean v) { this.hfActesPatrimoniaux = v; return this; }
+            public Builder hfActesPersonnels(Boolean v) { this.hfActesPersonnels = v; return this; }
+            public Builder hfEtendue(String v) { this.hfEtendue = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -5231,7 +5258,15 @@ public record CaseAnalysisResponse(
                         tgdViolences,
                         tgdInterdictionContact,
                         tgdNonCohabitation,
-                        tgdConsentement);
+                        tgdConsentement,
+                        // SF-222-03 : 7 champs IA habilitation familiale FR.
+                        habilitationFamilialeDetectee,
+                        hfAlteration,
+                        hfLienFamilial,
+                        hfConsensus,
+                        hfActesPatrimoniaux,
+                        hfActesPersonnels,
+                        hfEtendue);
             }
         }
     }
@@ -6813,6 +6848,14 @@ public record CaseAnalysisResponse(
     /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
     private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
             "NON_PAYEE", "PARTIELLE", "PAYEE");
+
+    /** SF-222-03 : whitelist lien familial habilitation familiale FR (art. 494-1 Cciv). */
+    private static final java.util.Set<String> HF_LIEN_FAMILIAL_WHITELIST = java.util.Set.of(
+            "ASCENDANT", "DESCENDANT", "FRERE_SOEUR", "CONJOINT_PARTENAIRE", "AUTRE");
+
+    /** SF-222-03 : whitelist étendue habilitation familiale FR (art. 494-1 / 494-6 Cciv). */
+    private static final java.util.Set<String> HF_ETENDUE_WHITELIST = java.util.Set.of(
+            "PONCTUELLE", "GENERALE");
 
     private static String extractProcedureTravailCode(JsonNode travailNode) {
         JsonNode ptd = travailNode.get("procedure_travail_detection");
@@ -8403,6 +8446,28 @@ public record CaseAnalysisResponse(
                 || tgdInterdictionContact != null
                 || tgdNonCohabitation != null
                 || tgdConsentement != null;
+        // SF-222-03 : sous-objet `habilitation_familiale_detection` — 7 champs IA pour
+        // l'outil habilitation familiale FR (art. 494-1 et s. Cciv). Anti-doublon F-FA-25 :
+        // conditions PROPRES de l'habilitation, distinct du sélecteur de régime de protection.
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode hf = node.get("habilitation_familiale_detection");
+        boolean hfObject = hf != null && hf.isObject();
+        Boolean habilitationFamilialeDetectee = hfObject ? booleanOrNull(hf, "detecte") : null;
+        Boolean hfAlteration = hfObject ? booleanOrNull(hf, "alteration_facultes_medicalement_constatee") : null;
+        String hfLienFamilial = hfObject
+                ? normalizeEnumCode(textOrNull(hf, "lien_familial_eligible"), HF_LIEN_FAMILIAL_WHITELIST) : null;
+        Boolean hfConsensus = hfObject ? booleanOrNull(hf, "consensus_familial") : null;
+        Boolean hfActesPatrimoniaux = hfObject ? booleanOrNull(hf, "besoin_actes_patrimoniaux") : null;
+        Boolean hfActesPersonnels = hfObject ? booleanOrNull(hf, "besoin_actes_personnels") : null;
+        String hfEtendue = hfObject
+                ? normalizeEnumCode(textOrNull(hf, "protection_ponctuelle_ou_generale"), HF_ETENDUE_WHITELIST) : null;
+        boolean sf222_03Present = habilitationFamilialeDetectee != null
+                || hfAlteration != null
+                || hfLienFamilial != null
+                || hfConsensus != null
+                || hfActesPatrimoniaux != null
+                || hfActesPersonnels != null
+                || hfEtendue != null;
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
@@ -8600,7 +8665,8 @@ public record CaseAnalysisResponse(
                 && !sf216_25Present
                 && !sf216_29Present
                 && !sf222_01Present
-                && !sf222_02Present) {
+                && !sf222_02Present
+                && !sf222_03Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -8843,6 +8909,14 @@ public record CaseAnalysisResponse(
                 .tgdInterdictionContact(tgdInterdictionContact)
                 .tgdNonCohabitation(tgdNonCohabitation)
                 .tgdConsentement(tgdConsentement)
+                // SF-222-03 : 7 champs IA habilitation familiale FR.
+                .habilitationFamilialeDetectee(habilitationFamilialeDetectee)
+                .hfAlteration(hfAlteration)
+                .hfLienFamilial(hfLienFamilial)
+                .hfConsensus(hfConsensus)
+                .hfActesPatrimoniaux(hfActesPatrimoniaux)
+                .hfActesPersonnels(hfActesPersonnels)
+                .hfEtendue(hfEtendue)
                 .build();
     }
 
