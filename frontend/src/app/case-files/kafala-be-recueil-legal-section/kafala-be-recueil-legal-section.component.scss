@@ -1,0 +1,246 @@
+/**
+ * SF-223-03 : styles outil "Recueil légal (kafala — Belgique)".
+ * Palette navy/or/vert/rouge alignée sur les outils Famille BE (THEME VALIDITE).
+ *
+ * Rouge réservé à EFFET_ADOPTIF_EXCLU (blocage de la voie adoptive). Vert pour
+ * RECUEIL_RECONNU_COMME_PROTECTION. Or pour RECONNAISSANCE_SOUS_CONDITIONS.
+ * Navy info pour QUALIFICATION_INCOMPLETE.
+ */
+
+.kaf-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.kaf-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.kaf-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.kaf-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.kaf-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok   { background: rgba(34, 139, 34, 0.10); color: #1f7a3a; }
+  &--warn { background: rgba(201, 165, 75, 0.14); color: #8a6d20; }
+  &--ko   { background: rgba(220, 53, 69, 0.10); color: #B11A28; }
+  &--info { background: rgba(26, 58, 92, 0.10); color: #1A3A5C; }
+}
+
+.kaf-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.kaf-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.kaf-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.kaf-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon { color: #1A3A5C; flex-shrink: 0; }
+}
+
+.kaf-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.kaf-full { width: 100%; }
+
+.kaf-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.kaf-block-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.kaf-inline-field { width: 100%; max-width: 420px; }
+
+.kaf-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.kaf-num-field { width: 100%; max-width: 180px; }
+.kaf-iso-field { width: 100%; max-width: 220px; }
+.kaf-date-field { width: 100%; max-width: 220px; }
+
+.kaf-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+.kaf-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kaf-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+
+  mat-icon { font-size: 24px; width: 24px; height: 24px; flex-shrink: 0; }
+
+  &--ok {
+    background: rgba(34, 139, 34, 0.08);
+    border-left: 4px solid #1f7a3a;
+    color: #1f7a3a;
+    mat-icon { color: #1f7a3a; }
+  }
+
+  &--warn {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6d20;
+    mat-icon { color: #8a6d20; }
+  }
+
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+
+  &--info {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+}
+
+.kaf-verdict-text { display: flex; flex-direction: column; gap: 2px; }
+.kaf-verdict-label { font-size: 14px; font-weight: 700; letter-spacing: 0.03em; }
+.kaf-verdict-type {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-weight: 500;
+}
+
+.kaf-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.kaf-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  ul {
+    list-style: disc inside;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.kaf-list-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.kaf-bases li {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}

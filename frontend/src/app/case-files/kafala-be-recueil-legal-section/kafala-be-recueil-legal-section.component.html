@@ -1,0 +1,182 @@
+<section class="kaf-section">
+  <header class="kaf-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="kaf-body">
+    <mat-icon class="kaf-icon">volunteer_activism</mat-icon>
+    <span class="kaf-title">KAFALA — RECUEIL LÉGAL (BELGIQUE)</span>
+    @if (result()) {
+      <span class="kaf-chip-summary"
+            [class.kaf-chip-summary--ok]="result()!.verdict === 'RECUEIL_RECONNU_COMME_PROTECTION'"
+            [class.kaf-chip-summary--warn]="result()!.verdict === 'RECONNAISSANCE_SOUS_CONDITIONS'"
+            [class.kaf-chip-summary--ko]="result()!.verdict === 'EFFET_ADOPTIF_EXCLU'"
+            [class.kaf-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="kaf-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="kaf-body" class="kaf-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="kaf-country-banner" data-testid="kaf-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — recueil légal (kafala) prononcé à l'étranger (CDIP ; CC art. 343 al. 2 nouveau — à vérifier par avocat belge). La kafala n'est pas une adoption (aucun lien de filiation). La France refuse l'adoption d'enfant kafala (Cciv art. 370-3).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="kaf-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="kaf-form" (ngSubmit)="calculate()">
+            <div class="kaf-block kaf-full">
+              <span class="kaf-block-label">Objectif envisagé</span>
+              <mat-form-field appearance="outline" class="kaf-inline-field">
+                <mat-label>Objectif visé pour la kafala en Belgique</mat-label>
+                <mat-select [ngModel]="objectifEnvisage()"
+                            (ngModelChange)="objectifEnvisage.set($event)"
+                            name="objectifEnvisage" required>
+                  @for (opt of objectifOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="kaf-block kaf-full">
+              <span class="kaf-block-label">Acte de kafala (origine et date)</span>
+              <div class="kaf-row">
+                <mat-form-field appearance="outline" class="kaf-iso-field">
+                  <mat-label>Pays d'origine (ISO-2, ex. MA)</mat-label>
+                  <input matInput maxlength="2"
+                         [ngModel]="paysOrigineKafala()"
+                         (ngModelChange)="paysOrigineKafala.set($event)"
+                         name="paysOrigineKafala">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="kaf-date-field">
+                  <mat-label>Date de l'acte</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateActeKafala()"
+                         (ngModelChange)="dateActeKafala.set($event)"
+                         name="dateActeKafala">
+                </mat-form-field>
+              </div>
+            </div>
+
+            <div class="kaf-block kaf-full">
+              <span class="kaf-block-label">Conditions de reconnaissance (CDIP — à vérifier)</span>
+              <mat-slide-toggle [ngModel]="acteOfficielJudiciaireOuAdoul()"
+                                (ngModelChange)="acteOfficielJudiciaireOuAdoul.set($event)"
+                                name="acteOfficielJudiciaireOuAdoul">
+                Acte de kafala officiel (décision judiciaire ou acte adoulaire / notarial)
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="consentementParentsBiologiquesOuAutorite()"
+                                (ngModelChange)="consentementParentsBiologiquesOuAutorite.set($event)"
+                                name="consentementParentsBiologiquesOuAutorite">
+                Consentement des parents biologiques ou décision de l'autorité compétente
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="enfantAbandonneOuOrphelin()"
+                                (ngModelChange)="enfantAbandonneOuOrphelin.set($event)"
+                                name="enfantAbandonneOuOrphelin">
+                Enfant abandonné ou orphelin
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="kafilDomicilieBelgique()"
+                                (ngModelChange)="kafilDomicilieBelgique.set($event)"
+                                name="kafilDomicilieBelgique">
+                Kafil (recueillant) domicilié en Belgique
+              </mat-slide-toggle>
+            </div>
+
+            <div class="kaf-block kaf-full">
+              <mat-form-field appearance="outline" class="kaf-inline-field">
+                <mat-label>Commentaire (facultatif)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="kaf-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Analyser le recueil légal
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="kaf-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="kaf-verdict-text">
+                <span class="kaf-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="kaf-verdict-type">{{ objectifLabel(r.objectifEnvisage) }}</span>
+              </div>
+            </div>
+
+            @if (r.messages.length) {
+              <ul class="kaf-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.motifsConditions.length) {
+              <div class="kaf-list-block">
+                <span class="kaf-list-title">{{ motifsTitle(r.verdict) }}</span>
+                <ul>
+                  @for (c of r.motifsConditions; track c) {
+                    <li [innerHTML]="c | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.actesAProduire.length) {
+              <div class="kaf-list-block">
+                <span class="kaf-list-title">Actes à produire</span>
+                <ul>
+                  @for (a of r.actesAProduire; track a) {
+                    <li [innerHTML]="a | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="kaf-list-block kaf-bases">
+                <span class="kaf-list-title">Bases juridiques (à vérifier par avocat belge)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="kaf-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>

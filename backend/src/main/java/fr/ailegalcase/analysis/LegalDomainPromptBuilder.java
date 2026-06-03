@@ -439,6 +439,12 @@ public final class LegalDomainPromptBuilder {
                 - "agrement_mentionne" : booléen ou null. **BELGIQUE UNIQUEMENT** — true si les pièces mentionnent un agrément du tribunal de la famille / une enquête sociale déjà obtenu(e) (CC art. 346-1 — à vérifier) ; false si explicitement écarté ; null si non documenté.
               **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour les 2 champs sans erreur.
               **RÈGLE BELGIQUE** : pour un dossier famille FRANCE, ce sous-objet DOIT être null.
+            SF-223-03 — Nouveau sous-objet `kafala_be_detection` (BELGIQUE UNIQUEMENT — CDIP, loi du 16/07/2004 ; Code civil belge art. 343 al. 2 nouveau / recueil légal — kafala). La kafala n'est PAS une adoption (elle ne crée aucun lien de filiation) : DISTINCT de `adoption_be_detection`. Alimente le pré-remplissage de l'outil décisionnel `kafala-be-recueil-legal`. Le flag pivot `kafala_recueil_detecte` (déclaré plus haut) gouverne l'affichage de l'outil ; ce sous-objet porte les champs value extractibles.
+              "kafala_be_detection" : objet OU null. **BELGIQUE UNIQUEMENT** — renseigne-le UNIQUEMENT pour un dossier de droit de la famille BELGIQUE évoquant une kafala / un recueil légal prononcé à l'étranger (mots-clés « kafala », « recueil légal », « makfoul », « acte adoulaire », « enfant recueilli »). Pour un dossier famille FRANCE, ce sous-objet DOIT rester null. Les champs internes :
+                - "pays_origine" : chaîne ou null. **BELGIQUE UNIQUEMENT** — code pays ISO 3166-1 alpha-2 du pays où la kafala a été prononcée (ex. "MA", "DZ") si identifiable dans les pièces ; null si non documenté.
+                - "date_acte" : chaîne ISO YYYY-MM-DD ou null. **BELGIQUE UNIQUEMENT** — date de l'acte de kafala (décision judiciaire ou acte adoulaire) si elle ressort des pièces ; null si non documentée.
+              **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour les 2 champs sans erreur.
+              **RÈGLE BELGIQUE** : pour un dossier famille FRANCE, ce sous-objet DOIT être null.
             """;
 
     // Le prompt TRAVAIL est découpé en 2 constantes (PART1 + PART2) puis

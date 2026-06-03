@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="582-create-kafala-be-recueil-legal-analyses" author="legalcase">
+        <comment>
+            SF-223-03 : table dédiée à l'outil décisionnel "Recueil légal
+            (kafala) — Belgique" (CDIP, loi du 16/07/2004 ; Code civil belge
+            art. 343 al. 2 nouveau — à vérifier par avocat belge, renumérotation
+            CC post-réformes 2017-2019).
+
+            Outil unique (1 outil = 1 situation « sort d'une kafala étrangère en
+            Belgique ») qualifiant : exclusion de l'effet adoptif (la kafala ne
+            crée pas de lien de filiation), reconnaissance possible comme mesure
+            de recueil / protection via le DIP, et effets dérivés (délégation
+            d'autorité parentale, tutelle officieuse).
+
+            Verdict en 4 niveaux : RECUEIL_RECONNU_COMME_PROTECTION /
+            RECONNAISSANCE_SOUS_CONDITIONS / EFFET_ADOPTIF_EXCLU /
+            QUALIFICATION_INCOMPLETE.
+
+            BELGIQUE UNIQUEMENT — DISTINCT de `adoption-be` (la kafala n'est PAS
+            une adoption : effet de protection, pas de filiation) et de
+            `mariage-etranger-be-reconnaissance` (acte de nature différente). Ne
+            tranche pas le séjour (immigration F-IM-*) ni la succession
+            (dip-be-loi-applicable-famille). BE-only pur, aucun équivalent FR
+            (la France refuse l'adoption d'enfant kafala — Cciv art. 370-3).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul
+            (pattern F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 583
+            livrée dans le même bundle SF-223-03 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 582 = numéro libre suivant après 581 (seed SF-223-02
+            adoption-be).
+        </comment>
+
+        <createTable tableName="kafala_be_recueil_legal_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_kafala_be_recueil_legal_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="kafala_be_recueil_legal_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_kafala_be_recueil_legal_analyses_case_file"/>
+
+        <createIndex tableName="kafala_be_recueil_legal_analyses"
+                     indexName="idx_kafala_be_recueil_legal_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="kafala_be_recueil_legal_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -5814,11 +5814,20 @@ public record CaseAnalysisResponse(
             String adoptionBeTypeDetecte,
             // SF-223-02 — true si les pièces mentionnent un agrément du tribunal
             // de la famille déjà obtenu (CC art. 346-1 — à vérifier).
-            Boolean adoptionBeAgrementMentionneBeDetecte
+            Boolean adoptionBeAgrementMentionneBeDetecte,
+            // SF-223-03 — champs value de l'outil kafala-be-recueil-legal
+            // (CDIP ; CC art. 343 al. 2). BELGIQUE UNIQUEMENT. Le flag pivot
+            // CONTEXTUAL est `kafalaRecueilDetecte`, porté par le record parent
+            // (F-202) ; ces deux champs value y sont CONSOLIDÉS pour rester sous
+            // le plafond JVM 255 paramètres (clés JSON inchangées, @JsonUnwrapped).
+            // Pays d'origine de la kafala (code ISO 3166-1 alpha-2), sinon null.
+            String kafalaPaysOrigineDetecte,
+            // Date de l'acte de kafala (ISO YYYY-MM-DD), sinon null.
+            String kafalaDateActeDetectee
     ) {
         /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
         public static Sf223Detail empty() {
-            return new Sf223Detail(null, null, null, null, null);
+            return new Sf223Detail(null, null, null, null, null, null, null);
         }
     }
 
@@ -9341,12 +9350,24 @@ public record CaseAnalysisResponse(
                 : null;
         Boolean adoptionBeAgrementMentionneBeDetecte = adoptBeObject
                 ? booleanOrNull(adoptBe, "agrement_mentionne") : null;
+        // SF-223-03 : sous-objet `kafala_be_detection` — 2 champs value pour
+        // l'outil kafala-be-recueil-legal (CDIP ; CC art. 343 al. 2). BELGIQUE
+        // UNIQUEMENT — null si dossier FR. Le flag pivot CONTEXTUAL
+        // `kafala_recueil_detecte` reste lu plus haut (record parent, F-202).
+        JsonNode kafBe = node.get("kafala_be_detection");
+        boolean kafBeObject = kafBe != null && kafBe.isObject();
+        String kafalaPaysOrigineDetecte = kafBeObject
+                ? textOrNull(kafBe, "pays_origine") : null;
+        String kafalaDateActeDetectee = kafBeObject
+                ? textOrNull(kafBe, "date_acte") : null;
         Sf223Detail sf223Detail = new Sf223Detail(
                 declarationCohabitationLegaleMentionneeBeDetectee,
                 domicileCommunBeDetecte,
                 adoptionBeDetectee,
                 adoptionBeTypeDetecte,
-                adoptionBeAgrementMentionneBeDetecte);
+                adoptionBeAgrementMentionneBeDetecte,
+                kafalaPaysOrigineDetecte,
+                kafalaDateActeDetectee);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
