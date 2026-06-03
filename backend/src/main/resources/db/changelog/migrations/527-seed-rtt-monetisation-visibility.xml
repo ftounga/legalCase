@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="763d0639-4fe6-4e2e-8aac-4eac4b02fe87" author="legalcase">
+        <comment>
+            SF-218-37 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "RTT — monetisation (rachat de jours de RTT)"
+            (F-DT-51-rtt-monetisation, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de monetisation de RTT (mentions « rachat de RTT »,
+            « monetisation des RTT », « renonciation a des jours de RTT »,
+            « jours de RTT payes », « remuneration majoree des RTT »). Flag pivot
+            `rtt_monetisation_detectee` = true. trigger_field =
+            'rtt_monetisation_detectee', trigger_value = 'true'. priority 91 —
+            valeur libre pre-assignee pour le couple (DROIT_DU_TRAVAIL, FRANCE)
+            au-dela du seed CONTEXTUAL FR le plus recent (F-DT-100 reglement
+            interieur = 90).
+
+            Source juridique : loi n° 2022-1157 du 16/08/2022 art. 5.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('763d0639-4fe6-4e2e-8aac-4eac4b02fe87', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-51-rtt-monetisation', 'CONTEXTUAL', 'rtt_monetisation_detectee', 'true', 91);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '763d0639-4fe6-4e2e-8aac-4eac4b02fe87';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

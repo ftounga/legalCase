@@ -1084,6 +1084,12 @@ class DashboardTileToolIdIntegrityIT {
             // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
             "F-DT-100-reglement-interieur-validite",
+            // SF-218-37 : outil F-DT-51 RTT — monétisation (rachat de jours de
+            // RTT) (loi n° 2022-1157 du 16/08/2022 art. 5, FR-only, CONTEXTUAL) —
+            // pas de tuile dashboard. Frontend SF-218-38 (même PR). Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme F-213 / F-219 / F-218
+            // vagues, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-DT-51-rtt-monetisation",
             // SF-218-33 : outil F-DT-69 délégué syndical / RSS : désignation et
             // protection (art. L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT,
             // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-34 à

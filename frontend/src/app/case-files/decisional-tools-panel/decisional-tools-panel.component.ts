@@ -93,6 +93,8 @@ import { HarcelementProcedureInterneSectionComponent } from '../harcelement-proc
 import { NaoNegociationAnnuelleSectionComponent } from '../nao-negociation-annuelle-section/nao-negociation-annuelle-section.component';
 // SF-218-36 : composant complet F-DT-100-reglement-interieur-validite — validité et opposabilité du règlement intérieur (L.1311-1 à L.1322-4, L.1321-1 et s. CT) (Travail FR).
 import { ReglementInterieurValiditeSectionComponent } from '../reglement-interieur-validite-section/reglement-interieur-validite-section.component';
+// SF-218-38 : composant complet F-DT-51-rtt-monetisation — éligibilité + montant brut majoré de la monétisation de jours de RTT (loi n° 2022-1157 du 16/08/2022 art. 5) (Travail FR).
+import { RttMonetisationSectionComponent } from '../rtt-monetisation-section/rtt-monetisation-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -1945,6 +1947,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-100-reglement-interieur-validite', {
         displayLabel: 'Règlement intérieur — validité (FR)',
         component: ReglementInterieurValiditeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-38 : composant complet F-DT-51-rtt-monetisation — calculateur
+      // d'indemnité de monétisation de jours de RTT (rachat de jours de RTT,
+      // Travail FR). FR uniquement, CONTEXTUAL (flag rttMonetisationDetectee).
+      // Loi n° 2022-1157 du 16/08/2022 art. 5 (LFR 2022), dispositif prolongé
+      // jusqu'au 31/12/2026 : sur demande du salarié et avec accord de
+      // l'employeur, les jours/demi-journées de RTT acquis entre le 01/01/2022 et
+      // le 31/12/2026 peuvent être renoncés contre rémunération majorée (taux
+      // 10–25 %, régime social et fiscal aligné sur les heures supplémentaires).
+      // Verdict ELIGIBLE / NON_ELIGIBLE + montant brut majoré. Distinct de F-DT-19
+      // heures supplémentaires et de F-DT-80 acquisition de JRTT. Pré-fill IA 2
+      // champs (nombreJoursRttRenonces, salaireJournalierBrut) via static
+      // getPrefillCount + RttMonetisationPrefillRules.
+      ['F-DT-51-rtt-monetisation', {
+        displayLabel: 'RTT — monétisation (FR)',
+        component: RttMonetisationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5500,6 +5524,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // DIAGNOSTIC : diagnostic de la situation de conformité employeur (RI),
     // groupé avec les analyseurs de conformité / diagnostic.
     ['F-DT-100-reglement-interieur-validite', 'DIAGNOSTIC'],
+    // SF-218-38 : F-DT-51-rtt-monetisation — calculateur d'indemnité de
+    // monétisation de jours de RTT (montant brut majoré). Thème INDEMNITES :
+    // réutilisation du thème des calculateurs d'indemnités (cf. F-DT-18
+    // fin mission intérim, IFM).
+    ['F-DT-51-rtt-monetisation', 'INDEMNITES'],
     // SF-218-34 : F-DT-69-delegation-syndicale-protection — régularité de la
     // désignation DS / RSS + statut protégé / risque de nullité du licenciement.
     // Thème DIAGNOSTIC : diagnostic de statut + protection (analyseur de situation
