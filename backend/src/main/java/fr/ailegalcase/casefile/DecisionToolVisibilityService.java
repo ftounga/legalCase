@@ -573,6 +573,12 @@ public class DecisionToolVisibilityService {
         // biens BE et ses variantes (Livre 3 CC ; loi du 22/07/2018). Consolidé
         // dans Sf223Detail (@JsonUnwrapped) → aplati sur familleNode → lu à plat.
         addBooleanFlagIfTrue(detected, familleNode, "regime_separation_biens_be_detecte");
+        // SF-223-07 — flag pivot CONTEXTUAL Famille BE : loi applicable en droit
+        // de la famille (DIP : divorce / régime / succession en présence d'un
+        // élément d'extranéité — Rome III ; Règl. UE 2016/1103 ; Règl. UE
+        // 650/2012 ; CDIP). Consolidé dans Sf223Detail (@JsonUnwrapped) → aplati
+        // sur familleNode → lu à plat.
+        addBooleanFlagIfTrue(detected, familleNode, "dip_famille_be_detecte");
         return detected;
     }
 

@@ -5867,12 +5867,32 @@ public record CaseAnalysisResponse(
             String regimeSeparationBiensBePatrimoineEpoux1Detecte,
             // SF-223-06 — patrimoine propre de l'époux 2 pré-rempli si
             // factualisable (chaîne numérique), sinon null.
-            String regimeSeparationBiensBePatrimoineEpoux2Detecte
+            String regimeSeparationBiensBePatrimoineEpoux2Detecte,
+            // SF-223-07 — flag pivot CONTEXTUAL de l'outil
+            // dip-be-loi-applicable-famille (loi applicable au divorce / régime /
+            // succession en présence d'un élément d'extranéité — Rome III ;
+            // Règl. UE 2016/1103 ; Règl. UE 650/2012 ; CDIP). Lu à plat sur le
+            // nœud famille (@JsonUnwrapped) par DecisionToolVisibilityService →
+            // trigger `dip_famille_be_detecte`. BELGIQUE UNIQUEMENT.
+            Boolean dipFamilleBeDetecte,
+            // SF-223-07 — matière pré-remplie si factualisable (DIVORCE /
+            // REGIME_MATRIMONIAL / SUCCESSION), sinon null.
+            String dipFamilleBeMatiereDetectee,
+            // SF-223-07 — résidence habituelle commune pré-remplie (code pays
+            // ISO 3166-1 alpha-2), sinon null.
+            String dipFamilleBeResidenceCommuneDetectee,
+            // SF-223-07 — nationalité commune pré-remplie (code pays ISO 3166-1
+            // alpha-2), sinon null.
+            String dipFamilleBeNationaliteCommuneDetectee,
+            // SF-223-07 — loi choisie par les parties / professio juris
+            // pré-remplie (code pays ISO 3166-1 alpha-2), sinon null.
+            String dipFamilleBeChoixLoiDetecte
     ) {
         /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
         public static Sf223Detail empty() {
             return new Sf223Detail(null, null, null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, null, null, null, null);
+                    null, null, null, null, null, null, null, null, null,
+                    null, null, null, null, null);
         }
     }
 
@@ -7470,6 +7490,10 @@ public record CaseAnalysisResponse(
     private static final java.util.Set<String> REGIME_SEPARATION_BIENS_BE_VARIANTE_WHITELIST = java.util.Set.of(
             "SEPARATION_PURE", "SEPARATION_AVEC_SOCIETE_ACQUETS", "SEPARATION_AVEC_PARTICIPATION_ACQUETS");
 
+    /** SF-223-07 : whitelist matière DIP loi applicable famille BE (dip-be-loi-applicable-famille). */
+    private static final java.util.Set<String> DIP_FAMILLE_BE_MATIERE_WHITELIST = java.util.Set.of(
+            "DIVORCE", "REGIME_MATRIMONIAL", "SUCCESSION");
+
     /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
     private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
             "NON_PAYEE", "PARTIELLE", "PAYEE");
@@ -7503,6 +7527,17 @@ public record CaseAnalysisResponse(
         if (raw == null) return null;
         String up = raw.trim().toUpperCase();
         return allowed.contains(up) ? up : null;
+    }
+
+    /**
+     * SF-223-07 : normalise un code pays ISO 3166-1 alpha-2 (2 lettres
+     * majuscules) ; retourne null si le format n'est pas respecté (le formulaire
+     * de l'outil exige un ISO-2 strict).
+     */
+    private static String normalizeIso2(String raw) {
+        if (raw == null) return null;
+        String up = raw.trim().toUpperCase();
+        return up.matches("^[A-Z]{2}$") ? up : null;
     }
 
     /** SF-155-04-00-BE-travail : parse un objet {reponse, justification} avec troncature 500 car. */
@@ -9467,6 +9502,24 @@ public record CaseAnalysisResponse(
                 ? textOrNull(rsbBe, "patrimoine_epoux1") : null;
         String regimeSeparationBiensBePatrimoineEpoux2Detecte = rsbBeObject
                 ? textOrNull(rsbBe, "patrimoine_epoux2") : null;
+        // SF-223-07 : flag pivot `dip_famille_be_detecte` (lu à plat,
+        // @JsonUnwrapped) + sous-objet `dip_famille_be_detection` — outil
+        // dip-be-loi-applicable-famille (loi applicable au divorce / régime /
+        // succession en présence d'un élément d'extranéité — Rome III ; Règl. UE
+        // 2016/1103 ; Règl. UE 650/2012 ; CDIP). BELGIQUE UNIQUEMENT — null si
+        // dossier FR. Le flag gouverne la visibilité CONTEXTUAL de l'outil.
+        Boolean dipFamilleBeDetecte =
+                booleanOrNull(node, "dip_famille_be_detecte");
+        JsonNode dipBe = node.get("dip_famille_be_detection");
+        boolean dipBeObject = dipBe != null && dipBe.isObject();
+        String dipFamilleBeMatiereDetectee = dipBeObject
+                ? normalizeEnumCode(textOrNull(dipBe, "matiere"), DIP_FAMILLE_BE_MATIERE_WHITELIST) : null;
+        String dipFamilleBeResidenceCommuneDetectee = dipBeObject
+                ? normalizeIso2(textOrNull(dipBe, "residence_habituelle_commune")) : null;
+        String dipFamilleBeNationaliteCommuneDetectee = dipBeObject
+                ? normalizeIso2(textOrNull(dipBe, "nationalite_commune")) : null;
+        String dipFamilleBeChoixLoiDetecte = dipBeObject
+                ? normalizeIso2(textOrNull(dipBe, "choix_loi_parties")) : null;
         Sf223Detail sf223Detail = new Sf223Detail(
                 declarationCohabitationLegaleMentionneeBeDetectee,
                 domicileCommunBeDetecte,
@@ -9486,7 +9539,12 @@ public record CaseAnalysisResponse(
                 regimeSeparationBiensBeVarianteDetectee,
                 regimeSeparationBiensBeDateContratDetectee,
                 regimeSeparationBiensBePatrimoineEpoux1Detecte,
-                regimeSeparationBiensBePatrimoineEpoux2Detecte);
+                regimeSeparationBiensBePatrimoineEpoux2Detecte,
+                dipFamilleBeDetecte,
+                dipFamilleBeMatiereDetectee,
+                dipFamilleBeResidenceCommuneDetectee,
+                dipFamilleBeNationaliteCommuneDetectee,
+                dipFamilleBeChoixLoiDetecte);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="591-seed-dip-be-loi-applicable-famille-visibility" author="legalcase">
+        <comment>
+            SF-223-07 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel `dip-be-loi-applicable-famille` (BELGIQUE).
+
+            Mode `CONTEXTUAL`. NOUVEAU flag pivot `dip_famille_be_detecte`,
+            ajouté dans le sous-record `Sf223Detail` (@JsonUnwrapped → aplati sur
+            `familleExtractedData`) et câblé dans
+            `DecisionToolVisibilityService.buildResponse` (addBooleanFlagIfTrue).
+            Lu à plat sur `familleNode`. BELGIQUE UNIQUEMENT (null / false hors
+            BE) — déclenche sur tout élément d'extranéité familial dans un dossier
+            BE (résidence à l'étranger, nationalité étrangère, biens à l'étranger,
+            choix de loi étrangère).
+
+            La contrainte CK_DTVR_LAYER_TRIGGER (migration 104) impose qu'une
+            règle CONTEXTUAL ait des `trigger_field` / `trigger_value` non nuls.
+
+            priority = 82 : numéro suivant après 81 (regime-be-separation-biens,
+            SF-223-06).
+
+            Le seed est couplé à l'entrée TOOL_REGISTRY frontend livrée dans le
+            même commit (decisional-tools-panel.component.ts) — sans ce
+            couplage, le garde-fou DecisionToolVisibilityIntegrityIT échoue.
+            tool_id = `dip-be-loi-applicable-famille` (identique à la clé
+            TOOL_REGISTRY et au TOOL_ID du ToolBranchRegistry).
+
+            Numéro 591 = numéro libre suivant après 590 (création table).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('08cee023-a190-4564-bdc6-03b352b5a9e8', 'DROIT_FAMILLE', 'BELGIQUE', 'dip-be-loi-applicable-famille', 'CONTEXTUAL', 'dip_famille_be_detecte', 'true', 82);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '08cee023-a190-4564-bdc6-03b352b5a9e8';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

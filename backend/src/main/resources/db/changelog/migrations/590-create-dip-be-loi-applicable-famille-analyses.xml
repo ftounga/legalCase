@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="590-create-dip-be-loi-applicable-famille-analyses" author="legalcase">
+        <comment>
+            SF-223-07 : table dédiée à l'outil décisionnel "Loi applicable en
+            droit de la famille (Belgique — DIP)" : Rome III (Règl. UE 1259/2010),
+            Règl. UE 2016/1103 (régimes matrimoniaux), Règl. UE 650/2012
+            (successions), complétés par le CDIP belge (loi du 16/07/2004) — à
+            vérifier par avocat belge.
+
+            Outil unique (1 outil = 1 situation « détermination de la loi
+            applicable à une situation familiale internationale à instruire »).
+            FUSION explicite des items audit dip-be-loi-applicable-divorce +
+            dip-be-loi-applicable-regime-mat + dip-be-loi-applicable-succession +
+            regime-international-be + succession-be-internationale : la
+            détermination de la loi applicable EST la situation, multi-vues par
+            matière (DIVORCE / REGIME_MATRIMONIAL / SUCCESSION).
+
+            DISTINCT de dip-be-reconnaissance-decision-etrangere (SF-223-08 :
+            reconnaissance / exequatur d'une décision déjà rendue ≠ choix de la
+            loi applicable). Ne tranche pas la compétence juridictionnelle
+            (Bruxelles II ter — hors périmètre V1).
+
+            Verdict : LOI_APPLICABLE_DETERMINEE (loi désignée + fondement de
+            rattachement selon la matière) ou LOI_INDETERMINABLE (éléments de
+            rattachement insuffisants).
+
+            BELGIQUE UNIQUEMENT — BE-only pur (P3 Famille BE — F-223). Aucune
+            citation jurisprudentielle (F-JU-04 parké).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 591
+            livrée dans le même bundle SF-223-07 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 590 = numéro libre suivant après 589 (seed SF-223-06
+            regime-be-separation-biens).
+        </comment>
+
+        <createTable tableName="dip_be_loi_applicable_famille_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_dip_be_loi_applicable_famille_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="dip_be_loi_applicable_famille_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_dip_be_loi_applicable_famille_analyses_case_file"/>
+
+        <createIndex tableName="dip_be_loi_applicable_famille_analyses"
+                     indexName="idx_dip_be_loi_applicable_famille_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="dip_be_loi_applicable_famille_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
