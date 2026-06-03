@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c4d1f3a0-7b2e-4e8a-9d6c-1f0a2b3c4d5e" author="legalcase">
+        <comment>
+            SF-218-47 — table `conge_proche_aidant_analyses` pour l'outil
+            decisionnel "Conge de proche aidant"
+            (F-DT-79-conge-proche-aidant, FRANCE).
+
+            Outil single-country FR : determine l'eligibilite au conge de proche
+            aidant (art. L.3142-16 a L.3142-27 CT, loi n. 2020-220 du 06/03/2020),
+            sa duree maximale et une estimation indicative de l'AJPA. Eligibilite :
+            la personne aidee doit resider en France/EEE de facon stable et
+            reguliere (art. L.3142-16), sinon NON_ELIGIBLE. Duree maximale =
+            12 mois (3 mois renouvelable, dans la limite d'un an sur l'ensemble de
+            la carriere, art. L.3142-19) ; duree_retenue_mois = min(duree
+            souhaitee, 12). Estimation AJPA (si demandee) : montant journalier
+            environ 64,54 euros (2026, a verifier), plafond 66 jours indemnises sur
+            la carriere. Le conge n'est pas imputable sur les conges payes ;
+            reintegration garantie (art. L.3142-20 a L.3142-25). Persiste
+            l'analyse 1:1 par dossier (upsert).
+
+            Distinct du conge parental d'education (F-DT-78) et des conges pour
+            evenements familiaux (F-DT-76) — invariant « un outil = une situation ».
+
+            Source juridique : art. L.3142-16 a L.3142-27 du Code du travail.
+        </comment>
+
+        <createTable tableName="conge_proche_aidant_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_conge_proche_aidant_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lien_personne_aidee" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="personne_aidee_reside_france" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_souhaitee_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_max_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_retenue_mois" type="INT"/>
+            <column name="ajpa_demandee" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="estimation_ajpa" type="DECIMAL(12,2)"/>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="conge_proche_aidant_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

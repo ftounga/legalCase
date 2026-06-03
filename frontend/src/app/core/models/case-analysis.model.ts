@@ -472,6 +472,24 @@ export interface TravailExtractedData {
    */
   date_naissance_ou_adoption?: string | null;
   /**
+   * SF-218-48 : flag pivot CONTEXTUAL — l'IA a détecté des signaux de congé de
+   * proche aidant (mentions « congé de proche aidant », « proche aidant »,
+   * « AJPA », « allocation journalière du proche aidant », « aider un parent
+   * dépendant », « perte d'autonomie d'un proche »). Déclenche l'apparition de
+   * F-DT-79-conge-proche-aidant (FR uniquement). Clé JSON SNAKE_CASE
+   * (Sf218dDetail `@JsonProperty`).
+   */
+  conge_proche_aidant_detecte?: boolean | null;
+  /**
+   * SF-218-48 : lien avec la personne aidée identifié par l'IA dans les pièces
+   * du dossier, pour pré-fill du champ `lienPersonneAidee` de
+   * F-DT-79-conge-proche-aidant (FR uniquement). Valeur alignée sur l'enum
+   * backend {@code CongeProcheAidantLien} (CONJOINT / ASCENDANT / DESCENDANT /
+   * COLLATERAL / SANS_LIEN_RESIDENCE_COMMUNE). Clé JSON SNAKE_CASE (Sf218dDetail
+   * `@JsonProperty`).
+   */
+  lien_personne_aidee?: string | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de
