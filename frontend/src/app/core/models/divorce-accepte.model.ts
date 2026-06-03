@@ -961,6 +961,24 @@ export interface FamilleExtractedData {
   tgdConsentement?: boolean | null;
 
   /**
+   * SF-222-03 : FRANCE — détection habilitation familiale (F-FA-HABILITATION-FAMILIALE,
+   * art. 494-1 et s. Cciv). Source backend : `habilitation_familiale_detection.detecte`. Flag CONTEXTUAL.
+   */
+  habilitationFamilialeDetectee?: boolean | null;
+  /** SF-222-03 : FRANCE — altération des facultés médicalement constatée. Source : `habilitation_familiale_detection.alteration_facultes_medicalement_constatee`. */
+  hfAlteration?: boolean | null;
+  /** SF-222-03 : FRANCE — lien familial éligible. Source : `habilitation_familiale_detection.lien_familial_eligible`. */
+  hfLienFamilial?: 'ASCENDANT' | 'DESCENDANT' | 'FRERE_SOEUR' | 'CONJOINT_PARTENAIRE' | 'AUTRE' | string | null;
+  /** SF-222-03 : FRANCE — consensus familial. Source : `habilitation_familiale_detection.consensus_familial`. */
+  hfConsensus?: boolean | null;
+  /** SF-222-03 : FRANCE — besoin d'actes patrimoniaux. Source : `habilitation_familiale_detection.besoin_actes_patrimoniaux`. */
+  hfActesPatrimoniaux?: boolean | null;
+  /** SF-222-03 : FRANCE — besoin d'actes relatifs à la personne. Source : `habilitation_familiale_detection.besoin_actes_personnels`. */
+  hfActesPersonnels?: boolean | null;
+  /** SF-222-03 : FRANCE — étendue de la protection. Source : `habilitation_familiale_detection.protection_ponctuelle_ou_generale`. */
+  hfEtendue?: 'PONCTUELLE' | 'GENERALE' | string | null;
+
+  /**
    * SF-216-09 : FRANCE — flag CONTEXTUAL délégation autorité parentale envisagée
    * (art. 376-1 Cciv). Source backend : `delegation_ap_detection.envisagee`.
    */

@@ -409,6 +409,8 @@ import { AripaRecouvrementFrSectionComponent } from '../aripa-recouvrement-fr-se
 import { AsfCafSectionComponent } from '../asf-caf-section/asf-caf-section.component';
 // SF-222-02 : composant simulateur TGD téléphone grave danger éligibilité (F-FA-TGD).
 import { TgdSectionComponent } from '../tgd-section/tgd-section.component';
+// SF-222-03 : composant simulateur habilitation familiale (F-FA-HABILITATION-FAMILIALE).
+import { HabilitationFamilialeSectionComponent } from '../habilitation-familiale-section/habilitation-familiale-section.component';
 // SF-216-10 : composant simulateur délégation autorité parentale (F-FA-XX-delegation-ap).
 import { DelegationApFrSectionComponent } from '../delegation-ap-fr-section/delegation-ap-fr-section.component';
 // SF-216-12 : composant simulateur retrait autorité parentale (F-FA-RETRAIT-AP).
@@ -2824,6 +2826,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-TGD', {
         displayLabel: 'Téléphone Grave Danger — éligibilité (FR)',
         component: TgdSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-222-03 : composant simulateur complet (POST/GET backend SF-222-03).
+      // Outil P3 famille FR — habilitation familiale (art. 494-1 et s. Cciv).
+      // Anti-doublon F-FA-25 : conditions PROPRES de l'habilitation familiale,
+      // distinct du sélecteur de régime de protection. Pré-fill IA branché sur
+      // `synthesis.familleExtractedData`.
+      ['F-FA-HABILITATION-FAMILIALE', {
+        displayLabel: 'Habilitation familiale (FR)',
+        component: HabilitationFamilialeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -6329,6 +6346,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-ASF-CAF', 'DIAGNOSTIC'],
     // SF-222-02 : TGD téléphone grave danger éligibilité (FR, art. 41-3-1 CPP).
     ['F-FA-TGD', 'DIAGNOSTIC'],
+    // SF-222-03 : habilitation familiale (FR, art. 494-1 et s. Cciv).
+    ['F-FA-HABILITATION-FAMILIALE', 'DIAGNOSTIC'],
     // SF-216-10 : délégation autorité parentale (FR, art. 376-1 Cciv).
     ['F-FA-XX-delegation-ap', 'DIAGNOSTIC'],
     // SF-216-12 : retrait autorité parentale (FR, art. 378-381 Cciv + loi 2022-140 LMVSS).

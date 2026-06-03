@@ -1,0 +1,161 @@
+<!--
+  SF-222-03 : template de l'outil habilitation familiale
+  (F-FA-HABILITATION-FAMILIALE, FRANCE uniquement — art. 494-1 et s. Cciv).
+  Pattern : tgd-section (SF-222-02).
+-->
+<section class="hf-section" [class.hf-section--collapsed]="collapsed()">
+  <header class="hf-section__header" (click)="toggleCollapse()">
+    <mat-icon class="hf-section__icon">family_restroom</mat-icon>
+    <h3 class="hf-section__title">Habilitation familiale</h3>
+    <span class="hf-section__country">FR</span>
+    <mat-icon class="hf-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="hf-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="hf-banner hf-banner--info" *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France (art. 494-1 et s. Cciv). La
+        protection d'un majeur vulnérable relève en Belgique d'un cadre distinct.
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="hf-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="hf-form" *ngIf="showForm() && !loading()" (submit)="$event.preventDefault(); calculate()">
+        <p class="hf-form__intro">
+          Évaluez si une habilitation familiale (art. 494-1 et s. Cciv) est possible
+          pour protéger un proche majeur vulnérable, et de quel type. Cet outil cadre
+          les conditions PROPRES de l'habilitation familiale (alternative simplifiée
+          à consensus familial) ; il ne re-sélectionne pas le régime de protection
+          (curatelle / tutelle — outil dédié). Le prononcé relève du juge des
+          contentieux de la protection.
+        </p>
+
+        <div class="hf-form__row hf-form__row--checks">
+          <mat-checkbox [checked]="alterationFacultesMedicalementConstatee()"
+                        (change)="onAlterationChange($event.checked)"
+                        name="alteration">
+            Altération des facultés médicalement constatée (art. 425 Cciv)
+            <mat-icon *ngIf="provenanceAlteration() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="consensusFamilial()"
+                        (change)="onConsensusChange($event.checked)"
+                        name="consensus">
+            Consensus familial (absence d'opposition d'un proche)
+            <mat-icon *ngIf="provenanceConsensus() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="besoinActesPatrimoniaux()"
+                        (change)="onActesPatrimoniauxChange($event.checked)"
+                        name="actesPatrimoniaux">
+            Besoin d'actes patrimoniaux (gestion / disposition du patrimoine)
+            <mat-icon *ngIf="provenanceActesPatrimoniaux() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="besoinActesPersonnels()"
+                        (change)="onActesPersonnelsChange($event.checked)"
+                        name="actesPersonnels">
+            Besoin d'actes relatifs à la personne (santé, logement, vie personnelle)
+            <mat-icon *ngIf="provenanceActesPersonnels() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+        </div>
+
+        <div class="hf-form__row hf-form__row--selects">
+          <mat-form-field appearance="outline" class="hf-form__field">
+            <mat-label>Lien familial du demandeur</mat-label>
+            <mat-select [value]="lienFamilialEligible()"
+                        (selectionChange)="onLienChange($event.value)"
+                        name="lien">
+              <mat-option *ngFor="let l of liensFamiliaux" [value]="l.value">{{ l.label }}</mat-option>
+            </mat-select>
+            <mat-icon matSuffix *ngIf="provenanceLien() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="hf-form__field">
+            <mat-label>Étendue de la protection</mat-label>
+            <mat-select [value]="protectionPonctuelleOuGenerale()"
+                        (selectionChange)="onEtendueChange($event.value)"
+                        name="etendue">
+              <mat-option *ngFor="let e of etendues" [value]="e.value">{{ e.label }}</mat-option>
+            </mat-select>
+            <mat-icon matSuffix *ngIf="provenanceEtendue() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="hf-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Analyse en cours…' : 'Évaluer l\'habilitation familiale' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="hf-result" *ngIf="!showForm() && result() as r">
+        <div class="hf-result__verdict" [ngClass]="verdictClass(r.verdict)">
+          <mat-icon>fact_check</mat-icon>
+          <div>
+            <span class="hf-result__verdict-label">Verdict</span>
+            <strong class="hf-result__verdict-value">{{ verdictLabel(r.verdict) }}</strong>
+          </div>
+        </div>
+
+        <div class="hf-result__modalite" *ngIf="modaliteLabel(r.modalite) as m">
+          <h4>Modalité</h4>
+          <p>{{ m }}</p>
+        </div>
+
+        <div class="hf-result__actes" *ngIf="r.actesCouverts.length > 0">
+          <h4>Actes couverts</h4>
+          <ul>
+            <li *ngFor="let a of r.actesCouverts">{{ a }}</li>
+          </ul>
+        </div>
+
+        <div class="hf-result__manquants" *ngIf="r.conditionsManquantes.length > 0">
+          <h4>Conditions manquantes</h4>
+          <ul>
+            <li *ngFor="let c of r.conditionsManquantes">{{ c }}</li>
+          </ul>
+        </div>
+
+        <div class="hf-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Analyse et conseils</h4>
+          <ul>
+            <li *ngFor="let msg of r.messages">{{ msg }}</li>
+          </ul>
+        </div>
+
+        <div class="hf-result__base" *ngIf="r.basesJuridiques.length > 0">
+          <h4>Bases juridiques</h4>
+          <ul>
+            <li *ngFor="let b of r.basesJuridiques">{{ b | legalCitations }}</li>
+          </ul>
+        </div>
+
+        <div class="hf-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+  <app-tool-jurisprudence-citations
+    [toolId]="toolIdForJurisprudence"
+    [branchActive]="brancheActiveForJurisprudence">
+  </app-tool-jurisprudence-citations>
+</section>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="549-create-habilitation-familiale-analyses" author="legalcase">
+        <comment>
+            SF-222-03 (F-222) : table dediee a l'outil decisionnel "Habilitation
+            familiale" (F-FA-HABILITATION-FAMILIALE, FRANCE — art. 494-1 a 494-12
+            Cciv).
+
+            Outil d'ANALYSE des conditions PROPRES de l'habilitation familiale :
+            altered facultes medicalement constatee ET lien familial eligible
+            (ascendant / descendant / frere-soeur / conjoint-partenaire) ET
+            consensus familial (absence d'opposition d'un proche). Verdict 3
+            niveaux : ELIGIBLE_HABILITATION_GENERALE (etendue generale, art.
+            494-6) / ELIGIBLE_HABILITATION_SPECIALE (actes determines, art. 494-1)
+            / ORIENTER_VERS_MESURE_JUDICIAIRE (conditions non reunies — renvoi vers
+            une mesure judiciaire de protection, outil F-FA-25). Modalite
+            ASSISTANCE (besoin leger) ou REPRESENTATION (besoin lourd).
+
+            Anti-doublon F-FA-25 (selecteur de regime de protection
+            sauvegarde / curatelle / tutelle / mandat) : cet outil F-FA-HABILITATION-FAMILIALE
+            est DISTINCT — il ne re-selectionne pas le regime, il cadre les
+            conditions PROPRES de l'habilitation familiale (alternative simplifiee
+            a consensus familial) et renvoie vers F-FA-25 quand elles ne sont pas
+            reunies.
+
+            L'outil CONSEILLE l'avocat ; le PRONONCE releve du juge des contentieux
+            de la protection (art. 494-1 et s. Cciv).
+
+            Outil single-country FRANCE. Snapshot JSON complet (inputs + outputs)
+            dans result_data pour restitution UI sans recalcul.
+
+            Le seed de la regle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porte par la migration 550 (couple a l'entree TOOL_REGISTRY livree
+            dans la meme PR — pattern SF-222-01 / SF-222-02).
+        </comment>
+
+        <createTable tableName="habilitation_familiale_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_hab_fam_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="habilitation_familiale_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_hab_fam_analyses_case_file"/>
+
+        <createIndex tableName="habilitation_familiale_analyses"
+                     indexName="idx_hab_fam_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="habilitation_familiale_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
