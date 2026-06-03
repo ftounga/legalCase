@@ -4,19 +4,27 @@ import { test, expect } from '@playwright/test';
  * Smoke tests — Landing page V3 (F-158)
  *
  * Garantissent que la landing reflète le repositionnement F-158 :
- * - Plateforme de 92 outils décisionnels (vs analyseur de docs)
+ * - Hero « chaîne de valeur » : de vos pièces jusqu'aux conclusions (SF-158-04)
+ * - Plateforme de 250+ outils décisionnels (vs analyseur de docs)
  * - Pricing V7 (SOLO 99 / TEAM 219 / PRO 429) — pas V1 (59/119/249)
- * - Composant catalogue 92 outils filtrable visible
+ * - Composant catalogue 250+ outils filtrable visible
  * - Section OCR + Vision visible
  * - Lien Blog dans la nav
  */
 
 test.describe('Landing V3 — repositionnement F-158', () => {
 
-  test('H1 mentionne « 92 outils décisionnels »', async ({ page }) => {
+  test('H1 nomme la chaîne de valeur jusqu\'aux conclusions', async ({ page }) => {
     await page.goto('/');
     const h1 = page.locator('h1').first();
-    await expect(h1).toContainText('92 outils décisionnels', { timeout: 8000 });
+    await expect(h1).toContainText('conclusions', { timeout: 8000 });
+    await expect(h1).not.toContainText('92');
+  });
+
+  test('stat hero — 250+ outils décisionnels intégrés', async ({ page }) => {
+    await page.goto('/');
+    const counter = page.locator('.hero-stats .counter[data-target="250"]');
+    await expect(counter).toBeVisible();
   });
 
   test('pricing V7 — Solo 99, Team 219, Pro 429 affichés', async ({ page }) => {
@@ -28,7 +36,7 @@ test.describe('Landing V3 — repositionnement F-158', () => {
     await expect(page.locator('.pricing-card .price-amount').nth(3)).toContainText('429 €');
   });
 
-  test('catalogue 92 outils — composant rendu et au moins 1 card', async ({ page }) => {
+  test('catalogue 250+ outils — composant rendu et au moins 1 card', async ({ page }) => {
     await page.goto('/');
     const showcase = page.locator('app-landing-tools-showcase');
     await showcase.scrollIntoViewIfNeeded();
