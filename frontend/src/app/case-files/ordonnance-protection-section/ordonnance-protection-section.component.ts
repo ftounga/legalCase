@@ -179,6 +179,8 @@ export class OrdonnanceProtectionSectionComponent implements OnInit, OnChanges {
   victimeFinanciairementDependante = signal<boolean>(false);
   demandeurDejaProtege = signal<boolean>(false);
   demandeMesures = signal<MesureCode[]>([]);
+  // SF-222-05 : DEC envisagé (toggle dédié, option avocat — pas de pré-fill IA).
+  decEnvisage = signal<boolean>(false);
 
   // Provenance IA par champ.
   provenanceDateRequete = signal<'IA' | null>(null);
@@ -195,7 +197,10 @@ export class OrdonnanceProtectionSectionComponent implements OnInit, OnChanges {
 
   readonly violencesOptions: ViolenceOption[] = VIOLENCES_FR;
   readonly preuvesOptions: PreuveOption[] = PREUVES_FR;
-  readonly mesuresOptions: MesureOption[] = MESURES_FR;
+  // SF-222-05 : le DEC est piloté par un toggle dédié (decEnvisage), pas par
+  // ce multi-select des mesures demandées — on l'en exclut pour éviter le
+  // double pilotage. Le label DEC reste dans MESURES_FR pour le rendu des chips.
+  readonly mesuresOptions: MesureOption[] = MESURES_FR.filter((m) => m.code !== 'DEC');
 
   // Alertes calculées dynamiquement via le builder partagé.
   // Gate strict `showForm()` (pattern anti-bug SF-IA-03-12).
@@ -570,6 +575,10 @@ export class OrdonnanceProtectionSectionComponent implements OnInit, OnChanges {
     this.demandeMesures.set(value ?? []);
   }
 
+  onDecEnvisageChange(value: boolean): void {
+    this.decEnvisage.set(!!value);
+  }
+
   // ---------------------------------------------------------------------------
   // Display helpers
   // ---------------------------------------------------------------------------
@@ -611,6 +620,7 @@ export class OrdonnanceProtectionSectionComponent implements OnInit, OnChanges {
       victimeFinanciairementDependante: this.victimeFinanciairementDependante(),
       demandeurDejaProtege: this.demandeurDejaProtege(),
       demandeMesures: this.demandeMesures(),
+      decEnvisage: this.decEnvisage(),
     };
     this.calculating.set(true);
     // F-163 SF-163-02c : en standalone, POST sur le dispatcher générique.
@@ -665,6 +675,7 @@ export class OrdonnanceProtectionSectionComponent implements OnInit, OnChanges {
     this.victimeFinanciairementDependante.set(!!r.victimeFinanciairementDependante);
     this.demandeurDejaProtege.set(!!r.demandeurDejaProtege);
     this.demandeMesures.set(r.demandeMesures ?? []);
+    this.decEnvisage.set(!!r.decEnvisage);
     // Valeurs persistées = saisie avocat — jamais de badge IA.
     this.provenanceDateRequete.set(null);
     this.provenanceViolencesAlleguees.set(null);

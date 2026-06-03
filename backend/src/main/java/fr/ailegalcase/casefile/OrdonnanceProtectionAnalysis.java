@@ -57,6 +57,10 @@ public class OrdonnanceProtectionAnalysis {
     @Column(name = "demandeur_deja_protege", nullable = false)
     private boolean demandeurDejaProtege;
 
+    /** SF-222-05 : DEC envisagé par l'avocat (suivi électronique du contact). */
+    @Column(name = "dec_envisage", nullable = false)
+    private boolean decEnvisage;
+
     /** JSON array (stringifié) des codes de mesures demandées. */
     @Column(name = "demande_mesures", nullable = false, columnDefinition = "TEXT")
     private String demandeMesures = "[]";

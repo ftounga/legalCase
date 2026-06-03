@@ -33,6 +33,7 @@ describe('OrdonnanceProtectionSectionComponent', () => {
       victimeFinanciairementDependante: false,
       demandeurDejaProtege: false,
       demandeMesures: ['EVICTION_CONJOINT', 'INTERDICTION_APPROCHER', 'TGD', 'BAR'],
+      decEnvisage: false,
       scoreVraisemblance: 95,
       verdictProbabiliteOctroi: 'ELEVEE',
       mesuresRecommandees: ['EVICTION_CONJOINT', 'INTERDICTION_APPROCHER', 'TGD', 'BAR'],
@@ -185,6 +186,31 @@ describe('OrdonnanceProtectionSectionComponent', () => {
       jasmine.any(Object),
     );
     expect(refreshSpy.triggerRefresh).toHaveBeenCalled();
+  });
+
+  it('SF-222-05 : calculate() envoie decEnvisage dans le body + affiche le DEC recommandé', () => {
+    component.violencesAlleguees.set(['PHYSIQUES']);
+    component.dangerImmediat.set(true);
+    component.demandeMesures.set(['INTERDICTION_APPROCHER']);
+    component.onDecEnvisageChange(true);
+    expect(component.decEnvisage()).toBe(true);
+
+    component.calculate();
+    const req = httpMock.expectOne((r) => r.method === 'POST' && r.url === BASE_URL);
+    expect(req.request.body.decEnvisage).toBe(true);
+
+    const resp = defaultResponse();
+    resp.decEnvisage = true;
+    resp.mesuresRecommandees = ['INTERDICTION_APPROCHER', 'DEC'];
+    req.flush(resp);
+
+    expect(component.result()!.decEnvisage).toBe(true);
+    expect(component.result()!.mesuresRecommandees).toContain('DEC');
+    expect(component.mesureLabel('DEC')).toContain('Dispositif Électronique');
+  });
+
+  it('SF-222-05 : DEC absent du multi-select des mesures demandées (toggle dédié)', () => {
+    expect(component.mesuresOptions.some((m) => m.code === 'DEC')).toBe(false);
   });
 
   it('calculate() erreur 400 → snackbar rouge', () => {

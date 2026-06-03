@@ -145,6 +145,43 @@ class OrdonnanceProtectionControllerIT {
     }
 
     @Test
+    void POST_fr_decEnvisageEtDanger_decRecommande() throws Exception {
+        // SF-222-05 : DEC envisagé + danger immédiat → DEC recommandé.
+        Map<String, Object> body = body(
+                List.of("PHYSIQUES", "PSYCHOLOGIQUES"),
+                List.of("MAIN_COURANTE"),
+                true, false, false, false, false,
+                List.of("INTERDICTION_APPROCHER"));
+        body.put("decEnvisage", true);
+        mockMvc.perform(post("/api/v1/case-files/" + faFrCf.getId() + "/ordonnance-protection")
+                        .with(authentication(authFrFa)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.decEnvisage").value(true))
+                .andExpect(jsonPath("$.mesuresRecommandees",
+                        org.hamcrest.Matchers.hasItem("DEC")));
+    }
+
+    @Test
+    void POST_fr_decEnvisageSansDanger_decExclu() throws Exception {
+        // SF-222-05 : DEC envisagé mais pas de danger immédiat → DEC exclu
+        // (même condition que le BAR). Anti-régression : pas de DEC parasite.
+        Map<String, Object> body = body(
+                List.of("PHYSIQUES", "PSYCHOLOGIQUES"),
+                List.of("MAIN_COURANTE"),
+                false, false, false, false, false,
+                List.of("INTERDICTION_APPROCHER"));
+        body.put("decEnvisage", true);
+        mockMvc.perform(post("/api/v1/case-files/" + faFrCf.getId() + "/ordonnance-protection")
+                        .with(authentication(authFrFa)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.decEnvisage").value(true))
+                .andExpect(jsonPath("$.mesuresRecommandees",
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("DEC"))));
+    }
+
+    @Test
     void POST_fr_violencesVides_returns400() throws Exception {
         Map<String, Object> body = body(
                 List.of(), List.of(),
