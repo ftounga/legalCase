@@ -1,0 +1,235 @@
+<section class="det-section">
+  <header class="det-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="det-body">
+    <mat-icon class="det-icon">lock</mat-icon>
+    <span class="det-title">DÉTENTION CENTRE FERMÉ (BE)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="det-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="det-body" class="det-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="det-banner det-banner--info" role="note" data-testid="fr-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="det-banner-content">
+            <div class="det-banner-title">Outil Belgique uniquement</div>
+            <div class="det-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. La détention en centre
+              fermé (art. 7/27/29/74/5 Loi 15/12/1980, AR 02/08/2002) et la requête de mise
+              en liberté devant la chambre du conseil ne s'appliquent qu'en Belgique. Pour
+              la France, voir les outils OQTF / placement en CRA.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="det-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="det-form" (ngSubmit)="analyze()">
+              <div class="det-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Début de la détention en centre fermé</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-debut-input"
+                         [ngModel]="dateDebutDetention()"
+                         (ngModelChange)="onDateDebutChange($event)"
+                         name="dateDebutDetention" />
+                </mat-form-field>
+                @if (provenanceDateDebut() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_DEBUT; as alert) {
+                  <span class="det-coherence-badge coherence-warning"
+                        data-testid="coherence-date-debut"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [attr.aria-label]="alertBadgeLabel(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="det-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Base légale du maintien</mat-label>
+                  <mat-select data-testid="base-legale-select"
+                              [ngModel]="baseLegaleDetention()"
+                              (ngModelChange)="onBaseLegaleChange($event)"
+                              name="baseLegaleDetention">
+                    @for (opt of basesLegales; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceBaseLegale() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="det-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Notification de la décision de détention (facultatif)</mat-label>
+                  <input matInput type="date"
+                         data-testid="date-notification-input"
+                         [ngModel]="dateNotificationDecisionDetention()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationDecisionDetention" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                <span class="det-field-hint">
+                  Point de départ de la fenêtre indicative de 5 jours pour saisir la chambre du conseil.
+                </span>
+              </div>
+
+              <div class="det-field-wrap det-field-wrap--full">
+                <mat-checkbox
+                    data-testid="prolongation-checkbox"
+                    [ngModel]="prolongationNotifiee()"
+                    (ngModelChange)="onProlongationNotifieeChange($event)"
+                    name="prolongationNotifiee">
+                  Une prolongation de la détention a été notifiée
+                </mat-checkbox>
+              </div>
+
+              @if (prolongationNotifiee()) {
+                <div class="det-field-wrap det-field-wrap--indent">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de la prolongation</mat-label>
+                    <input matInput type="date" required
+                           data-testid="date-prolongation-input"
+                           [ngModel]="dateProlongation()"
+                           (ngModelChange)="onDateProlongationChange($event)"
+                           name="dateProlongation" />
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="det-field-wrap det-field-wrap--full">
+                <mat-checkbox
+                    data-testid="requete-deposee-checkbox"
+                    [ngModel]="requeteMiseEnLiberteDeposee()"
+                    (ngModelChange)="onRequeteDeposeeChange($event)"
+                    name="requeteMiseEnLiberteDeposee">
+                  Une requête de mise en liberté a déjà été déposée
+                </mat-checkbox>
+              </div>
+
+              <div class="det-hint">
+                Calcul de la durée de détention et de la fenêtre indicative de 5 jours
+                pour saisir la <strong>chambre du conseil</strong> (juridiction judiciaire,
+                distincte du CCE). Art. 7 al. 3 / 27 / 29 / 74/5 et art. 71 et s. Loi
+                15/12/1980 ; AR 02/08/2002 — durées et délais indicatifs, à vérifier par avocat.
+              </div>
+
+              <div class="det-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer la détention</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="det-result">
+              <div [class]="verdictBannerClass(result()!.verdict)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdict) }}</mat-icon>
+                <div class="det-banner-content">
+                  <div class="det-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  <div class="det-banner-sub">
+                    Durée de détention :
+                    <span class="det-date-mono" data-testid="duree-jours">{{ result()!.dureeDetentionJours }} jour(s)</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.joursRestantsRequete !== null && result()!.joursRestantsRequete !== undefined) {
+                <div class="det-jours-block">
+                  <span class="det-jours-label">Jours restants pour saisir la chambre du conseil</span>
+                  <span class="det-jours" data-testid="jours-restants">
+                    {{ result()!.joursRestantsRequete }}
+                  </span>
+                </div>
+              }
+
+              @if (result()!.messages && result()!.messages.length) {
+                <ul class="det-messages" data-testid="messages">
+                  @for (msg of result()!.messages; track msg) {
+                    <li>{{ msg }}</li>
+                  }
+                </ul>
+              }
+
+              <ul class="det-breakdown">
+                <li>
+                  <span class="det-bd-label">Début de la détention</span>
+                  <span class="det-bd-value det-bd-value--mono">{{ formatDateFr(result()!.dateDebutDetention) }}</span>
+                </li>
+                <li>
+                  <span class="det-bd-label">Base légale du maintien</span>
+                  <span class="det-bd-value">{{ baseLegaleLabel(result()!.baseLegaleDetention) }}</span>
+                </li>
+                <li>
+                  <span class="det-bd-label">Notification de la décision</span>
+                  <span class="det-bd-value det-bd-value--mono">{{ formatDateFr(result()!.dateNotificationDecisionDetention) }}</span>
+                </li>
+                @if (result()!.dateLimiteRequete) {
+                  <li>
+                    <span class="det-bd-label">Date limite indicative de requête</span>
+                    <span class="det-bd-value det-bd-value--mono">{{ formatDateFr(result()!.dateLimiteRequete) }}</span>
+                  </li>
+                }
+                <li>
+                  <span class="det-bd-label">Prolongation notifiée</span>
+                  <span class="det-bd-value">{{ result()!.prolongationNotifiee ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="det-bd-label">Requête déjà déposée</span>
+                  <span class="det-bd-value">{{ result()!.requeteMiseEnLiberteDeposee ? 'Oui' : 'Non' }}</span>
+                </li>
+              </ul>
+
+              <div class="det-meta">
+                @if (result()!.basesJuridiques && result()!.basesJuridiques.length) {
+                  <span class="det-meta-base" [innerHTML]="result()!.basesJuridiques.join(' · ') | legalCitations"></span>
+                }
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

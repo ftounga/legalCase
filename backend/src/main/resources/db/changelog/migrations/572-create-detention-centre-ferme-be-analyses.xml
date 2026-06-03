@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="00ad23d7-d9ba-454a-a977-3d2f5f7a03d4-create-detention-centre-ferme-be" author="legalcase">
+        <comment>
+            SF-221-04 : table dediee a l'outil decisionnel "Detention en centre ferme +
+            requete de mise en liberte BE" (F-IM-56-detention-centre-ferme-be, BELGIQUE —
+            fondement : Loi du 15/12/1980 art. 7 al.3 / 27 / 29 / 74/5 (maintien en centre
+            ferme) ET art. 71 et s. (requete de mise en liberte devant la chambre du
+            conseil) ; AR du 02/08/2002 (regime des centres fermes).
+            (a verifier par avocat BE 2026 — durees max et prolongations indicatives).
+
+            UNE SEULE situation fusionnee = la DETENTION administrative en centre ferme ET
+            son RECOURS (requete de mise en liberte). La chambre du conseil est une
+            JURIDICTION JUDICIAIRE statuant sur la legalite de la detention — DISTINCTE du
+            CCE (recours administratifs F-IM-31 annulation 30j, F-IM-32 extreme urgence 5j,
+            F-IM-57 suspension). DISTINCT de l'OQT (F-IM-08) et de l'interdiction d'entree
+            (F-IM-33).
+
+            L'outil calcule :
+            - dureeDetentionJours = jours ecoules depuis dateDebutDetention ;
+            - dateLimiteRequete = dateNotificationDecisionDetention + 5 j (fenetre indicative
+              de requete devant la chambre du conseil — a verifier) ;
+            - joursRestantsRequete = jours restants dans la fenetre de requete ;
+            - le verdict 5 etats : DETENTION_EN_COURS / REQUETE_OUVERTE / REQUETE_TARDIVE /
+              REQUETE_DEPOSEE / PROLONGATION_A_CONTESTER ;
+            - la liste des bases juridiques annotees "(a verifier par avocat)" + messages.
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (573-seed-detention-centre-ferme-be-visibility.xml) est livree dans la MEME PR
+            que cette table.
+        </comment>
+
+        <createTable tableName="detention_centre_ferme_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_detention_centre_ferme_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_debut_detention" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="base_legale_detention" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="prolongation_notifiee" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_prolongation" type="date"/>
+            <column name="requete_mise_en_liberte_deposee" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_notification_decision_detention" type="date"/>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="detention_centre_ferme_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_detention_centre_ferme_be_case_file"/>
+
+        <createIndex tableName="detention_centre_ferme_be_analyses"
+                     indexName="idx_detention_centre_ferme_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="detention_centre_ferme_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

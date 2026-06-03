@@ -3638,7 +3638,24 @@ public record CaseAnalysisResponse(
             /** SF-221-03 : true si une assurance maladie couvre l'ensemble des risques. Null si non extractible ou dossier FR. */
             Boolean rlueAssuranceMaladie,
             /** SF-221-03 : true si la condition d'intégration est remplie. Null si non extractible ou dossier FR. */
-            Boolean rlueIntegrationRemplie) {
+            Boolean rlueIntegrationRemplie,
+            // === SF-221-04 — F-IM-56 Détention en centre fermé + requête mise en liberté BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            /**
+             * SF-221-04 : true si les pièces évoquent un maintien en CENTRE FERMÉ / une
+             * détention administrative (art. 7 al. 3 / 27 / 29 / 74/5 Loi 15/12/1980 ;
+             * AR 02/08/2002) ou une requête de mise en liberté devant la chambre du conseil
+             * (mentions « centre fermé », « maintien », « détention administrative »,
+             * « art. 7 al. 3 », « art. 74/5 », « chambre du conseil », « requête de mise en
+             * liberté »). Pivot pour la visibility rule CONTEXTUAL de F-IM-56
+             * (trigger {@code detention_centre_ferme_detecte}). Dossiers FR : toujours false.
+             */
+            boolean detentionCentreFermeDetecte,
+            /** SF-221-04 : date de début de la détention en centre fermé au format YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
+            String detentionDateDebut,
+            /** SF-221-04 : base légale du maintien — l'une des valeurs ART_7 / ART_27 / ART_29 / ART_74_5 / AUTRE. Null si non extractible ou dossier FR. */
+            String detentionBaseLegale,
+            /** SF-221-04 : date de notification de la décision de détention au format YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
+            String detentionDateNotification) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3818,7 +3835,11 @@ public record CaseAnalysisResponse(
                     .rlueDateDebutSejour(rlueDateDebutSejour)
                     .rlueRessourcesSuffisantes(rlueRessourcesSuffisantes)
                     .rlueAssuranceMaladie(rlueAssuranceMaladie)
-                    .rlueIntegrationRemplie(rlueIntegrationRemplie);
+                    .rlueIntegrationRemplie(rlueIntegrationRemplie)
+                    .detentionCentreFermeDetecte(detentionCentreFermeDetecte)
+                    .detentionDateDebut(detentionDateDebut)
+                    .detentionBaseLegale(detentionBaseLegale)
+                    .detentionDateNotification(detentionDateNotification);
         }
 
         public static final class Builder {
@@ -4017,6 +4038,10 @@ public record CaseAnalysisResponse(
             private Boolean rlueRessourcesSuffisantes;
             private Boolean rlueAssuranceMaladie;
             private Boolean rlueIntegrationRemplie;
+            private boolean detentionCentreFermeDetecte;
+            private String detentionDateDebut;
+            private String detentionBaseLegale;
+            private String detentionDateNotification;
 
             private Builder() {}
 
@@ -4201,6 +4226,10 @@ public record CaseAnalysisResponse(
             public Builder rlueRessourcesSuffisantes(Boolean v) { this.rlueRessourcesSuffisantes = v; return this; }
             public Builder rlueAssuranceMaladie(Boolean v) { this.rlueAssuranceMaladie = v; return this; }
             public Builder rlueIntegrationRemplie(Boolean v) { this.rlueIntegrationRemplie = v; return this; }
+            public Builder detentionCentreFermeDetecte(boolean v) { this.detentionCentreFermeDetecte = v; return this; }
+            public Builder detentionDateDebut(String v) { this.detentionDateDebut = v; return this; }
+            public Builder detentionBaseLegale(String v) { this.detentionBaseLegale = v; return this; }
+            public Builder detentionDateNotification(String v) { this.detentionDateNotification = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4352,7 +4381,11 @@ public record CaseAnalysisResponse(
                         rlueDateDebutSejour,
                         rlueRessourcesSuffisantes,
                         rlueAssuranceMaladie,
-                        rlueIntegrationRemplie);
+                        rlueIntegrationRemplie,
+                        detentionCentreFermeDetecte,
+                        detentionDateDebut,
+                        detentionBaseLegale,
+                        detentionDateNotification);
             }
         }
     }
@@ -7879,6 +7912,31 @@ public record CaseAnalysisResponse(
         Boolean rlueRessourcesSuffisantes = booleanOrNull(root, "rlue_ressources_suffisantes");
         Boolean rlueAssuranceMaladie = booleanOrNull(root, "rlue_assurance_maladie");
         Boolean rlueIntegrationRemplie = booleanOrNull(root, "rlue_integration_remplie");
+        // SF-221-04 : F-IM-56 détention en centre fermé + requête mise en liberté BE — flag pivot
+        // `detention_centre_ferme_detecte` + 3 champs de pré-fill (BELGIQUE uniquement). Date de
+        // début de détention ISO (non future), base légale whitelist 5 valeurs, date de notification
+        // de la décision de détention ISO (non future). Tous null/false pour dossier FRANCE.
+        boolean detentionCentreFermeDetecte =
+                Boolean.TRUE.equals(booleanOrNull(root, "detention_centre_ferme_detecte"));
+        String detentionDateDebutRaw = textOrNull(root, "detention_date_debut");
+        String detentionDateDebut =
+                (detentionDateDebutRaw != null
+                        && detentionDateDebutRaw.matches(ISO_DATE_SF214))
+                        ? detentionDateDebutRaw : null;
+        String detentionBaseLegaleRaw = textOrNull(root, "detention_base_legale");
+        String detentionBaseLegale =
+                (detentionBaseLegaleRaw != null
+                        && (detentionBaseLegaleRaw.equals("ART_7")
+                        || detentionBaseLegaleRaw.equals("ART_27")
+                        || detentionBaseLegaleRaw.equals("ART_29")
+                        || detentionBaseLegaleRaw.equals("ART_74_5")
+                        || detentionBaseLegaleRaw.equals("AUTRE")))
+                        ? detentionBaseLegaleRaw : null;
+        String detentionDateNotificationRaw = textOrNull(root, "detention_date_notification");
+        String detentionDateNotification =
+                (detentionDateNotificationRaw != null
+                        && detentionDateNotificationRaw.matches(ISO_DATE_SF214))
+                        ? detentionDateNotificationRaw : null;
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -8046,7 +8104,11 @@ public record CaseAnalysisResponse(
                 && rlueDateDebutSejour == null
                 && rlueRessourcesSuffisantes == null
                 && rlueAssuranceMaladie == null
-                && rlueIntegrationRemplie == null) return null;
+                && rlueIntegrationRemplie == null
+                && !detentionCentreFermeDetecte
+                && detentionDateDebut == null
+                && detentionBaseLegale == null
+                && detentionDateNotification == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -8243,6 +8305,10 @@ public record CaseAnalysisResponse(
                 .rlueRessourcesSuffisantes(rlueRessourcesSuffisantes)
                 .rlueAssuranceMaladie(rlueAssuranceMaladie)
                 .rlueIntegrationRemplie(rlueIntegrationRemplie)
+                .detentionCentreFermeDetecte(detentionCentreFermeDetecte)
+                .detentionDateDebut(detentionDateDebut)
+                .detentionBaseLegale(detentionBaseLegale)
+                .detentionDateNotification(detentionDateNotification)
                 .build();
     }
 

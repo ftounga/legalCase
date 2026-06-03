@@ -361,6 +361,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "carte_b_sejour_illimite_detecte");
         // SF-221-03 : F-IM-55 Résident longue durée UE BE — flag pivot CONTEXTUAL Immigration BE.
         addBooleanFlagIfTrue(detected, immigrationNode, "residence_longue_duree_ue_detecte");
+        // SF-221-04 : F-IM-56 Détention en centre fermé + requête mise en liberté BE — flag pivot CONTEXTUAL Immigration BE.
+        addBooleanFlagIfTrue(detected, immigrationNode, "detention_centre_ferme_detecte");
         // SF-214-03 : F-IM-26 Regroupement familial FR — flag pivot CONTEXTUAL Immigration FR.
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_familial_envisage");
         // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 FR — flag pivot CONTEXTUAL Immigration FR.
