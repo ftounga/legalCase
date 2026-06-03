@@ -4546,7 +4546,18 @@ public record CaseAnalysisResponse(
             // donationPartageEnvisagee active la visibilité CONTEXTUAL F-IA-04.
             Boolean donationPartageEnvisagee,          // FR — CONTEXTUAL : mention art. 1075 / donation-partage / répartir patrimoine aux enfants
             Boolean presencePetitsEnfantsSubstitutionDetectee, // FR — true si petits-enfants bénéficiaires par substitution (art. 1075-1) documenté
-            Boolean donationPartageConjonctiveDetectee) { // FR — true si donation conjointe des deux parents (art. 1075-2) documentée
+            Boolean donationPartageConjonctiveDetectee, // FR — true si donation conjointe des deux parents (art. 1075-2) documentée
+            // SF-222-01 : 6 champs IA ASF allocation de soutien familial FR (F-FA-ASF-CAF).
+            // Source : `famille_extracted_data.asf_caf_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // `asfCafDetecte` (flag CONTEXTUAL F-IA-04) active la visibilité de l'outil.
+            // Anti-doublon ARIPA : ASF = droit + montant prestation CAF, pas le recouvrement.
+            Boolean asfCafDetecte,                      // FR — CONTEXTUAL : mention ASF / art. L. 523-1 CSS / parent isolé + autre parent défaillant
+            Boolean asfParentIsole,                     // FR — true si parent isolé assumant seul la charge de l'enfant
+            Boolean asfPensionFixee,                    // FR — true si pension alimentaire fixée par titre exécutoire
+            Integer asfMontantPension,                  // FR — >= 0 EUR/mois, montant pension mensuelle fixée
+            String asfPensionPayee,                     // FR — NON_PAYEE | PARTIELLE | PAYEE | null
+            Integer asfNbEnfants) {                     // FR — >= 1, nombre d'enfants à charge ouvrant droit à l'ASF
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -4988,6 +4999,19 @@ public record CaseAnalysisResponse(
             public Builder donationPartageEnvisagee(Boolean v) { this.donationPartageEnvisagee = v; return this; }
             public Builder presencePetitsEnfantsSubstitutionDetectee(Boolean v) { this.presencePetitsEnfantsSubstitutionDetectee = v; return this; }
             public Builder donationPartageConjonctiveDetectee(Boolean v) { this.donationPartageConjonctiveDetectee = v; return this; }
+            // SF-222-01 : setters des 6 champs IA ASF allocation de soutien familial FR.
+            private Boolean asfCafDetecte;
+            private Boolean asfParentIsole;
+            private Boolean asfPensionFixee;
+            private Integer asfMontantPension;
+            private String asfPensionPayee;
+            private Integer asfNbEnfants;
+            public Builder asfCafDetecte(Boolean v) { this.asfCafDetecte = v; return this; }
+            public Builder asfParentIsole(Boolean v) { this.asfParentIsole = v; return this; }
+            public Builder asfPensionFixee(Boolean v) { this.asfPensionFixee = v; return this; }
+            public Builder asfMontantPension(Integer v) { this.asfMontantPension = v; return this; }
+            public Builder asfPensionPayee(String v) { this.asfPensionPayee = v; return this; }
+            public Builder asfNbEnfants(Integer v) { this.asfNbEnfants = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -5169,7 +5193,14 @@ public record CaseAnalysisResponse(
                         // SF-216-29 : 3 champs IA donation-partage FR.
                         donationPartageEnvisagee,
                         presencePetitsEnfantsSubstitutionDetectee,
-                        donationPartageConjonctiveDetectee);
+                        donationPartageConjonctiveDetectee,
+                        // SF-222-01 : 6 champs IA ASF allocation de soutien familial FR.
+                        asfCafDetecte,
+                        asfParentIsole,
+                        asfPensionFixee,
+                        asfMontantPension,
+                        asfPensionPayee,
+                        asfNbEnfants);
             }
         }
     }
@@ -6748,6 +6779,10 @@ public record CaseAnalysisResponse(
     private static final java.util.Set<String> TIERS_LIEN_FAMILIAL_WHITELIST = java.util.Set.of(
             "GRANDS_PARENTS", "ONCLE_TANTE", "FAMILLE_ELARGIE", "ASSOCIATION_HABILITEE", "AUTRE");
 
+    /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
+    private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
+            "NON_PAYEE", "PARTIELLE", "PAYEE");
+
     private static String extractProcedureTravailCode(JsonNode travailNode) {
         JsonNode ptd = travailNode.get("procedure_travail_detection");
         if (ptd == null || !ptd.isObject()) return null;
@@ -8300,6 +8335,25 @@ public record CaseAnalysisResponse(
                 : null;
         boolean sf216_03Present = pensionAlimentaireEnvisagee != null
                 || modeResidenceEnfantsDetecte != null;
+        // SF-222-01 : sous-objet `asf_caf_detection` — 6 champs IA pour l'outil ASF
+        // allocation de soutien familial FR (art. L. 523-1 CSS). Anti-doublon ARIPA :
+        // l'ASF est le droit + montant de la prestation CAF, pas le recouvrement.
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode asf = node.get("asf_caf_detection");
+        boolean asfObject = asf != null && asf.isObject();
+        Boolean asfCafDetecte = asfObject ? booleanOrNull(asf, "detecte") : null;
+        Boolean asfParentIsole = asfObject ? booleanOrNull(asf, "parent_isole") : null;
+        Boolean asfPensionFixee = asfObject ? booleanOrNull(asf, "pension_fixee") : null;
+        Integer asfMontantPension = asfObject ? nonNegativeIntOrNull(asf, "montant_pension_mensuel") : null;
+        String asfPensionPayee = asfObject
+                ? normalizeEnumCode(textOrNull(asf, "pension_payee"), ASF_PENSION_PAYEE_WHITELIST) : null;
+        Integer asfNbEnfants = asfObject ? nonNegativeIntOrNull(asf, "nb_enfants") : null;
+        boolean sf222_01Present = asfCafDetecte != null
+                || asfParentIsole != null
+                || asfPensionFixee != null
+                || asfMontantPension != null
+                || asfPensionPayee != null
+                || asfNbEnfants != null;
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
@@ -8495,7 +8549,8 @@ public record CaseAnalysisResponse(
                 && !sf216_23Present
                 && !sf216_27Present
                 && !sf216_25Present
-                && !sf216_29Present) {
+                && !sf216_29Present
+                && !sf222_01Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -8724,6 +8779,13 @@ public record CaseAnalysisResponse(
                 .donationPartageEnvisagee(donationPartageEnvisagee)
                 .presencePetitsEnfantsSubstitutionDetectee(presencePetitsEnfantsSubstitutionDetectee)
                 .donationPartageConjonctiveDetectee(donationPartageConjonctiveDetectee)
+                // SF-222-01 : 6 champs IA ASF allocation de soutien familial FR.
+                .asfCafDetecte(asfCafDetecte)
+                .asfParentIsole(asfParentIsole)
+                .asfPensionFixee(asfPensionFixee)
+                .asfMontantPension(asfMontantPension)
+                .asfPensionPayee(asfPensionPayee)
+                .asfNbEnfants(asfNbEnfants)
                 .build();
     }
 

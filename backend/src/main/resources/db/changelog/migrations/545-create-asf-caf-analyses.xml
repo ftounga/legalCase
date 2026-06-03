@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="545-create-asf-caf-analyses" author="legalcase">
+        <comment>
+            SF-222-01 (F-222) : table dediee a l'outil decisionnel "Allocation de
+            soutien familial" (ASF — F-FA-ASF-CAF, FRANCE — art. L. 523-1 CSS).
+
+            Evalue le droit a l'ASF versee par la CAF quand l'autre parent ne paie
+            pas (ou paie insuffisamment) la pension alimentaire, et estime le
+            montant mensuel. Verdict 4 niveaux : DROIT_ASF_PLEIN /
+            DROIT_ASF_DIFFERENTIELLE / DROIT_AVEC_RECOUVREMENT / PAS_DE_DROIT.
+
+            Anti-doublon : distinct de F-FA-ARIPA-RECOUVREMENT (recouvrement force
+            de la pension). L'outil ASF ne calcule pas le recouvrement ; il renvoie
+            vers ARIPA en cas d'ASF recuperable.
+
+            Outil single-country FRANCE. Snapshot JSON complet (inputs + outputs)
+            dans result_data pour restitution UI sans recalcul.
+
+            Le seed de la regle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porte par la migration 546 (couple a l'entree TOOL_REGISTRY livree
+            dans la meme PR — pattern SF-216).
+        </comment>
+
+        <createTable tableName="asf_caf_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_asf_caf_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="asf_caf_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_asf_caf_analyses_case_file"/>
+
+        <createIndex tableName="asf_caf_analyses"
+                     indexName="idx_asf_caf_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="asf_caf_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
