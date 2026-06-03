@@ -1,0 +1,205 @@
+<section class="csi-section">
+  <header class="csi-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="csi-body">
+    <mat-icon class="csi-icon">all_inclusive</mat-icon>
+    <span class="csi-title">CARTE B SÉJOUR ILLIMITÉ (BE)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="csi-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="csi-body" class="csi-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="csi-banner csi-banner--info" role="note" data-testid="fr-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="csi-banner-content">
+            <div class="csi-banner-title">Outil Belgique uniquement</div>
+            <div class="csi-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. Le séjour illimité
+              de la carte B (ressortissant tiers, Loi 15/12/1980 art. 14) ne s'applique
+              qu'en Belgique. Pour la France, voir les outils de carte de résident CESEDA.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="csi-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="csi-form" (ngSubmit)="analyze()">
+              <div class="csi-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Début du séjour régulier ininterrompu</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-debut-input"
+                         [ngModel]="dateDebutSejourRegulier()"
+                         (ngModelChange)="onDateDebutChange($event)"
+                         name="dateDebutSejourRegulier" />
+                </mat-form-field>
+                @if (provenanceDateDebut() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_DEBUT; as alert) {
+                  <span class="csi-coherence-badge coherence-warning"
+                        data-testid="coherence-date-debut"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [attr.aria-label]="alertBadgeLabel(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="csi-field-wrap csi-field-wrap--full">
+                <mat-checkbox
+                    data-testid="sejour-ininterrompu-checkbox"
+                    [ngModel]="sejourIninterrompu()"
+                    (ngModelChange)="onSejourIninterrompuChange($event)"
+                    name="sejourIninterrompu">
+                  Le séjour régulier a été ininterrompu
+                </mat-checkbox>
+                @if (provenanceSejourIninterrompu() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="csi-field-wrap csi-field-wrap--full">
+                <mat-checkbox
+                    data-testid="motif-stable-checkbox"
+                    [ngModel]="motifSejourStable()"
+                    (ngModelChange)="onMotifStableChange($event)"
+                    name="motifSejourStable">
+                  Le motif de séjour est stable
+                </mat-checkbox>
+                @if (provenanceMotifStable() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="csi-field-wrap csi-field-wrap--full">
+                <mat-checkbox
+                    data-testid="absences-checkbox"
+                    [ngModel]="absencesSuperieuresLimites()"
+                    (ngModelChange)="onAbsencesChange($event)"
+                    name="absencesSuperieuresLimites">
+                  Les absences du territoire dépassent les limites admises
+                </mat-checkbox>
+              </div>
+
+              <div class="csi-field-wrap csi-field-wrap--full">
+                <mat-checkbox
+                    data-testid="ordre-public-checkbox"
+                    [ngModel]="ordrePublicRisque()"
+                    (ngModelChange)="onOrdrePublicChange($event)"
+                    name="ordrePublicRisque">
+                  Un risque d'ordre public est signalé
+                </mat-checkbox>
+              </div>
+
+              <div class="csi-hint">
+                Seuil indicatif : 5 ans (60 mois) de séjour régulier ININTERROMPU
+                (Loi 15/12/1980 art. 14 — à vérifier par avocat). Distinct du statut
+                de résident longue durée UE (mobilité intra-UE, conditions propres).
+              </div>
+
+              <div class="csi-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Évaluer l'éligibilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="csi-result">
+              <div [class]="verdictBannerClass(result()!.verdict)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdict) }}</mat-icon>
+                <div class="csi-banner-content">
+                  <div class="csi-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  <div class="csi-banner-sub">
+                    Durée de séjour régulier :
+                    <span class="csi-date-mono" data-testid="duree-mois">{{ result()!.dureeSejourMois }} mois</span>
+                    sur 60 requis
+                  </div>
+                </div>
+              </div>
+
+              <div class="csi-jours-block">
+                <span class="csi-jours-label">Mois restants avant le seuil</span>
+                <span class="csi-jours" data-testid="mois-restants">
+                  {{ result()!.moisRestants }}
+                </span>
+              </div>
+
+              @if (result()!.messages && result()!.messages.length) {
+                <ul class="csi-messages" data-testid="messages">
+                  @for (msg of result()!.messages; track msg) {
+                    <li>{{ msg }}</li>
+                  }
+                </ul>
+              }
+
+              <ul class="csi-breakdown">
+                <li>
+                  <span class="csi-bd-label">Début du séjour régulier</span>
+                  <span class="csi-bd-value csi-bd-value--mono">{{ formatDateFr(result()!.dateDebutSejourRegulier) }}</span>
+                </li>
+                <li>
+                  <span class="csi-bd-label">Séjour ininterrompu</span>
+                  <span class="csi-bd-value">{{ result()!.sejourIninterrompu ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="csi-bd-label">Absences au-delà des limites</span>
+                  <span class="csi-bd-value">{{ result()!.absencesSuperieuresLimites ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="csi-bd-label">Motif de séjour stable</span>
+                  <span class="csi-bd-value">{{ result()!.motifSejourStable ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="csi-bd-label">Risque d'ordre public</span>
+                  <span class="csi-bd-value">{{ result()!.ordrePublicRisque ? 'Oui' : 'Non' }}</span>
+                </li>
+              </ul>
+
+              <div class="csi-meta">
+                @if (result()!.basesJuridiques && result()!.basesJuridiques.length) {
+                  <span class="csi-meta-base" [innerHTML]="result()!.basesJuridiques.join(' · ') | legalCitations"></span>
+                }
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

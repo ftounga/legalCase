@@ -2292,6 +2292,20 @@ export interface ImmigrationExtractedData {
   carteAProrogationDateExpiration?: string | null;
   carteAProrogationMotifPersiste?: boolean | null;
   carteAProrogationConditionsReunies?: boolean | null;
+
+  /**
+   * SF-221-02 — F-IM-54 carte B séjour ILLIMITÉ d'un ressortissant tiers (BE,
+   * art. 14 Loi 15/12/1980, passage carte A → carte B après 5 ans) — BELGIQUE uniquement.
+   * 1 flag pivot CONTEXTUAL (`carteBSejourIllimiteDetecte`) + 3 champs de pré-fill.
+   * `carteBSejourIllimiteDetecte` : contexte de passage au séjour illimité détecté (pilote la visibilité).
+   * `carteBDateDebutSejour` : date de début du séjour régulier ininterrompu (ISO yyyy-MM-dd, non future).
+   * `carteBSejourIninterrompu` : le séjour régulier a été ininterrompu.
+   * `carteBMotifStable` : le motif de séjour est stable.
+   */
+  carteBSejourIllimiteDetecte?: boolean | null;
+  carteBDateDebutSejour?: string | null;
+  carteBSejourIninterrompu?: boolean | null;
+  carteBMotifStable?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

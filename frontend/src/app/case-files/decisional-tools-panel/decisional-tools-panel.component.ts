@@ -177,6 +177,8 @@ import { Annexe13quinquiesBeSectionComponent } from '../annexe13quinquies-be-sec
 import { ProtectionTemporaireUkraineBeSectionComponent } from '../protection-temporaire-ukraine-be-section/protection-temporaire-ukraine-be-section.component';
 // SF-221-01 : composant complet F-IM-53-carte-a-prorogation-be (Immigration BE, prorogation carte A séjour temporaire — Loi 15/12/1980 art. 13 + AR 08/10/1981 art. 33).
 import { CarteAProrogationBeSectionComponent } from '../carte-a-prorogation-be-section/carte-a-prorogation-be-section.component';
+// SF-221-02 : composant complet F-IM-54-carte-b-sejour-illimite-be (Immigration BE, carte B séjour ILLIMITÉ ressortissant tiers — Loi 15/12/1980 art. 14, passage carte A → carte B après 5 ans).
+import { CarteBSejourIllimiteBeSectionComponent } from '../carte-b-sejour-illimite-be-section/carte-b-sejour-illimite-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -2804,6 +2806,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-53-carte-a-prorogation-be', {
         displayLabel: 'Prorogation carte A (BE)',
         component: CarteAProrogationBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-221-02 : composant complet F-IM-54-carte-b-sejour-illimite-be — passage
+      // carte A → carte B (séjour ILLIMITÉ d'un ressortissant tiers, art. 14 Loi
+      // 15/12/1980) après 5 ans (60 mois) de séjour régulier ININTERROMPU. BELGIQUE
+      // uniquement, CONTEXTUAL via flag `carte_b_sejour_illimite_detecte`. Analyseur
+      // d'éligibilité + verdict 5 états (ELIGIBLE vert / DUREE_INSUFFISANTE orange /
+      // CONTINUITE_ROMPUE + RISQUE_ORDRE_PUBLIC rouge / A_EXAMINER bleu). Pré-fill IA
+      // RÉEL 3 champs (dateDebutSejourRegulier, sejourIninterrompu, motifSejourStable)
+      // via static getPrefillCount + CarteBSejourIllimiteBePrefillRules.
+      // absencesSuperieuresLimites + ordrePublicRisque aspirationnels (jamais comptés).
+      // DISTINCT de F-IM-53 (prorogation carte A, séjour temporaire) et de F-IM-55
+      // (résident longue durée UE, mobilité intra-UE — la carte B est NATIONALE).
+      ['F-IM-54-carte-b-sejour-illimite-be', {
+        displayLabel: 'Carte B séjour illimité (BE)',
+        component: CarteBSejourIllimiteBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -6112,6 +6135,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // 5 états). Aligné sur F-IM-31-cce-annulation-30j-be et les autres
     // calculateurs de délais Immigration BE.
     ['F-IM-53-carte-a-prorogation-be', 'DELAIS'],
+    // SF-221-02 : F-IM-54-carte-b-sejour-illimite-be carte B séjour illimité (BE).
+    // Thème VALIDITE — analyseur d'éligibilité au passage carte A → carte B (seuil
+    // 5 ans / 60 mois + continuité + motif stable + ordre public, verdict 5 états).
+    // Aligné sur les autres analyseurs d'éligibilité Immigration BE (F-IM-27
+    // regroupement 10bis, F-IM-34 protection temporaire Ukraine).
+    ['F-IM-54-carte-b-sejour-illimite-be', 'VALIDITE'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).

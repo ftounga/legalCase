@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="3f043bb9-9c46-4bec-a35e-e451cda7cf8d-seed-carte-b-sejour-illimite-be" author="legalcase">
+        <comment>
+            SF-221-02 : seed visibility pour l'outil decisionnel "Carte B sejour illimite BE"
+            (F-IM-54-carte-b-sejour-illimite-be). Livree DANS LA MEME PR que la table (pattern F-215).
+
+            Visibility CONTEXTUAL : l'outil apparait dans le panel F-IA-04 sur les dossiers
+            BELGIQUE x DROIT_IMMIGRATION des que l'IA detecte un indice de passage au sejour
+            illimite (carte B) via le flag pivot `carte_b_sejour_illimite_detecte` extrait
+            depuis le prompt IMMIGRATION_INSTRUCTION (mots-cles "carte B", "sejour illimite",
+            "art. 14 Loi 15/12/1980", "5 ans de sejour regulier", "passage carte A vers carte B").
+
+            Priority 211 — juste apres F-IM-53 prorogation carte A BE (priority 210) pour
+            coherence d'ordre dans la liste de visibility CONTEXTUAL Immigration BE.
+
+            L'entree TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) est ajoutee
+            dans la MEME PR (SF-221-02 back+front), de sorte que DecisionToolVisibilityIntegrityIT
+            (DB -> frontend) reste vert sans orphelin transitoire.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                '6eac9c26-79b6-4901-b8e0-e3b91e854cce',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-54-carte-b-sejour-illimite-be',
+                'CONTEXTUAL',
+                'carte_b_sejour_illimite_detecte',
+                'true',
+                211
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = '6eac9c26-79b6-4901-b8e0-e3b91e854cce';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
