@@ -99,6 +99,8 @@ import { RttMonetisationSectionComponent } from '../rtt-monetisation-section/rtt
 import { PpvExonerationSectionComponent } from '../ppv-exoneration-section/ppv-exoneration-section.component';
 // SF-218-42 : composant complet F-DT-53-epargne-salariale-conformite — conformité aux obligations d'épargne salariale (participation obligatoire ≥ 50 salariés art. L.3322-2 CT ; dispositif de partage de la valeur 11–49 salariés rentables, loi n° 2023-1107 du 29/11/2023) (Travail FR).
 import { EpargneSalarialeConformiteSectionComponent } from '../epargne-salariale-conformite-section/epargne-salariale-conformite-section.component';
+// SF-218-44 : composant complet F-DT-76-conges-evenements-familiaux — durée du congé pour évènement familial (art. L.3142-1 à L.3142-5 CT : mariage/PACS, naissance, décès, annonce de handicap d'un enfant ; durée légale vs conventionnelle plus favorable ; maintien intégral du salaire) (Travail FR).
+import { CongesEvenementsFamiliauxSectionComponent } from '../conges-evenements-familiaux-section/conges-evenements-familiaux-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -2015,6 +2017,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-53-epargne-salariale-conformite', {
         displayLabel: 'Épargne salariale — conformité (FR)',
         component: EpargneSalarialeConformiteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-44 : composant complet F-DT-76-conges-evenements-familiaux —
+      // durée du congé pour évènement familial (Travail FR). FR uniquement,
+      // CONTEXTUAL (flag congeEvtFamilialDetecte). Art. L.3142-1 à L.3142-5 CT :
+      // durées légales minimales (L.3142-4 : mariage/PACS 4 j, naissance 3 j,
+      // décès enfant 5 j — porté à 7 j ouvrés dans les cas renforcés —, décès
+      // conjoint/partenaire 3 j, décès parent 3 j, annonce handicap enfant 2 j,
+      // déménagement 0 j légal → renvoi CCN) ; durée conventionnelle plus
+      // favorable retenue le cas échéant (L.3142-5) ; maintien intégral du salaire
+      // (assimilation temps de travail effectif, L.3142-2/3). Distinct du congé de
+      // paternité/maternité (F-212) et du congé parental d'éducation (F-DT-78).
+      // Pré-fill IA 1 champ (typeEvenement) via static getPrefillCount +
+      // CongesEvenementsFamiliauxPrefillRules.
+      ['F-DT-76-conges-evenements-familiaux', {
+        displayLabel: 'Congés pour évènements familiaux (FR)',
+        component: CongesEvenementsFamiliauxSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5391,6 +5415,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // / NON_REQUIS), thème DIAGNOSTIC : diagnostic de la situation de conformité
     // de l'employeur (FR-only).
     ['F-DT-53-epargne-salariale-conformite', 'DIAGNOSTIC'],
+    // SF-218-44 : F-DT-76 congés pour évènements familiaux (art. L.3142-1 à
+    // L.3142-5 CT, FR-only) — thème INDEMNITES : l'outil détermine une durée de
+    // congé (jours) + maintien intégral du salaire (droit à congé / quantum),
+    // cohérent avec les autres outils INDEMNITES (calculateur de quantum).
+    ['F-DT-76-conges-evenements-familiaux', 'INDEMNITES'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).

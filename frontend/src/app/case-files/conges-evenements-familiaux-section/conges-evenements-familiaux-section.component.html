@@ -1,0 +1,178 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cef-body">
+    <mat-icon class="is-icon">family_restroom</mat-icon>
+    <span class="is-title">CONGÉS POUR ÉVÈNEMENTS FAMILIAUX (FR)</span>
+    @if (result()) {
+      <span class="is-chip is-chip--neutral is-mono" data-testid="duree-chip">
+        {{ result()!.dureeApplicableJours }} j
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cef-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Congés pour évènements familiaux — régime français uniquement</div>
+            <div class="is-banner-sub">
+              Les durées légales des congés pour évènements familiaux (art. L.3142-1
+              à L.3142-5 du Code du travail) sont propres au droit du travail
+              français : elles n'ont pas d'équivalent direct en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>family_restroom</mat-icon>
+                <span>Durée du congé pour évènement familial (art. L.3142-1 à L.3142-5 CT) : durées légales minimales, durée conventionnelle plus favorable retenue le cas échéant, maintien intégral du salaire (congé assimilé à du temps de travail effectif).</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type d'évènement familial</mat-label>
+                  <mat-select [ngModel]="typeEvenement()"
+                              (ngModelChange)="onTypeChange($event)"
+                              name="typeEvenement"
+                              data-testid="type-select" required>
+                    @for (opt of typeOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Nature de l'évènement ouvrant droit au congé.</mat-hint>
+                </mat-form-field>
+                @if (provenanceType() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-type"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().TYPE_EVENEMENT; as alert) {
+                  <span class="is-coherence-badge"
+                        data-testid="coherence-type"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning_amber</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="conventionPlusFavorable()"
+                              (ngModelChange)="onConventionChange($event)"
+                              name="conventionPlusFavorable"
+                              data-testid="convention-checkbox">
+                  La convention collective prévoit une durée plus favorable que la loi
+                </mat-checkbox>
+              </div>
+
+              @if (conventionPlusFavorable()) {
+                <div class="is-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Durée conventionnelle (jours)</mat-label>
+                    <input matInput type="number" min="1" step="1"
+                           [ngModel]="dureeConventionnelleJours()"
+                           (ngModelChange)="onDureeConventionnelleChange($event)"
+                           name="dureeConventionnelleJours"
+                           data-testid="duree-conventionnelle-input" required />
+                    <mat-hint>Durée prévue par la convention ou l'accord collectif applicable.</mat-hint>
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer la durée du congé</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div class="is-banner is-banner--success" role="status" data-testid="result-banner">
+                <mat-icon>event_available</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">
+                    {{ typeLabel(result()!.typeEvenement) }} — congé de
+                    <span class="is-mono">{{ result()!.dureeApplicableJours }}</span> jour(s)
+                  </div>
+                  <div class="is-banner-sub">
+                    Durée légale minimale : {{ result()!.dureeLegaleJours }} jour(s) (art. L.3142-4 CT).
+                  </div>
+                </div>
+              </div>
+
+              <div class="is-badges">
+                <span class="is-chip is-chip--success is-mono"
+                      [class.is-chip--neutral]="!result()!.maintienSalaire"
+                      data-testid="maintien-salaire-chip">
+                  <mat-icon class="is-chip-icon">payments</mat-icon>
+                  {{ result()!.maintienSalaire ? 'Salaire maintenu' : 'Salaire non maintenu' }}
+                </span>
+                <span [class]="baseChipClass(result()!.base)" data-testid="base-chip">
+                  Base : {{ result()!.base }}
+                </span>
+              </div>
+
+              @if (result()!.dureeMajoreePossible) {
+                <div class="is-banner is-banner--navy" role="note" data-testid="majoration-note">
+                  <mat-icon>info_outline</mat-icon>
+                  <div class="is-banner-content">
+                    <div class="is-banner-sub">
+                      Durée majorée possible : le congé pour décès d'un enfant est porté
+                      à 7 jours ouvrés si l'enfant a moins de 25 ans, est à charge
+                      effective et permanente, ou si le salarié est lui-même parent d'un
+                      enfant de moins de 25 ans (à vérifier par avocat).
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (result()!.notes && result()!.notes.length > 0) {
+                <ul class="is-consequences" data-testid="notes">
+                  @for (n of result()!.notes; track n) {
+                    <li class="is-consequence-item">
+                      <mat-icon>arrow_right</mat-icon>
+                      <span>{{ n }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base is-mono">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

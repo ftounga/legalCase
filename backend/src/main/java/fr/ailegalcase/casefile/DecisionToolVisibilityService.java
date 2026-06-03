@@ -291,6 +291,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "ppv_detectee");
         // SF-218-41 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-53 épargne salariale / conformité (intéressement / participation / partage de la valeur).
         addBooleanFlagIfTrue(detected, travailNode, "epargne_salariale_detectee");
+        // SF-218-43 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-76 congés pour évènements familiaux.
+        addBooleanFlagIfTrue(detected, travailNode, "conge_evt_familial_detecte");
         // SF-218-33 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-69 délégué syndical / RSS : désignation et protection.
         addBooleanFlagIfTrue(detected, travailNode, "delegation_syndicale_detectee");
         // SF-218-31 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-67 accord d'entreprise / validité.
