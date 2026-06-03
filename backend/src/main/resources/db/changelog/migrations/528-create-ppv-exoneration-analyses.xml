@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="0624d060-cff2-4c14-b342-5e8519075f95" author="legalcase">
+        <comment>
+            SF-218-39 — table `ppv_exoneration_analyses` pour l'outil decisionnel
+            "PPV — exoneration (prime de partage de la valeur)"
+            (F-DT-52-ppv-exoneration, FRANCE).
+
+            Outil single-country FR : apprecie la conformite de la PPV au plafond
+            d'exoneration sociale (loi n° 2022-1158 du 16/08/2022 art. 1 + loi
+            n° 2023-1107 du 29/11/2023 sur le partage de la valeur). Plafond social
+            = 6000 € si accord d'interessement OU entreprise de moins de 50
+            salaries dotee d'un dispositif de partage de la valeur, sinon 3000 €.
+            Si montantPrime au-dela du plafond → PLAFOND_DEPASSE (montantExonere =
+            plafond, montantImposable = montantPrime − plafond), sinon CONFORME
+            (montantExonere = montantPrime, montantImposable = 0). Exoneration
+            fiscale IR = true si effectif de moins de 50 salaries ET remuneration
+            inferieure a 3 SMIC (jusqu'au 31/12/2026). Persiste l'analyse 1:1 par
+            dossier (upsert).
+
+            Distinct de F-DT-53 interessement / participation (invariant « un outil
+            = une situation »).
+
+            Source juridique : loi n° 2022-1158 du 16/08/2022 art. 1 + loi
+            n° 2023-1107 du 29/11/2023.
+        </comment>
+
+        <createTable tableName="ppv_exoneration_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_ppv_exoneration_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="montant_prime" type="DECIMAL(14, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accord_interessement_present" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="remuneration_annuelle_brute" type="DECIMAL(14, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="effectif_moins_50" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="versement_plan_epargne" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="plafond_social_applique" type="DECIMAL(14, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_exonere" type="DECIMAL(14, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_imposable" type="DECIMAL(14, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="exoneration_fiscale_ir" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="ppv_exoneration_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

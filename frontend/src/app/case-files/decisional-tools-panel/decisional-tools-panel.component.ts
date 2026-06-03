@@ -95,6 +95,8 @@ import { NaoNegociationAnnuelleSectionComponent } from '../nao-negociation-annue
 import { ReglementInterieurValiditeSectionComponent } from '../reglement-interieur-validite-section/reglement-interieur-validite-section.component';
 // SF-218-38 : composant complet F-DT-51-rtt-monetisation — éligibilité + montant brut majoré de la monétisation de jours de RTT (loi n° 2022-1157 du 16/08/2022 art. 5) (Travail FR).
 import { RttMonetisationSectionComponent } from '../rtt-monetisation-section/rtt-monetisation-section.component';
+// SF-218-40 : composant complet F-DT-52-ppv-exoneration — conformité au plafond d'exonération sociale de la prime de partage de la valeur (loi n° 2022-1158 du 16/08/2022 + loi n° 2023-1107 du 29/11/2023) (Travail FR).
+import { PpvExonerationSectionComponent } from '../ppv-exoneration-section/ppv-exoneration-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -1969,6 +1971,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-51-rtt-monetisation', {
         displayLabel: 'RTT — monétisation (FR)',
         component: RttMonetisationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-40 : composant complet F-DT-52-ppv-exoneration — calculateur
+      // d'exonération de la prime de partage de la valeur (PPV, Travail FR). FR
+      // uniquement, CONTEXTUAL (flag ppvDetectee). Loi n° 2022-1158 du 16/08/2022
+      // art. 1 (création PPV) + loi n° 2023-1107 du 29/11/2023 sur le partage de la
+      // valeur : conformité au plafond d'exonération sociale (3 000 € de droit
+      // commun ; 6 000 € si accord d'intéressement OU effectif < 50), part exonérée
+      // vs part imposable, exonération fiscale IR conditionnelle (effectif < 50 +
+      // rémunération < 3 SMIC, jusqu'au 31/12/2026). Verdict CONFORME /
+      // PLAFOND_DEPASSE. Distinct de F-DT-53 intéressement / participation. Pré-fill
+      // IA 2 champs (montantPrime, accordInteressementPresent) via static
+      // getPrefillCount + PpvExonerationPrefillRules.
+      ['F-DT-52-ppv-exoneration', {
+        displayLabel: 'PPV — exonération (FR)',
+        component: PpvExonerationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5335,6 +5358,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-17-indemnite-precarite-cdd', 'INDEMNITES'],
     ['F-DT-18-fin-mission-interim', 'INDEMNITES'],
     ['F-DT-19-heures-sup', 'INDEMNITES'],
+    // SF-218-40 : F-DT-52 PPV — exonération (prime de partage de la valeur) —
+    // calculateur d'exonération (montant exonéré / imposable, plafond 3000/6000),
+    // thème INDEMNITES & calculs (FR-only).
+    ['F-DT-52-ppv-exoneration', 'INDEMNITES'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).
