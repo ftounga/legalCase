@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="557-seed-regime-mayotte-visibility" author="legalcase">
+        <comment>
+            SF-220-02 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Portée territoriale du titre à Mayotte"
+            (F-IM-48-regime-mayotte-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que
+            si le pipeline IA détecte un contexte mahorais. Le moteur de trigger
+            « territoire » natif (extractDetectedSituations) n'expose pas encore de
+            champ territoire ; on s'appuie donc sur un flag pivot booléen
+            `mayotte_detecte` extrait dans immigration_extracted_data et propagé par
+            DecisionToolVisibilityService (même mécanique que les flags pivots
+            Immigration FR F-201/F-214 — addBooleanFlagIfTrue). À défaut de
+            détection, la card reste au catalogue (jamais ALWAYS_ON).
+
+            priority 79 — juste après F-IM-47 régime franco-tunisien (priority 78),
+            priorité maximale actuelle des outils Immigration FRANCE.
+
+            Distinct de F-IM-05 (arbre titre généraliste) : objet = dérogation
+            territoriale mahoraise (Ord. 2014-464, CESEDA L.832-1 et s.), pas le
+            choix du titre. L'AME Mayotte (droit social connexe) est écartée.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-220 : f2200004-0000-0000-0000-220000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2200004-0000-0000-0000-220000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-48-regime-mayotte-fr', 'CONTEXTUAL', 'mayotte_detecte', 'true', 79);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2200004-0000-0000-0000-220000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

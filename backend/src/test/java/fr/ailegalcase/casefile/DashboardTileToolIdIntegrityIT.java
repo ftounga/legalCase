@@ -1178,7 +1178,13 @@ class DashboardTileToolIdIntegrityIT {
             // accord 1988), pas de tuile dashboard. Préventif
             // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-IM-47-regime-tunisien-fr"
+            "F-IM-47-regime-tunisien-fr",
+            // SF-220-02 : outil F-IM-48 portée territoriale du titre à Mayotte
+            // (Ord. 2014-464, CESEDA L.832-1 et s., FR-only, CONTEXTUAL sur flag
+            // pivot mayotte_detecte) — outil d'analyse de portée territoriale, pas
+            // de tuile dashboard. Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern
+            // uniforme, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-IM-48-regime-mayotte-fr"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

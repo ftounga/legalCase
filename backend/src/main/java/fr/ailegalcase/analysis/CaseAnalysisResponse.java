@@ -2897,6 +2897,15 @@ public record CaseAnalysisResponse(
             Set.of("ETUDIANT", "COMMERCANT", "SALARIE", "FAMILIAL", "AUTRE");
 
     /**
+     * SF-220-02 : types de titre pour l'outil F-IM-48 portée territoriale du titre
+     * à Mayotte (Ord. 2014-464, CESEDA L.832-1 et s.). FRANCE uniquement. Un code
+     * hors whitelist renvoyé par le LLM est ramené à {@code null} par
+     * {@code normalizeEnumCode()}.
+     */
+    static final Set<String> REGIME_MAYOTTE_TYPE_TITRE_CODES =
+            Set.of("VPF", "SALARIE", "ETUDIANT", "RESIDENT", "AUTRE");
+
+    /**
      * SF-212-29 : codes de type de congé maternité / paternité (F-DT-77)
      * — alignés sur l'enum {@code CongeMaternitePaterniteInput.TypeConge} et
      * le prompt PART14. Un code hors whitelist renvoyé par le LLM est ramené
@@ -3482,7 +3491,19 @@ public record CaseAnalysisResponse(
             /** SF-220-01 : durée de séjour envisagée en mois entiers (≥ 0). Null si non extractible ou dossier BE. */
             Integer regimeTunisienDureeSejour,
             /** SF-220-01 : true si un titre de séjour est déjà en cours. Null si non extractible ou dossier BE. */
-            Boolean regimeTunisienTitreEnCours) {
+            Boolean regimeTunisienTitreEnCours,
+            // === SF-220-02 — F-IM-48 Portée territoriale du titre à Mayotte (FRANCE UNIQUEMENT, null pour BE) ===
+            // Flag pivot CONTEXTUAL `mayotteDetecte` (le moteur de trigger territoire natif n'expose pas
+            // encore de champ territoire) + 3 champs de pré-fill. Tous null/false pour dossier BE.
+            /** SF-220-02 : true si un contexte mahorais (Mayotte) est détecté — pilote la visibilité CONTEXTUAL. */
+            boolean mayotteDetecte,
+            /** SF-220-02 : true si le titre a été délivré à Mayotte. Null si non extractible ou dossier BE. */
+            Boolean mayotteTitreDelivreAMayotte,
+            /** SF-220-02 : type de titre — whitelist {@link #REGIME_MAYOTTE_TYPE_TITRE_CODES}
+             *  (VPF / SALARIE / ETUDIANT / RESIDENT / AUTRE). Null si non extractible ou dossier BE. */
+            String mayotteTypeTitre,
+            /** SF-220-02 : true si un déplacement vers la métropole est projeté. Null si non extractible ou dossier BE. */
+            Boolean mayotteProjetDeplacementMetropole) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3620,7 +3641,12 @@ public record CaseAnalysisResponse(
                     // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988) FR
                     .regimeTunisienCategorie(regimeTunisienCategorie)
                     .regimeTunisienDureeSejour(regimeTunisienDureeSejour)
-                    .regimeTunisienTitreEnCours(regimeTunisienTitreEnCours);
+                    .regimeTunisienTitreEnCours(regimeTunisienTitreEnCours)
+                    // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte FR
+                    .mayotteDetecte(mayotteDetecte)
+                    .mayotteTitreDelivreAMayotte(mayotteTitreDelivreAMayotte)
+                    .mayotteTypeTitre(mayotteTypeTitre)
+                    .mayotteProjetDeplacementMetropole(mayotteProjetDeplacementMetropole);
         }
 
         public static final class Builder {
@@ -3778,6 +3804,11 @@ public record CaseAnalysisResponse(
             private String regimeTunisienCategorie;
             private Integer regimeTunisienDureeSejour;
             private Boolean regimeTunisienTitreEnCours;
+            // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte FR
+            private boolean mayotteDetecte;
+            private Boolean mayotteTitreDelivreAMayotte;
+            private String mayotteTypeTitre;
+            private Boolean mayotteProjetDeplacementMetropole;
 
             private Builder() {}
 
@@ -3922,6 +3953,11 @@ public record CaseAnalysisResponse(
             public Builder regimeTunisienCategorie(String v) { this.regimeTunisienCategorie = v; return this; }
             public Builder regimeTunisienDureeSejour(Integer v) { this.regimeTunisienDureeSejour = v; return this; }
             public Builder regimeTunisienTitreEnCours(Boolean v) { this.regimeTunisienTitreEnCours = v; return this; }
+            // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte FR
+            public Builder mayotteDetecte(boolean v) { this.mayotteDetecte = v; return this; }
+            public Builder mayotteTitreDelivreAMayotte(Boolean v) { this.mayotteTitreDelivreAMayotte = v; return this; }
+            public Builder mayotteTypeTitre(String v) { this.mayotteTypeTitre = v; return this; }
+            public Builder mayotteProjetDeplacementMetropole(Boolean v) { this.mayotteProjetDeplacementMetropole = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4031,7 +4067,12 @@ public record CaseAnalysisResponse(
                         // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988) FR
                         regimeTunisienCategorie,
                         regimeTunisienDureeSejour,
-                        regimeTunisienTitreEnCours);
+                        regimeTunisienTitreEnCours,
+                        // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte FR
+                        mayotteDetecte,
+                        mayotteTitreDelivreAMayotte,
+                        mayotteTypeTitre,
+                        mayotteProjetDeplacementMetropole);
             }
         }
     }
@@ -7467,6 +7508,16 @@ public record CaseAnalysisResponse(
                 (regimeTunisienDureeSejourRaw != null && regimeTunisienDureeSejourRaw >= 0)
                         ? regimeTunisienDureeSejourRaw : null;
         Boolean regimeTunisienTitreEnCours = booleanOrNull(root, "regime_tunisien_titre_en_cours");
+        // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte (Ord. 2014-464, CESEDA
+        // L.832-1 et s.) FR — flag pivot CONTEXTUAL `mayotte_detecte` (le moteur de trigger
+        // territoire natif n'expose pas de champ territoire) + 3 champs de pré-fill. Type de
+        // titre whitelisté (5 codes). Tous null/false pour dossier BE.
+        boolean mayotteDetecte = Boolean.TRUE.equals(booleanOrNull(root, "mayotte_detecte"));
+        Boolean mayotteTitreDelivreAMayotte = booleanOrNull(root, "mayotte_titre_delivre_a_mayotte");
+        String mayotteTypeTitre = normalizeEnumCode(
+                textOrNull(root, "mayotte_type_titre"), REGIME_MAYOTTE_TYPE_TITRE_CODES);
+        Boolean mayotteProjetDeplacementMetropole =
+                booleanOrNull(root, "mayotte_projet_deplacement_metropole");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7591,7 +7642,12 @@ public record CaseAnalysisResponse(
                 // SF-220-01 : F-IM-47 régime franco-tunisien FR (3 champs IA, nullables)
                 && regimeTunisienCategorie == null
                 && regimeTunisienDureeSejour == null
-                && regimeTunisienTitreEnCours == null) return null;
+                && regimeTunisienTitreEnCours == null
+                // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte FR (1 flag pivot + 3 champs IA)
+                && !mayotteDetecte
+                && mayotteTitreDelivreAMayotte == null
+                && mayotteTypeTitre == null
+                && mayotteProjetDeplacementMetropole == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -7744,6 +7800,11 @@ public record CaseAnalysisResponse(
                 .regimeTunisienCategorie(regimeTunisienCategorie)
                 .regimeTunisienDureeSejour(regimeTunisienDureeSejour)
                 .regimeTunisienTitreEnCours(regimeTunisienTitreEnCours)
+                // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte FR
+                .mayotteDetecte(mayotteDetecte)
+                .mayotteTitreDelivreAMayotte(mayotteTitreDelivreAMayotte)
+                .mayotteTypeTitre(mayotteTypeTitre)
+                .mayotteProjetDeplacementMetropole(mayotteProjetDeplacementMetropole)
                 .build();
     }
 

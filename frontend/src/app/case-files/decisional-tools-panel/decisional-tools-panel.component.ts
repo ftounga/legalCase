@@ -62,6 +62,7 @@ import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etran
 // SF-214-04 : composant complet F-IM-26 regroupement familial L.434-1+ CESEDA (FR).
 import { RegroupementFamilialSectionComponent } from '../regroupement-familial-section/regroupement-familial-section.component';
 import { RegimeTunisienSectionComponent } from '../regime-tunisien-section/regime-tunisien-section.component';
+import { RegimeMayotteSectionComponent } from '../regime-mayotte-section/regime-mayotte-section.component';
 // SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF liens personnels L.423-23 (FR, scoring).
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
@@ -1655,6 +1656,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-47-regime-tunisien-fr', {
         displayLabel: 'Régime franco-tunisien 1988 (FR)',
         component: RegimeTunisienSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-220-02 : composant complet F-IM-48 portée territoriale du titre à Mayotte
+      // (Ord. 2014-464, CESEDA L.832-1 et s., FR). FR uniquement, CONTEXTUAL sur le
+      // flag pivot mayotte_detecte. Outil d'analyse de portée territoriale (un titre
+      // mahorais ne vaut pas autorisation de circuler en métropole sans démarche).
+      // Pré-fill IA 3 champs (titre délivré à Mayotte, type de titre, projet
+      // déplacement métropole) via static getPrefillCount + RegimeMayottePrefillRules.
+      ['F-IM-48-regime-mayotte-fr', {
+        displayLabel: 'Portée territoriale Mayotte (FR)',
+        component: RegimeMayotteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5742,6 +5759,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // accord 1988). Thème VALIDITE (analyse de régime applicable, cohérent avec
     // F-IM-17 régime algérien / autres aiguillages Immigration FR).
     ['F-IM-47-regime-tunisien-fr', 'VALIDITE'],
+    // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte (Ord. 2014-464,
+    // CESEDA L.832-1 et s., FR) — analyse de portée territoriale (dérogation
+    // mahoraise). Thème VALIDITE, cohérent avec F-IM-47 régime tunisien / autres
+    // aiguillages Immigration FR.
+    ['F-IM-48-regime-mayotte-fr', 'VALIDITE'],
     // SF-214-06 : F-IM-27-vpf-liens-personnels-l42323-fr VPF liens personnels
     // L.423-23 CESEDA (FR). Thème VALIDITE — analyseur d'éligibilité (scoring
     // 0-100 + 4 verdicts). Aligné sur regroupement-familial-fr / etranger-malade.
