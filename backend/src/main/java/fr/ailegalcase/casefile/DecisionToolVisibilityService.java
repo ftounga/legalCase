@@ -569,6 +569,10 @@ public class DecisionToolVisibilityService {
         // CDIP, Convention algéro-belge). Consolidé dans Sf223Detail
         // (@JsonUnwrapped) → aplati sur familleNode → lu à plat.
         addBooleanFlagIfTrue(detected, familleNode, "regime_algerien_be_detecte");
+        // SF-223-06 — flag pivot CONTEXTUAL Famille BE : régime de séparation de
+        // biens BE et ses variantes (Livre 3 CC ; loi du 22/07/2018). Consolidé
+        // dans Sf223Detail (@JsonUnwrapped) → aplati sur familleNode → lu à plat.
+        addBooleanFlagIfTrue(detected, familleNode, "regime_separation_biens_be_detecte");
         return detected;
     }
 

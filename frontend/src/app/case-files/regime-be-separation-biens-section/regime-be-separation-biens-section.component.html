@@ -1,0 +1,169 @@
+<section class="rsb-section">
+  <header class="rsb-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rsb-body">
+    <mat-icon class="rsb-icon">family_restroom</mat-icon>
+    <span class="rsb-title">SÉPARATION DE BIENS (BELGIQUE)</span>
+    @if (result()) {
+      <span class="rsb-chip-summary"
+            [class.rsb-chip-summary--ok]="result()!.verdict === 'SEPARATION_PURE_QUALIFIEE'"
+            [class.rsb-chip-summary--warn]="result()!.verdict === 'SOCIETE_ACQUETS_QUALIFIEE' || result()!.verdict === 'PARTICIPATION_ACQUETS_QUALIFIEE'"
+            [class.rsb-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="rsb-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rsb-body" class="rsb-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="rsb-country-banner" data-testid="rsb-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — régime matrimonial de séparation de biens et ses variantes (Livre 3 du Code civil ; loi du 22/07/2018 — à vérifier par avocat belge). Pour le régime de communauté légale, voir l'outil dédié (F-217).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="rsb-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="rsb-form" (ngSubmit)="calculate()">
+            <div class="rsb-block rsb-full">
+              <span class="rsb-block-label">Variante du régime de séparation</span>
+              <mat-form-field appearance="outline" class="rsb-inline-field">
+                <mat-label>Variante</mat-label>
+                <mat-select [ngModel]="varianteRegime()"
+                            (ngModelChange)="varianteRegime.set($event)"
+                            name="varianteRegime" required>
+                  @for (opt of varianteOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="rsb-block rsb-full">
+              <span class="rsb-block-label">Éléments du contrat</span>
+              <mat-form-field appearance="outline" class="rsb-inline-field">
+                <mat-label>Date du contrat de mariage (facultatif)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateContrat()"
+                       (ngModelChange)="dateContrat.set($event)"
+                       name="dateContrat">
+              </mat-form-field>
+              <mat-slide-toggle [ngModel]="contratMariageNotarie()"
+                                (ngModelChange)="contratMariageNotarie.set($event)"
+                                name="contratMariageNotarie">
+                Contrat de mariage notarié mentionné
+              </mat-slide-toggle>
+              @if (varianteRegime() === 'SEPARATION_AVEC_PARTICIPATION_ACQUETS') {
+                <mat-slide-toggle [ngModel]="clauseParticipationPrevue()"
+                                  (ngModelChange)="clauseParticipationPrevue.set($event)"
+                                  name="clauseParticipationPrevue">
+                  Clause de participation aux acquêts prévue au contrat
+                </mat-slide-toggle>
+              }
+              <mat-slide-toggle [ngModel]="disproportionPatrimonialeAllegee()"
+                                (ngModelChange)="disproportionPatrimonialeAllegee.set($event)"
+                                name="disproportionPatrimonialeAllegee">
+                Disproportion patrimoniale alléguée (correctif équitable 2018)
+              </mat-slide-toggle>
+            </div>
+
+            <div class="rsb-block rsb-full">
+              <span class="rsb-block-label">Patrimoines propres (facultatif)</span>
+              <mat-form-field appearance="outline" class="rsb-inline-field">
+                <mat-label>Patrimoine propre époux 1 (€)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="patrimoinePropreEpoux1Eur()"
+                       (ngModelChange)="patrimoinePropreEpoux1Eur.set($event)"
+                       name="patrimoinePropreEpoux1Eur">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="rsb-inline-field">
+                <mat-label>Patrimoine propre époux 2 (€)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="patrimoinePropreEpoux2Eur()"
+                       (ngModelChange)="patrimoinePropreEpoux2Eur.set($event)"
+                       name="patrimoinePropreEpoux2Eur">
+              </mat-form-field>
+            </div>
+
+            <div class="rsb-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Analyser le régime
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="rsb-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="rsb-verdict-text">
+                <span class="rsb-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="rsb-verdict-type">{{ varianteLabel(r.varianteRegime) }}</span>
+              </div>
+            </div>
+
+            @if (r.messages.length) {
+              <ul class="rsb-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.motifs.length) {
+              <div class="rsb-list-block">
+                <span class="rsb-list-title">Motifs de la qualification</span>
+                <ul>
+                  @for (mo of r.motifs; track mo) {
+                    <li [innerHTML]="mo | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.effetsPatrimoniaux) {
+              <div class="rsb-list-block">
+                <span class="rsb-list-title">Effets patrimoniaux</span>
+                <p class="rsb-effets" [innerHTML]="r.effetsPatrimoniaux | legalCitations"></p>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="rsb-list-block rsb-bases">
+                <span class="rsb-list-title">Bases juridiques (à vérifier par avocat belge — Livre 3 CC + loi 22/07/2018)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="rsb-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>
