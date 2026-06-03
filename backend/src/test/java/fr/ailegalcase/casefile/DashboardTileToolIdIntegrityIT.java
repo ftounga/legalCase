@@ -1127,6 +1127,15 @@ class DashboardTileToolIdIntegrityIT {
             // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
             "F-DT-79-conge-proche-aidant",
+            // SF-218-49 : outil F-DT-80 RTT — acquisition selon accord d'aménagement
+            // (art. L.3121-41 à L.3121-44 CT — calcul du nombre théorique de JRTT
+            // acquis sans majoration, renvoi heures sup à défaut d'accord, FR-only,
+            // CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-50 (même PR).
+            // DISTINCT des heures supplémentaires (F-DT-19) et de la monétisation de
+            // RTT (F-DT-51). Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme
+            // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-80-rtt-acquisition",
             // SF-218-33 : outil F-DT-69 délégué syndical / RSS : désignation et
             // protection (art. L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT,
             // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-34 à
