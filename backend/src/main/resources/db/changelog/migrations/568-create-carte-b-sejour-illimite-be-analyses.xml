@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="fd8f3a5b-4913-42e9-be02-caa8d6d77a79-create-carte-b-sejour-illimite-be" author="legalcase">
+        <comment>
+            SF-221-02 : table dédiée à l'outil décisionnel "Carte B séjour illimité BE"
+            (F-IM-54-carte-b-sejour-illimite-be, BELGIQUE — fondement : Loi du 15/12/1980
+            art. 14 sur le séjour illimité d'un ressortissant tiers après 5 ans de séjour
+            régulier ininterrompu.
+            (à vérifier par avocat BE 2026 — seuil 5 ans = 60 mois, variantes selon le motif).
+
+            L'outil calcule :
+            - dureeSejourMois = mois écoulés depuis dateDebutSejourRegulier ;
+            - moisRestants = max(0, 60 - dureeSejourMois) ;
+            - le verdict 5 états : ELIGIBLE / DUREE_INSUFFISANTE / CONTINUITE_ROMPUE /
+              RISQUE_ORDRE_PUBLIC / A_EXAMINER ;
+            - la liste des bases juridiques annotees "(a verifier par avocat)" + messages.
+
+            Outil single-country BELGIQUE — DISTINCT de F-IM-53 (prorogation carte A,
+            maintien temporaire du meme motif) et de F-IM-55 (resident longue duree UE,
+            directive 2003/109/CE — conditions propres + mobilite intra-UE). La carte B
+            ne confere PAS la mobilite intra-UE : passage au sejour ILLIMITE national.
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (569-seed-carte-b-sejour-illimite-be-visibility.xml) est livree dans la MEME PR
+            que cette table.
+        </comment>
+
+        <createTable tableName="carte_b_sejour_illimite_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_carte_b_sejour_illimite_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_debut_sejour_regulier" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sejour_ininterrompu" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="absences_superieures_limites" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_sejour_stable" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ordre_public_risque" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="carte_b_sejour_illimite_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_carte_b_sejour_illimite_be_case_file"/>
+
+        <createIndex tableName="carte_b_sejour_illimite_be_analyses"
+                     indexName="idx_carte_b_sejour_illimite_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="carte_b_sejour_illimite_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1215,7 +1215,14 @@ class DashboardTileToolIdIntegrityIT {
             // + entrée TOOL_REGISTRY frontend livrées dans la même PR back+front.
             // Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-IM-53-carte-a-prorogation-be"
+            "F-IM-53-carte-a-prorogation-be",
+            // SF-221-02 : F-IM-54 carte B séjour illimité d'un ressortissant tiers (BE) —
+            // analyseur d'éligibilité au passage carte A → carte B (art. 14 Loi 15/12/1980,
+            // 5 ans = 60 mois de séjour régulier ininterrompu). Outil décisionnel CONTEXTUAL
+            // BE, pas de tuile dashboard. Seed visibility (migration 569) + entrée TOOL_REGISTRY
+            // frontend livrées dans la même PR back+front. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // (pattern uniforme, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-IM-54-carte-b-sejour-illimite-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

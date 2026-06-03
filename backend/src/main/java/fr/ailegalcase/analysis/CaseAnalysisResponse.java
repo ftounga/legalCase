@@ -3604,7 +3604,23 @@ public record CaseAnalysisResponse(
             /** SF-221-01 : true si le motif de séjour persiste à l'identique. Null si non extractible ou dossier FR. */
             Boolean carteAProrogationMotifPersiste,
             /** SF-221-01 : true si les conditions initiales du séjour sont toujours réunies. Null si non extractible ou dossier FR. */
-            Boolean carteAProrogationConditionsReunies) {
+            Boolean carteAProrogationConditionsReunies,
+            // === SF-221-02 — F-IM-54 Carte B séjour illimité BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            /**
+             * SF-221-02 : true si les pièces évoquent un passage au séjour ILLIMITÉ
+             * (carte B, art. 14 Loi 15/12/1980) après 5 ans de séjour régulier (mentions
+             * « carte B », « séjour illimité », « art. 14 Loi 15/12/1980 », « 5 ans de
+             * séjour régulier », « passage carte A vers carte B »). Pivot pour la
+             * visibility rule CONTEXTUAL de F-IM-54 (trigger {@code carte_b_sejour_illimite_detecte}).
+             * Dossiers FR : toujours false.
+             */
+            boolean carteBSejourIllimiteDetecte,
+            /** SF-221-02 : date de début du séjour régulier ininterrompu au format YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
+            String carteBDateDebutSejour,
+            /** SF-221-02 : true si le séjour régulier a été ininterrompu. Null si non extractible ou dossier FR. */
+            Boolean carteBSejourIninterrompu,
+            /** SF-221-02 : true si le motif de séjour est stable. Null si non extractible ou dossier FR. */
+            Boolean carteBMotifStable) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3774,7 +3790,11 @@ public record CaseAnalysisResponse(
                     .carteAProrogationDetecte(carteAProrogationDetecte)
                     .carteAProrogationDateExpiration(carteAProrogationDateExpiration)
                     .carteAProrogationMotifPersiste(carteAProrogationMotifPersiste)
-                    .carteAProrogationConditionsReunies(carteAProrogationConditionsReunies);
+                    .carteAProrogationConditionsReunies(carteAProrogationConditionsReunies)
+                    .carteBSejourIllimiteDetecte(carteBSejourIllimiteDetecte)
+                    .carteBDateDebutSejour(carteBDateDebutSejour)
+                    .carteBSejourIninterrompu(carteBSejourIninterrompu)
+                    .carteBMotifStable(carteBMotifStable);
         }
 
         public static final class Builder {
@@ -3963,6 +3983,10 @@ public record CaseAnalysisResponse(
             private String carteAProrogationDateExpiration;
             private Boolean carteAProrogationMotifPersiste;
             private Boolean carteAProrogationConditionsReunies;
+            private boolean carteBSejourIllimiteDetecte;
+            private String carteBDateDebutSejour;
+            private Boolean carteBSejourIninterrompu;
+            private Boolean carteBMotifStable;
 
             private Builder() {}
 
@@ -4138,6 +4162,10 @@ public record CaseAnalysisResponse(
             public Builder carteAProrogationDateExpiration(String v) { this.carteAProrogationDateExpiration = v; return this; }
             public Builder carteAProrogationMotifPersiste(Boolean v) { this.carteAProrogationMotifPersiste = v; return this; }
             public Builder carteAProrogationConditionsReunies(Boolean v) { this.carteAProrogationConditionsReunies = v; return this; }
+            public Builder carteBSejourIllimiteDetecte(boolean v) { this.carteBSejourIllimiteDetecte = v; return this; }
+            public Builder carteBDateDebutSejour(String v) { this.carteBDateDebutSejour = v; return this; }
+            public Builder carteBSejourIninterrompu(Boolean v) { this.carteBSejourIninterrompu = v; return this; }
+            public Builder carteBMotifStable(Boolean v) { this.carteBMotifStable = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4278,7 +4306,12 @@ public record CaseAnalysisResponse(
                         carteAProrogationDetecte,
                         carteAProrogationDateExpiration,
                         carteAProrogationMotifPersiste,
-                        carteAProrogationConditionsReunies);
+                        carteAProrogationConditionsReunies,
+                        // SF-221-02 : F-IM-54 carte B séjour illimité BE
+                        carteBSejourIllimiteDetecte,
+                        carteBDateDebutSejour,
+                        carteBSejourIninterrompu,
+                        carteBMotifStable);
             }
         }
     }
@@ -7779,6 +7812,18 @@ public record CaseAnalysisResponse(
                         ? carteAProrogationDateExpirationRaw : null;
         Boolean carteAProrogationMotifPersiste = booleanOrNull(root, "carte_a_prorogation_motif_persiste");
         Boolean carteAProrogationConditionsReunies = booleanOrNull(root, "carte_a_prorogation_conditions_reunies");
+        // SF-221-02 : F-IM-54 carte B séjour illimité BE — flag pivot `carte_b_sejour_illimite_detecte`
+        // + 3 champs de pré-fill (BELGIQUE uniquement). Date de début de séjour régulier ISO (non
+        // future), séjour ininterrompu / motif stable booléens. Tous null/false pour dossier FRANCE.
+        boolean carteBSejourIllimiteDetecte =
+                Boolean.TRUE.equals(booleanOrNull(root, "carte_b_sejour_illimite_detecte"));
+        String carteBDateDebutSejourRaw = textOrNull(root, "carte_b_date_debut_sejour");
+        String carteBDateDebutSejour =
+                (carteBDateDebutSejourRaw != null
+                        && carteBDateDebutSejourRaw.matches(ISO_DATE_SF214))
+                        ? carteBDateDebutSejourRaw : null;
+        Boolean carteBSejourIninterrompu = booleanOrNull(root, "carte_b_sejour_ininterrompu");
+        Boolean carteBMotifStable = booleanOrNull(root, "carte_b_motif_stable");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7935,7 +7980,12 @@ public record CaseAnalysisResponse(
                 && !carteAProrogationDetecte
                 && carteAProrogationDateExpiration == null
                 && carteAProrogationMotifPersiste == null
-                && carteAProrogationConditionsReunies == null) return null;
+                && carteAProrogationConditionsReunies == null
+                // SF-221-02 : F-IM-54 carte B séjour illimité BE (1 flag pivot + 3 champs IA, nullables)
+                && !carteBSejourIllimiteDetecte
+                && carteBDateDebutSejour == null
+                && carteBSejourIninterrompu == null
+                && carteBMotifStable == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -8121,6 +8171,11 @@ public record CaseAnalysisResponse(
                 .carteAProrogationDateExpiration(carteAProrogationDateExpiration)
                 .carteAProrogationMotifPersiste(carteAProrogationMotifPersiste)
                 .carteAProrogationConditionsReunies(carteAProrogationConditionsReunies)
+                // SF-221-02 : F-IM-54 carte B séjour illimité BE
+                .carteBSejourIllimiteDetecte(carteBSejourIllimiteDetecte)
+                .carteBDateDebutSejour(carteBDateDebutSejour)
+                .carteBSejourIninterrompu(carteBSejourIninterrompu)
+                .carteBMotifStable(carteBMotifStable)
                 .build();
     }
 

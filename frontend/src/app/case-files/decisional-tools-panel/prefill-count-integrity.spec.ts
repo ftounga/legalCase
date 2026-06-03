@@ -313,6 +313,11 @@ const FOLDER_OVERRIDES: ReadonlyMap<string, string> = new Map([
   // collerait `CarteAProrogation` → `carte-aprorogation` (deux capitales `AP`
   // consécutives sans frontière minuscule→majuscule).
   ['CarteAProrogationBeSectionComponent', 'carte-a-prorogation-be-section'],
+  // SF-221-02 : F-IM-54 carte B séjour illimité BE — le dossier suit la convention
+  // `carte-b-sejour-illimite-be-section`, alors que la dérivation kebab-case standard
+  // collerait `CarteBSejour` → `carte-bsejour` (deux capitales `BS` consécutives sans
+  // frontière minuscule→majuscule). Même pattern que CarteAProrogation.
+  ['CarteBSejourIllimiteBeSectionComponent', 'carte-b-sejour-illimite-be-section'],
 ]);
 
 function deriveFolderFromClassName(className: string): string {
