@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="0c40750c-4b44-41b0-b2f8-77c30c7d7336" author="legalcase">
+        <comment>
+            SF-218-43 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Conges pour evenements familiaux"
+            (F-DT-76-conges-evenements-familiaux, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de conge pour evenement familial (mentions « conge mariage »,
+            « conge naissance », « conge deces », « conge pour evenement
+            familial », « jours pour deces d'un proche », « annonce du handicap de
+            l'enfant »). Flag pivot `conge_evt_familial_detecte` = true.
+            trigger_field = 'conge_evt_familial_detecte', trigger_value = 'true'.
+            priority 94 — valeur libre pre-assignee pour le couple
+            (DROIT_DU_TRAVAIL, FRANCE) au-dela du seed CONTEXTUAL FR le plus
+            recent (F-DT-53 epargne salariale conformite = 93).
+
+            Source juridique : art. L.3142-1 a L.3142-5 du Code du travail.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('0c40750c-4b44-41b0-b2f8-77c30c7d7336', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-76-conges-evenements-familiaux', 'CONTEXTUAL', 'conge_evt_familial_detecte', 'true', 94);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '0c40750c-4b44-41b0-b2f8-77c30c7d7336';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

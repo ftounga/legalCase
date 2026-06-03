@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="6a8c7332-5661-4d57-bf0f-9119c3d17f00" author="legalcase">
+        <comment>
+            SF-218-43 — table `conges_evenements_familiaux_analyses` pour l'outil
+            decisionnel "Conges pour evenements familiaux"
+            (F-DT-76-conges-evenements-familiaux, FRANCE).
+
+            Outil single-country FR : determine la duree de conge applicable pour
+            un evenement familial (art. L.3142-1 a L.3142-5 CT). Durees legales
+            (L.3142-4) : mariage/PACS 4 jours, naissance/adoption 3 jours, deces
+            d'un enfant 5 jours (porte a 7 jours ouvres dans les cas renforces),
+            deces du conjoint/partenaire/concubin 3 jours, deces du
+            pere/mere/beau-pere/belle-mere/frere/soeur 3 jours, annonce d'un
+            handicap/cancer/pathologie chronique chez un enfant 2 jours,
+            demenagement 0 jour legal (renvoi CCN). Si une duree conventionnelle
+            plus favorable est prevue (superieure a la duree legale) elle est
+            retenue (base CONVENTIONNELLE), sinon la duree legale (base LEGALE).
+            Conge assimile a du temps de travail effectif : maintien integral du
+            salaire. Persiste l'analyse 1:1 par dossier (upsert).
+
+            Distinct du conge de paternite/maternite (F-212) et du conge parental
+            d'education (F-DT-78) — invariant « un outil = une situation ».
+
+            Source juridique : art. L.3142-1 a L.3142-5 du Code du travail.
+        </comment>
+
+        <createTable tableName="conges_evenements_familiaux_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_conges_evt_familiaux_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="type_evenement" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="convention_plus_favorable" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_conventionnelle_jours" type="INT"/>
+            <column name="duree_legale_jours" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_applicable_jours" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="base" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="maintien_salaire" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="conges_evenements_familiaux_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
