@@ -401,6 +401,28 @@ export interface TravailExtractedData {
    */
   salaire_journalier_brut?: number | null;
   /**
+   * SF-218-40 : flag pivot CONTEXTUAL — true quand l'IA détecte des signaux de
+   * prime de partage de la valeur (« PPV », « prime de partage de la valeur »,
+   * « prime Macron », « prime exceptionnelle de pouvoir d'achat », « prime
+   * PEPA »). Déclenche l'apparition de F-DT-52-ppv-exoneration (FR uniquement).
+   * Clé JSON SNAKE_CASE (Sf218dDetail `@JsonProperty`).
+   */
+  ppv_detectee?: boolean | null;
+  /**
+   * SF-218-40 : montant de la PPV versée au bénéficiaire sur l'année civile,
+   * détecté par l'IA dans les pièces du dossier (bulletins, accord). Pré-fill du
+   * champ `montantPrime` de F-DT-52-ppv-exoneration (FR uniquement). Clé JSON
+   * SNAKE_CASE (Sf218dDetail `@JsonProperty`).
+   */
+  montant_ppv?: number | null;
+  /**
+   * SF-218-40 : présence d'un accord d'intéressement dans l'entreprise détectée
+   * par l'IA (porte le plafond social PPV à 6 000 €). Pré-fill du champ
+   * `accordInteressementPresent` de F-DT-52-ppv-exoneration (FR uniquement). Clé
+   * JSON SNAKE_CASE (Sf218dDetail `@JsonProperty`). Champ partagé avec F-DT-53.
+   */
+  accord_interessement_present?: boolean | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de

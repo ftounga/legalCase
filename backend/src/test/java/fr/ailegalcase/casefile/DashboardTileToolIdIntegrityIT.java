@@ -1090,6 +1090,13 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme F-213 / F-219 / F-218
             // vagues, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
             "F-DT-51-rtt-monetisation",
+            // SF-218-39 : outil F-DT-52 PPV — exonération (prime de partage de la
+            // valeur) (loi n° 2022-1158 du 16/08/2022 art. 1 + loi n° 2023-1107 du
+            // 29/11/2023, FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend
+            // SF-218-40 (même PR). Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern
+            // uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-52-ppv-exoneration",
             // SF-218-33 : outil F-DT-69 délégué syndical / RSS : désignation et
             // protection (art. L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT,
             // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-34 à

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="5aeba2cd-3a69-4469-ad85-a62feb842187" author="legalcase">
+        <comment>
+            SF-218-39 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "PPV — exoneration (prime de partage de la valeur)"
+            (F-DT-52-ppv-exoneration, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de PPV (mentions « prime de partage de la valeur », « PPV »,
+            « prime Macron », « prime exceptionnelle de pouvoir d'achat »,
+            « prime PEPA »). Flag pivot `ppv_detectee` = true. trigger_field =
+            'ppv_detectee', trigger_value = 'true'. priority 92 — valeur libre
+            pre-assignee pour le couple (DROIT_DU_TRAVAIL, FRANCE) au-dela du seed
+            CONTEXTUAL FR le plus recent (F-DT-51 RTT monetisation = 91).
+
+            Source juridique : loi n° 2022-1158 du 16/08/2022 art. 1 + loi
+            n° 2023-1107 du 29/11/2023.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('5aeba2cd-3a69-4469-ad85-a62feb842187', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-52-ppv-exoneration', 'CONTEXTUAL', 'ppv_detectee', 'true', 92);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '5aeba2cd-3a69-4469-ad85-a62feb842187';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
