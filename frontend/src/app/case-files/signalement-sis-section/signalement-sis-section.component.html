@@ -1,0 +1,225 @@
+<section class="sis-section">
+  <header class="sis-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="sis-body">
+    <mat-icon class="sis-icon">gavel</mat-icon>
+    <span class="sis-title">CONTESTATION SIGNALEMENT SIS (NON-ADMISSION) (FR)</span>
+    @if (result()) {
+      <span class="sis-chip"
+            [class.sis-chip--success]="result()!.actionPossible === 'RADIATION_AUTORITE_FR'"
+            [class.sis-chip--warning]="result()!.actionPossible === 'CONSULTATION_ENTRE_ETATS'"
+            [class.sis-chip--info]="result()!.actionPossible === 'RADIATION_ETAT_SIGNALANT' || result()!.actionPossible === 'DROIT_ACCES_RECTIFICATION'"
+            [class.sis-chip--neutral]="result()!.actionPossible === 'INDETERMINE'">
+        {{ actionLabel(result()!.actionPossible) }}
+      </span>
+    }
+    <mat-icon class="sis-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="sis-body" class="sis-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="sis-banner sis-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="sis-banner-content">
+            <div class="sis-banner-title">Signalement SIS — procédure française uniquement</div>
+            <div class="sis-banner-sub">
+              Cet outil traite la contestation d'un signalement SIS du point de vue de l'autorité française
+              (Règl. UE 2018/1860 ; CESEDA L.312-3).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="sis-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <p class="sis-intro">
+              Un signalement aux fins de <strong>non-admission</strong> dans le SIS
+              bloque l'entrée dans l'espace Schengen <strong>même avec un titre de
+              séjour valide</strong>. La voie de radiation dépend de l'<strong>État
+              signalant</strong>. À distinguer de l'IRTF (F-IM-20), qui est la mesure
+              nationale ; ici l'objet est le signalement lui-même. À vérifier par l'avocat.
+            </p>
+            <form class="sis-form" (ngSubmit)="analyze()">
+              <div class="sis-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>État signalant</mat-label>
+                  <mat-select [ngModel]="etatSignalant()"
+                              (ngModelChange)="onEtatSignalantChange($event)"
+                              name="etatSignalant" required>
+                    @for (e of etatsSignalant; track e) {
+                      <mat-option [value]="e">{{ etatSignalantLabel(e) }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Requis — détermine la voie de radiation</mat-hint>
+                </mat-form-field>
+                @if (provenanceEtatSignalant() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sis-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif du signalement</mat-label>
+                  <mat-select [ngModel]="motifSignalement()"
+                              (ngModelChange)="onMotifSignalementChange($event)"
+                              name="motifSignalement">
+                    @for (m of motifs; track m) {
+                      <mat-option [value]="m">{{ motifLabel(m) }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Optionnel</mat-hint>
+                </mat-form-field>
+                @if (provenanceMotifSignalement() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sis-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Signalement connu / documenté</mat-label>
+                  <mat-select [ngModel]="signalementConnu()"
+                              (ngModelChange)="onSignalementConnuChange($event)"
+                              name="signalementConnu">
+                    <mat-option [value]="true">Oui</mat-option>
+                    <mat-option [value]="false">Non (à confirmer par droit d'accès)</mat-option>
+                    <mat-option [value]="null">Non précisé</mat-option>
+                  </mat-select>
+                  <mat-hint>Optionnel</mat-hint>
+                </mat-form-field>
+                @if (provenanceSignalementConnu() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sis-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Titre de séjour français valide</mat-label>
+                  <mat-select [ngModel]="titreSejourValide()"
+                              (ngModelChange)="onTitreSejourValideChange($event)"
+                              name="titreSejourValide">
+                    <mat-option [value]="true">Oui (conflit avec la non-admission)</mat-option>
+                    <mat-option [value]="false">Non</mat-option>
+                    <mat-option [value]="null">Non précisé</mat-option>
+                  </mat-select>
+                  <mat-hint>Un titre valide peut justifier une consultation entre États</mat-hint>
+                </mat-form-field>
+                @if (provenanceTitreSejourValide() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sis-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du signalement</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateSignalement()"
+                         (ngModelChange)="dateSignalement.set($event)"
+                         name="dateSignalement" />
+                  <mat-hint>Optionnel</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="sis-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la contestation</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="sis-result">
+              <div [class]="bannerClass(result())" role="status">
+                <mat-icon>{{ bannerIcon(result()) }}</mat-icon>
+                <div class="sis-banner-content">
+                  <div class="sis-banner-title">{{ actionLabel(result()!.actionPossible) }}</div>
+                  <div class="sis-banner-sub">
+                    Autorité compétente : {{ result()!.autoriteCompetente }}. À vérifier par l'avocat.
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.demarches?.length) {
+                <div class="sis-block">
+                  <div class="sis-block-label">Démarches</div>
+                  <ul class="sis-list">
+                    @for (d of result()!.demarches; track d) {
+                      <li>{{ d }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <div class="sis-block">
+                  <div class="sis-block-label">Points d'attention</div>
+                  <ul class="sis-list sis-list--muted">
+                    @for (m of result()!.messages; track m) {
+                      <li>{{ m }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <ul class="sis-breakdown">
+                <li>
+                  <span class="sis-bd-label">État signalant</span>
+                  <span class="sis-bd-value">{{ etatSignalantLabel(result()!.etatSignalant) }}</span>
+                </li>
+                @if (result()!.motifSignalement) {
+                  <li>
+                    <span class="sis-bd-label">Motif</span>
+                    <span class="sis-bd-value">{{ motifLabel(result()!.motifSignalement) }}</span>
+                  </li>
+                }
+                <li>
+                  <span class="sis-bd-label">Titre de séjour valide</span>
+                  <span class="sis-bd-value">
+                    {{ result()!.titreSejourValide === true ? 'Oui' : (result()!.titreSejourValide === false ? 'Non' : 'Non précisé') }}
+                  </span>
+                </li>
+                @if (result()!.dateSignalement) {
+                  <li>
+                    <span class="sis-bd-label">Date du signalement</span>
+                    <span class="sis-bd-value">{{ result()!.dateSignalement }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.basesJuridiques?.length) {
+                <div class="sis-meta">
+                  <span class="sis-meta-base" [innerHTML]="result()!.basesJuridiques.join(' ; ') | legalCitations"></span>
+                  <button mat-stroked-button type="button" (click)="editMode()">
+                    <mat-icon>edit</mat-icon> Modifier
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

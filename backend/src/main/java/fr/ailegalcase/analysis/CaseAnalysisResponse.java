@@ -2922,6 +2922,21 @@ public record CaseAnalysisResponse(
             Set.of("TERRORISME", "ATTEINTE_INTERETS_NATION", "FRAUDE_ACQUISITION", "AUTRE");
 
     /**
+     * SF-220-06 : codes whitelistés de l'État signalant un signalement SIS
+     * (F-IM-52, Règl. UE 2018/1860). Tout code hors liste renvoyé par le LLM est
+     * ramené à {@code null} par {@code normalizeEnumCode()}.
+     */
+    static final Set<String> SIGNALEMENT_SIS_ETAT_CODES =
+            Set.of("FRANCE", "AUTRE_ETAT_MEMBRE", "INCONNU");
+
+    /**
+     * SF-220-06 : codes whitelistés du motif d'un signalement SIS (F-IM-52).
+     * Tout code hors liste renvoyé par le LLM est ramené à {@code null}.
+     */
+    static final Set<String> SIGNALEMENT_SIS_MOTIF_CODES =
+            Set.of("IRTF", "MESURE_ELOIGNEMENT_ETRANGERE", "MENACE_ORDRE_PUBLIC", "AUTRE");
+
+    /**
      * SF-212-29 : codes de type de congé maternité / paternité (F-DT-77)
      * — alignés sur l'enum {@code CongeMaternitePaterniteInput.TypeConge} et
      * le prompt PART14. Un code hors whitelist renvoyé par le LLM est ramené
@@ -3560,7 +3575,20 @@ public record CaseAnalysisResponse(
             /** SF-220-05 : true si la mesure de déchéance a déjà été prononcée (décret). Null si non extractible ou dossier BE. */
             Boolean decheanceMesurePrononcee,
             /** SF-220-05 : date du décret de déchéance (ISO yyyy-MM-dd). Null si non extractible ou dossier BE. */
-            String decheanceDateDecret) {
+            String decheanceDateDecret,
+            // === SF-220-06 — F-IM-52 signalement SIS (Règl. UE 2018/1860 / CESEDA L.312-3) (FRANCE UNIQUEMENT, null pour BE) ===
+            // Flag pivot CONTEXTUAL `signalementSisDetecte` (contestation / radiation d'un signalement
+            // aux fins de non-admission dans le SIS) + 3 champs de pré-fill. Tous null/false pour dossier BE.
+            /** SF-220-06 : true si un contexte de signalement SIS est détecté — pilote la visibilité CONTEXTUAL. */
+            boolean signalementSisDetecte,
+            /** SF-220-06 : État à l'origine du signalement — whitelist
+             *  (FRANCE / AUTRE_ETAT_MEMBRE / INCONNU). Null si non extractible ou dossier BE. */
+            String signalementSisEtatSignalant,
+            /** SF-220-06 : motif du signalement — whitelist
+             *  (IRTF / MESURE_ELOIGNEMENT_ETRANGERE / MENACE_ORDRE_PUBLIC / AUTRE). Null si non extractible ou dossier BE. */
+            String signalementSisMotifSignalement,
+            /** SF-220-06 : true si l'étranger détient un titre de séjour FR valide. Null si non extractible ou dossier BE. */
+            Boolean signalementSisTitreSejourValide) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3720,7 +3748,12 @@ public record CaseAnalysisResponse(
                     .decheanceMotif(decheanceMotif)
                     .decheanceBinational(decheanceBinational)
                     .decheanceMesurePrononcee(decheanceMesurePrononcee)
-                    .decheanceDateDecret(decheanceDateDecret);
+                    .decheanceDateDecret(decheanceDateDecret)
+                    // SF-220-06 : F-IM-52 signalement SIS (Règl. UE 2018/1860 / CESEDA L.312-3) FR
+                    .signalementSisDetecte(signalementSisDetecte)
+                    .signalementSisEtatSignalant(signalementSisEtatSignalant)
+                    .signalementSisMotifSignalement(signalementSisMotifSignalement)
+                    .signalementSisTitreSejourValide(signalementSisTitreSejourValide);
         }
 
         public static final class Builder {
@@ -3899,6 +3932,11 @@ public record CaseAnalysisResponse(
             private Boolean decheanceBinational;
             private Boolean decheanceMesurePrononcee;
             private String decheanceDateDecret;
+            // SF-220-06 : F-IM-52 signalement SIS (Règl. UE 2018/1860 / CESEDA L.312-3) FR
+            private boolean signalementSisDetecte;
+            private String signalementSisEtatSignalant;
+            private String signalementSisMotifSignalement;
+            private Boolean signalementSisTitreSejourValide;
 
             private Builder() {}
 
@@ -4064,6 +4102,11 @@ public record CaseAnalysisResponse(
             public Builder decheanceBinational(Boolean v) { this.decheanceBinational = v; return this; }
             public Builder decheanceMesurePrononcee(Boolean v) { this.decheanceMesurePrononcee = v; return this; }
             public Builder decheanceDateDecret(String v) { this.decheanceDateDecret = v; return this; }
+            // SF-220-06 : F-IM-52 signalement SIS (Règl. UE 2018/1860 / CESEDA L.312-3) FR
+            public Builder signalementSisDetecte(boolean v) { this.signalementSisDetecte = v; return this; }
+            public Builder signalementSisEtatSignalant(String v) { this.signalementSisEtatSignalant = v; return this; }
+            public Builder signalementSisMotifSignalement(String v) { this.signalementSisMotifSignalement = v; return this; }
+            public Builder signalementSisTitreSejourValide(Boolean v) { this.signalementSisTitreSejourValide = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4194,7 +4237,12 @@ public record CaseAnalysisResponse(
                         decheanceMotif,
                         decheanceBinational,
                         decheanceMesurePrononcee,
-                        decheanceDateDecret);
+                        decheanceDateDecret,
+                        // SF-220-06 : F-IM-52 signalement SIS (Règl. UE 2018/1860 / CESEDA L.312-3) FR
+                        signalementSisDetecte,
+                        signalementSisEtatSignalant,
+                        signalementSisMotifSignalement,
+                        signalementSisTitreSejourValide);
             }
         }
     }
@@ -7673,6 +7721,16 @@ public record CaseAnalysisResponse(
         String decheanceDateDecret =
                 (decheanceDateDecretRaw != null && decheanceDateDecretRaw.matches("\\d{4}-\\d{2}-\\d{2}"))
                         ? decheanceDateDecretRaw : null;
+        // SF-220-06 : F-IM-52 signalement SIS (Règl. UE 2018/1860 / CESEDA L.312-3) FR — flag pivot
+        // `signalement_sis_detecte` + 3 champs de pré-fill (FR uniquement). État signalant et motif
+        // whitelistés, titre de séjour valide booléen. Tous null/false pour dossier BE.
+        boolean signalementSisDetecte =
+                Boolean.TRUE.equals(booleanOrNull(root, "signalement_sis_detecte"));
+        String signalementSisEtatSignalant = normalizeEnumCode(
+                textOrNull(root, "signalement_sis_etat_signalant"), SIGNALEMENT_SIS_ETAT_CODES);
+        String signalementSisMotifSignalement = normalizeEnumCode(
+                textOrNull(root, "signalement_sis_motif_signalement"), SIGNALEMENT_SIS_MOTIF_CODES);
+        Boolean signalementSisTitreSejourValide = booleanOrNull(root, "signalement_sis_titre_sejour_valide");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7820,7 +7878,11 @@ public record CaseAnalysisResponse(
                 && decheanceMotif == null
                 && decheanceBinational == null
                 && decheanceMesurePrononcee == null
-                && decheanceDateDecret == null) return null;
+                && decheanceDateDecret == null
+                && !signalementSisDetecte
+                && signalementSisEtatSignalant == null
+                && signalementSisMotifSignalement == null
+                && signalementSisTitreSejourValide == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -7996,6 +8058,11 @@ public record CaseAnalysisResponse(
                 .decheanceBinational(decheanceBinational)
                 .decheanceMesurePrononcee(decheanceMesurePrononcee)
                 .decheanceDateDecret(decheanceDateDecret)
+                // SF-220-06 : F-IM-52 signalement SIS (Règl. UE 2018/1860 / CESEDA L.312-3) FR
+                .signalementSisDetecte(signalementSisDetecte)
+                .signalementSisEtatSignalant(signalementSisEtatSignalant)
+                .signalementSisMotifSignalement(signalementSisMotifSignalement)
+                .signalementSisTitreSejourValide(signalementSisTitreSejourValide)
                 .build();
     }
 

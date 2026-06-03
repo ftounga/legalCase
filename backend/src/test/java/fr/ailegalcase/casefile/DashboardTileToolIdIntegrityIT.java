@@ -1201,7 +1201,13 @@ class DashboardTileToolIdIntegrityIT {
             // (Cciv 25 / 25-1) — outil décisionnel CONTEXTUAL FR, pas de tuile dashboard.
             // Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-IM-51-decheance-nationalite-fr"
+            "F-IM-51-decheance-nationalite-fr",
+            // SF-220-06 : F-IM-52 contestation / radiation d'un signalement SIS aux
+            // fins de non-admission (Règl. UE 2018/1860 / CESEDA L.312-3) — outil
+            // décisionnel CONTEXTUAL FR, pas de tuile dashboard. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-IM-52-signalement-sis-fr"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

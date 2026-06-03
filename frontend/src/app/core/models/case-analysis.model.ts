@@ -2259,6 +2259,25 @@ export interface ImmigrationExtractedData {
   decheanceBinational?: boolean | null;
   decheanceMesurePrononcee?: boolean | null;
   decheanceDateDecret?: string | null;
+
+  /**
+   * SF-220-06 — F-IM-52 signalement SIS aux fins de non-admission (Règl. UE
+   * 2018/1860 / CESEDA L.312-3) — FRANCE uniquement. 1 flag pivot CONTEXTUAL
+   * (`signalementSisDetecte`) + 3 champs de pré-fill.
+   * `signalementSisDetecte` : contexte de signalement SIS détecté (pilote la visibilité de l'outil).
+   * `signalementSisEtatSignalant` : État à l'origine du signalement (whitelist 3 codes).
+   * `signalementSisMotifSignalement` : motif du signalement (whitelist 4 codes).
+   * `signalementSisTitreSejourValide` : titre de séjour FR en cours de validité.
+   */
+  signalementSisDetecte?: boolean | null;
+  signalementSisEtatSignalant?: 'FRANCE' | 'AUTRE_ETAT_MEMBRE' | 'INCONNU' | null;
+  signalementSisMotifSignalement?:
+    | 'IRTF'
+    | 'MESURE_ELOIGNEMENT_ETRANGERE'
+    | 'MENACE_ORDRE_PUBLIC'
+    | 'AUTRE'
+    | null;
+  signalementSisTitreSejourValide?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

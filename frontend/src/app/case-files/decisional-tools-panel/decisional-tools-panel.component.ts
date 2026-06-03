@@ -68,6 +68,8 @@ import { VpfJeuneMajeurSectionComponent } from '../vpf-jeune-majeur-section/vpf-
 import { PacsVpfSectionComponent } from '../pacs-vpf-section/pacs-vpf-section.component';
 // SF-220-05 : composant complet F-IM-51-decheance-nationalite-fr — validité déchéance de nationalité (FR, Cciv 25/25-1).
 import { DecheanceNationaliteSectionComponent } from '../decheance-nationalite-section/decheance-nationalite-section.component';
+// SF-220-06 : composant complet F-IM-52-signalement-sis-fr — contestation signalement SIS non-admission (FR, Règl. UE 2018/1860 / CESEDA L.312-3).
+import { SignalementSisSectionComponent } from '../signalement-sis-section/signalement-sis-section.component';
 // SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF liens personnels L.423-23 (FR, scoring).
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
@@ -1728,6 +1730,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-51-decheance-nationalite-fr', {
         displayLabel: 'Validité déchéance de nationalité (Cciv 25 / 25-1) (FR)',
         component: DecheanceNationaliteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-220-06 : composant complet F-IM-52 contestation / radiation d'un signalement
+      // SIS aux fins de non-admission (Règl. UE 2018/1860 / CESEDA L.312-3, FR). FR
+      // uniquement, CONTEXTUAL sur le flag pivot signalement_sis_detecte. Identifie la
+      // voie de radiation selon l'État signalant (FRANCE → autorité FR ; AUTRE_ETAT_MEMBRE
+      // → droit d'accès / rectification ; titre valide + signalement étranger →
+      // consultation entre États). Distinct de F-IM-20 (mesures d'éloignement / IRTF).
+      // Pré-fill IA 4 champs (signalement connu, État signalant, motif, titre valide) via
+      // static getPrefillCount + SignalementSisPrefillRules.
+      ['F-IM-52-signalement-sis-fr', {
+        displayLabel: 'Contestation signalement SIS (non-admission) (FR)',
+        component: SignalementSisSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5832,6 +5852,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // 25-1, FR) — analyseur de validité d'une mesure (4 verdicts). Thème VALIDITE,
     // aligné sur les autres analyseurs de validité de mesure Immigration FR.
     ['F-IM-51-decheance-nationalite-fr', 'VALIDITE'],
+    // SF-220-06 : F-IM-52 contestation signalement SIS (Règl. UE 2018/1860 / CESEDA
+    // L.312-3, FR) — analyseur de la voie de contestation / radiation (5 verdicts
+    // actionPossible). Thème VALIDITE, aligné sur les autres analyseurs de validité /
+    // recevabilité de mesure Immigration FR.
+    ['F-IM-52-signalement-sis-fr', 'VALIDITE'],
     // SF-214-06 : F-IM-27-vpf-liens-personnels-l42323-fr VPF liens personnels
     // L.423-23 CESEDA (FR). Thème VALIDITE — analyseur d'éligibilité (scoring
     // 0-100 + 4 verdicts). Aligné sur regroupement-familial-fr / etranger-malade.
