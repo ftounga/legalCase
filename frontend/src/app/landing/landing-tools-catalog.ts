@@ -109,6 +109,7 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'F-IM-32-cce-extreme-urgence-5j-be', label: 'Recours CCE extrême urgence 5j (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'GÉNÉRATEUR' },
   { id: 'F-IM-33-annexe13quinquies-ie-be', label: 'Annexe 13quinquies OQT + interdiction entrée (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
   { id: 'F-IM-34-protection-temporaire-ukraine-be', label: 'Protection temporaire Ukraine (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
+  { id: 'F-IM-53-carte-a-prorogation-be', label: 'Prorogation carte A (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
   { id: 'F-IM-01-checklist-pieces', label: 'Checklist pièces immigration', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
   { id: 'F-IM-05-arbre-decisionnel-titre', label: 'Arbre décisionnel titre de séjour (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
   { id: 'F-IM-06-recours', label: 'Recours immigration (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'GÉNÉRATEUR' },
