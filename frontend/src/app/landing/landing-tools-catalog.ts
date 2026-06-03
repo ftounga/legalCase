@@ -41,6 +41,7 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'gpa-be-situation-contentieuse', label: 'Filiation post-GPA — Belgique', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'regime-algerien-be', label: 'Régime algérien — mariage / talaq / dot (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'regime-be-separation-biens', label: 'Régime de séparation de biens (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'dip-be-loi-applicable-famille', label: 'Loi applicable en droit de la famille (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'pacte-successoral-be-2018', label: 'Pacte successoral 2018 (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'protection-majeur-be', label: 'Protection du majeur (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'regime-mat-be-communaute-legale', label: 'Régime de communauté légale (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },

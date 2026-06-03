@@ -1,0 +1,176 @@
+<section class="dip-section">
+  <header class="dip-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dip-body">
+    <mat-icon class="dip-icon">public</mat-icon>
+    <span class="dip-title">LOI APPLICABLE — DROIT DE LA FAMILLE (BELGIQUE)</span>
+    @if (result()) {
+      <span class="dip-chip-summary"
+            [class.dip-chip-summary--ok]="result()!.verdict === 'LOI_APPLICABLE_DETERMINEE'"
+            [class.dip-chip-summary--info]="result()!.verdict === 'LOI_INDETERMINABLE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="dip-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="dip-body" class="dip-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="dip-country-banner" data-testid="dip-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — détermination de la loi applicable en droit de la famille en présence d'un élément d'extranéité (DIP : Rome III, Règl. UE 2016/1103, Règl. UE 650/2012 ; CDIP — à vérifier par avocat belge).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="dip-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="dip-form" (ngSubmit)="calculate()">
+            <div class="dip-block dip-full">
+              <span class="dip-block-label">Matière</span>
+              <mat-form-field appearance="outline" class="dip-inline-field">
+                <mat-label>Matière concernée</mat-label>
+                <mat-select [ngModel]="matiere()"
+                            (ngModelChange)="matiere.set($event)"
+                            name="matiere" required>
+                  @for (opt of matiereOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="dip-block dip-full">
+              <span class="dip-block-label">Éléments de rattachement (codes pays ISO, ex. FR, BE)</span>
+              <mat-form-field appearance="outline" class="dip-inline-field">
+                <mat-label>Choix de loi par les parties / professio juris (facultatif)</mat-label>
+                <input matInput maxlength="2"
+                       [ngModel]="choixLoiParLesParties()"
+                       (ngModelChange)="choixLoiParLesParties.set($event)"
+                       name="choixLoiParLesParties" placeholder="ex. FR">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="dip-inline-field">
+                <mat-label>Résidence habituelle commune / du défunt (facultatif)</mat-label>
+                <input matInput maxlength="2"
+                       [ngModel]="residenceHabituelleCommune()"
+                       (ngModelChange)="residenceHabituelleCommune.set($event)"
+                       name="residenceHabituelleCommune" placeholder="ex. BE">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="dip-inline-field">
+                <mat-label>Nationalité commune (facultatif)</mat-label>
+                <input matInput maxlength="2"
+                       [ngModel]="nationaliteCommune()"
+                       (ngModelChange)="nationaliteCommune.set($event)"
+                       name="nationaliteCommune" placeholder="ex. MA">
+              </mat-form-field>
+            </div>
+
+            <div class="dip-block dip-full">
+              <span class="dip-block-label">Éléments complémentaires (facultatif)</span>
+              <mat-form-field appearance="outline" class="dip-inline-field">
+                <mat-label>Date du mariage / du décès</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateMariageOuDeces()"
+                       (ngModelChange)="dateMariageOuDeces.set($event)"
+                       name="dateMariageOuDeces">
+              </mat-form-field>
+              @if (matiere() === 'SUCCESSION') {
+                <mat-form-field appearance="outline" class="dip-inline-field">
+                  <mat-label>Lieu de situation des biens immobiliers (indicatif)</mat-label>
+                  <input matInput maxlength="2"
+                         [ngModel]="lieuSituationBiensImmobiliers()"
+                         (ngModelChange)="lieuSituationBiensImmobiliers.set($event)"
+                         name="lieuSituationBiensImmobiliers" placeholder="ex. ES">
+                </mat-form-field>
+              }
+            </div>
+
+            <div class="dip-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Déterminer la loi applicable
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="dip-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="dip-verdict-text">
+                <span class="dip-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="dip-verdict-type">
+                  {{ matiereLabel(r.matiere) }}
+                  @if (r.loiApplicableDeterminee) {
+                    · Loi de « {{ r.loiApplicableDeterminee }} » ({{ fondementLabel(r.fondementRattachement) }})
+                  }
+                </span>
+              </div>
+            </div>
+
+            @if (r.messages.length) {
+              <ul class="dip-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.motifs.length) {
+              <div class="dip-list-block">
+                <span class="dip-list-title">Raisonnement de rattachement</span>
+                <ul>
+                  @for (mo of r.motifs; track mo) {
+                    <li [innerHTML]="mo | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.conseils.length) {
+              <div class="dip-list-block">
+                <span class="dip-list-title">Conseils / points de vigilance</span>
+                <ul>
+                  @for (c of r.conseils; track c) {
+                    <li [innerHTML]="c | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="dip-list-block dip-bases">
+                <span class="dip-list-title">Bases juridiques (à vérifier par avocat belge — Règlements UE + CDIP)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="dip-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>

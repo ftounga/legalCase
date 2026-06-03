@@ -239,6 +239,11 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat (même pattern transitoire BE).
             "regime-be-separation-biens",
+            // SF-223-07 (2026-06-04) : dip-be-loi-applicable-famille livré sans
+            // mapper DashboardTile côté backend — composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat (même pattern transitoire BE).
+            "dip-be-loi-applicable-famille",
             // SF-217-18 (2026-05-21) : contestation-filiation-be livré sans mapper
             // DashboardTile côté backend — exclusion transitoire alignée sur les
             // 2 autres outils F-217 Vague 3 (mêmes raisons : composant frontend
