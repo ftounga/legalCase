@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2aa32c69-5aff-4aaa-874a-8f9e9ffa17db-seed-victime-traite-be" author="legalcase">
+        <comment>
+            SF-221-06 : seed visibility pour l'outil decisionnel "Titre de sejour victime de
+            la traite des etres humains BE" (F-IM-58-victime-traite-be). Livree DANS LA MEME
+            PR que la table (pattern F-215).
+
+            Visibility CONTEXTUAL : l'outil apparait dans le panel F-IA-04 sur les dossiers
+            BELGIQUE x DROIT_IMMIGRATION des que l'IA detecte un indice de traite des etres
+            humains via le flag pivot `victime_traite_detecte` extrait depuis le prompt
+            IMMIGRATION_INSTRUCTION (mots-cles "traite des etres humains", "exploitation",
+            "reseau", "art. 61/2", "PAG-ASA", "Surya", "Payoke", "centre specialise").
+
+            Priority 215 — juste apres F-IM-57 recours CCE suspension (priority 214) pour
+            coherence d'ordre dans la liste de visibility CONTEXTUAL Immigration BE.
+
+            DISTINCT du pendant FRANCE F-IM-35-victime-traite-l4251-fr (flag distinct
+            `victime_traite_detectee`, regime L. 425-1 CESEDA propre).
+
+            L'entree TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) est ajoutee
+            dans la MEME PR (SF-221-06 back+front), de sorte que DecisionToolVisibilityIntegrityIT
+            (DB -> frontend) reste vert sans orphelin transitoire.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'e04bfa5f-9e7c-4397-8675-906e5539ec33',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-58-victime-traite-be',
+                'CONTEXTUAL',
+                'victime_traite_detecte',
+                'true',
+                215
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'e04bfa5f-9e7c-4397-8675-906e5539ec33';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

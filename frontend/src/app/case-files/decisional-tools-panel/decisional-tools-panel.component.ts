@@ -185,6 +185,8 @@ import { ResidenceLongueDureeUeBeSectionComponent } from '../residence-longue-du
 import { DetentionCentreFermeBeSectionComponent } from '../detention-centre-ferme-be-section/detention-centre-ferme-be-section.component';
 // SF-221-05 : composant complet F-IM-57-cce-suspension-be (Immigration BE, recours CCE en SUSPENSION ORDINAIRE — référé administratif art. 39/82 Loi 15/12/1980, loi 15/09/2006, 3e recours CCE distinct de l'annulation 30j F-IM-31 et de l'extrême urgence 5j F-IM-32).
 import { CceSuspensionBeSectionComponent } from '../cce-suspension-be-section/cce-suspension-be-section.component';
+// SF-221-06 : composant complet F-IM-58-victime-traite-be (Immigration BE, titre de séjour victime de la traite des êtres humains — art. 61/2 et s. Loi 15/12/1980, circulaire du 26/09/2008, régime BE propre 3 phases, distinct du pendant FR F-IM-35 L. 425-1 CESEDA).
+import { VictimeTraiteBeSectionComponent } from '../victime-traite-be-section/victime-traite-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -2900,6 +2902,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-57-cce-suspension-be', {
         displayLabel: 'Recours CCE suspension (BE)',
         component: CceSuspensionBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-221-06 : composant complet F-IM-58-victime-traite-be — titre de séjour victime
+      // de la traite des êtres humains (art. 61/2 et s. Loi 15/12/1980 ; circulaire du
+      // 26/09/2008). UNE SEULE situation : l'éligibilité au titre victime de la traite
+      // (coopération judiciaire + rupture avec le réseau + accompagnement par un centre
+      // spécialisé agréé PAG-ASA / Sürya / Payoke). BELGIQUE uniquement, CONTEXTUAL via
+      // flag `victime_traite_detecte`. Verdict 5 états (ELIGIBLE_TITRE_TEMPORAIRE /
+      // ELIGIBLE_SOUS_PROCEDURE_PENALE vert / CONDITIONS_NON_REUNIES orange /
+      // DELAI_REFLEXION / A_ORIENTER_CENTRE bleu). Pré-fill IA RÉEL 3 champs
+      // (phaseProcedure, ruptureAvecReseau, accompagnementCentreSpecialise) via static
+      // getPrefillCount + VictimeTraiteBePrefillRules. cooperationJudiciaire /
+      // dateDebutAccompagnement aspirationnels (jamais comptés). Régime BE PROPRE (3 phases),
+      // DISTINCT du pendant FR F-IM-35 (victime de la traite L. 425-1 CESEDA).
+      ['F-IM-58-victime-traite-be', {
+        displayLabel: 'Victime de la traite (BE)',
+        component: VictimeTraiteBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -6233,6 +6257,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // urgence). Aligné sur les autres recours CCE Immigration BE (F-IM-31 annulation 30j,
     // F-IM-32 extrême urgence 5j).
     ['F-IM-57-cce-suspension-be', 'DELAIS'],
+    // SF-221-06 : F-IM-58-victime-traite-be titre de séjour victime de la traite des êtres
+    // humains (BE). Thème DIAGNOSTIC — l'outil diagnostique la situation (phase de la
+    // procédure + conditions de fond rupture/accompagnement/coopération) et rend un verdict
+    // d'éligibilité 5 états, cohérent avec les autres outils DIAGNOSTIC (analyse de situation).
+    // Régime BE propre (3 phases), distinct du pendant FR F-IM-35 (L. 425-1 CESEDA).
+    ['F-IM-58-victime-traite-be', 'DIAGNOSTIC'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).

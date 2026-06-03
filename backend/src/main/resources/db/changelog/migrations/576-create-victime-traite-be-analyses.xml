@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="39f33996-30a8-410a-ae60-3e171b0999a1-create-victime-traite-be" author="legalcase">
+        <comment>
+            SF-221-06 : table dediee a l'outil decisionnel "Titre de sejour victime de la
+            traite des etres humains BE" (F-IM-58-victime-traite-be, BELGIQUE — fondement :
+            Loi du 15/12/1980 art. 61/2 et s. ; circulaire du 26/09/2008 ; accompagnement
+            par un centre specialise agree PAG-ASA / Surya / Payoke. (a verifier par avocat
+            BE 2026).
+
+            UNE SEULE situation = le titre victime de la traite BE (regime BE propre, 3 phases :
+            delai de reflexion ~45j -> titre temporaire -> titre lie a la procedure penale).
+            DISTINCT du pendant FRANCE F-IM-35-victime-traite-l4251-fr (regime L. 425-1 CESEDA,
+            base juridique propre). DISTINCT des procedures humanitaires 9bis/9ter (F-IM-14) et
+            du regroupement familial.
+
+            L'outil calcule :
+            - le verdict 5 etats : DELAI_REFLEXION / ELIGIBLE_TITRE_TEMPORAIRE /
+              ELIGIBLE_SOUS_PROCEDURE_PENALE / CONDITIONS_NON_REUNIES / A_ORIENTER_CENTRE ;
+            - etapeProcedure = libelle de l'etape de procedure ;
+            - la liste des bases juridiques annotees "(a verifier par avocat)" + messages
+              (dont l'orientation vers PAG-ASA / Surya / Payoke).
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (577-seed-victime-traite-be-visibility.xml) est livree dans la MEME PR que
+            cette table.
+        </comment>
+
+        <createTable tableName="victime_traite_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_victime_traite_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="phase_procedure" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rupture_avec_reseau" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cooperation_judiciaire" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accompagnement_centre_specialise" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_debut_accompagnement" type="date"/>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="victime_traite_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_victime_traite_be_case_file"/>
+
+        <createIndex tableName="victime_traite_be_analyses"
+                     indexName="idx_victime_traite_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="victime_traite_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
