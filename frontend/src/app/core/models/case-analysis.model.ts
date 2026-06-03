@@ -490,6 +490,22 @@ export interface TravailExtractedData {
    */
   lien_personne_aidee?: string | null;
   /**
+   * SF-218-50 : flag pivot CONTEXTUAL — l'IA a détecté des signaux d'acquisition
+   * de JRTT (mentions « jours de RTT », « JRTT », « accord d'aménagement du temps
+   * de travail », « horaire collectif 37 heures / 39 heures », « jours de repos
+   * compensateurs de réduction du temps de travail »). Déclenche l'apparition de
+   * F-DT-80-rtt-acquisition (FR uniquement). Clé JSON SNAKE_CASE (Sf218dDetail
+   * `@JsonProperty`).
+   */
+  rtt_acquisition_detectee?: boolean | null;
+  /**
+   * SF-218-50 : horaire hebdomadaire collectif (heures) extrait par l'IA, pour
+   * pré-fill du champ `horaireHebdomadaireCollectif` de F-DT-80-rtt-acquisition
+   * (FR uniquement ; ex. 37, 39). Clé JSON SNAKE_CASE (Sf218dDetail
+   * `@JsonProperty`).
+   */
+  horaire_hebdomadaire_collectif?: number | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de

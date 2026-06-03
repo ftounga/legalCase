@@ -105,6 +105,8 @@ import { CongesEvenementsFamiliauxSectionComponent } from '../conges-evenements-
 import { CongeParentalEducationSectionComponent } from '../conge-parental-education-section/conge-parental-education-section.component';
 // SF-218-48 : composant complet F-DT-79-conge-proche-aidant — éligibilité (personne aidée résidant en France/EEE, L.3142-16) + durée maximale 12 mois sur la carrière (L.3142-19) + estimation indicative de l'AJPA (plafond 66 jours, loi n° 2020-220 du 06/03/2020) (Travail FR).
 import { CongeProcheAidantSectionComponent } from '../conge-proche-aidant-section/conge-proche-aidant-section.component';
+// SF-218-50 : composant complet F-DT-80-rtt-acquisition — calcul du nombre théorique de JRTT acquis selon un accord d'aménagement du temps de travail sur l'année (art. L.3121-41 à L.3121-44 CT), sans majoration ; renvoi heures sup à défaut d'accord. DISTINCT de F-DT-19 (heures supplémentaires) et F-DT-51 (monétisation RTT) (Travail FR).
+import { RttAcquisitionSectionComponent } from '../rtt-acquisition-section/rtt-acquisition-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -2086,6 +2088,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-79-conge-proche-aidant', {
         displayLabel: 'Congé de proche aidant (FR)',
         component: CongeProcheAidantSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-50 : composant complet F-DT-80-rtt-acquisition — calcule le nombre
+      // théorique de JRTT acquis selon un accord d'aménagement du temps de travail
+      // sur l'année (art. L.3121-41 à L.3121-44 CT) : les heures entre 35 h et
+      // l'horaire collectif sont compensées par des JRTT, SANS majoration ; à
+      // défaut d'accord, renvoi au régime des heures supplémentaires (F-DT-19).
+      // FR uniquement, CONTEXTUAL (flag rttAcquisitionDetectee). DISTINCT des
+      // heures supplémentaires (F-DT-19) et de la monétisation de RTT (F-DT-51) —
+      // invariant « un outil = une situation ». Pré-fill IA 1 champ
+      // (horaireHebdomadaireCollectif) via static getPrefillCount +
+      // RttAcquisitionPrefillRules.
+      ['F-DT-80-rtt-acquisition', {
+        displayLabel: 'RTT — acquisition (FR)',
+        component: RttAcquisitionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5473,6 +5495,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // cohérent avec les autres outils DIAGNOSTIC (analyse de situation).
     ['F-DT-78-conge-parental-education', 'DIAGNOSTIC'],
     ['F-DT-79-conge-proche-aidant', 'INDEMNITES'],
+    ['F-DT-80-rtt-acquisition', 'INDEMNITES'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).

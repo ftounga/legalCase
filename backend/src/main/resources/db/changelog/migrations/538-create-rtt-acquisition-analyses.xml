@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="d8e2f4a1-9c3b-4f6a-8d7e-2a1b0c3d4e5f" author="legalcase">
+        <comment>
+            SF-218-49 — table `rtt_acquisition_analyses` pour l'outil decisionnel
+            "RTT — acquisition selon accord d'amenagement"
+            (F-DT-80-rtt-acquisition, FRANCE).
+
+            Outil single-country FR : calcule le nombre theorique de jours de
+            reduction du temps de travail (JRTT) acquis dans le cadre d'un accord
+            d'amenagement du temps de travail sur l'annee (art. L.3121-41 a
+            L.3121-44 CT). Lorsqu'un accord collectif fixe un horaire hebdomadaire
+            superieur a 35 h (ex. 37 h ou 39 h), les heures effectuees entre 35 h et
+            l'horaire collectif sont compensees par des JRTT, SANS majoration.
+            A defaut d'accord d'amenagement, statut RENVOI_HEURES_SUP : les heures
+            au-dela de 35 h relevent des heures supplementaires (outil dedie F-DT-19).
+            Calcul (accord present) : nombre_jrtt_theorique =
+            ((horaire_collectif - 35) x semaines_travaillees) / (horaire_collectif / 5).
+            Garde-fou : horaire_hebdomadaire_collectif strictement superieur a 35 et
+            inferieur ou egal a 48 (sinon 400). Persiste l'analyse 1:1 par dossier
+            (upsert).
+
+            DISTINCT des heures supplementaires (F-DT-19) et de la monetisation de
+            RTT (F-DT-51) — invariant « un outil = une situation ».
+
+            Source juridique : art. L.3121-41 a L.3121-44 du Code du travail.
+        </comment>
+
+        <createTable tableName="rtt_acquisition_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_rtt_acquisition_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="statut" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="horaire_hebdomadaire_collectif" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accord_collectif_present" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="semaines_travaillees_an" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nombre_jrtt_theorique" type="DOUBLE"/>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="rtt_acquisition_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
