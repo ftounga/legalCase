@@ -1,0 +1,244 @@
+/**
+ * SF-223-02 : styles outil "Recevabilité de l'adoption (Belgique)".
+ * Palette navy/or/vert/rouge alignée sur les outils Famille BE (THEME VALIDITE).
+ *
+ * Rouge réservé à IRRECEVABLE (blocage dur). Vert pour RECEVABLE. Or pour
+ * RECEVABLE_SOUS_CONDITIONS (conditions suspensives). Navy info pour
+ * QUALIFICATION_INCOMPLETE.
+ */
+
+.adobe-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.adobe-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.adobe-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.adobe-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.adobe-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok   { background: rgba(34, 139, 34, 0.10); color: #1f7a3a; }
+  &--warn { background: rgba(201, 165, 75, 0.14); color: #8a6d20; }
+  &--ko   { background: rgba(220, 53, 69, 0.10); color: #B11A28; }
+  &--info { background: rgba(26, 58, 92, 0.10); color: #1A3A5C; }
+}
+
+.adobe-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.adobe-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.adobe-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.adobe-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon { color: #1A3A5C; flex-shrink: 0; }
+}
+
+.adobe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.adobe-full { width: 100%; }
+
+.adobe-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.adobe-block-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.adobe-inline-field { width: 100%; max-width: 420px; }
+
+.adobe-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.adobe-num-field { width: 100%; max-width: 180px; }
+
+.adobe-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+.adobe-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adobe-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+
+  mat-icon { font-size: 24px; width: 24px; height: 24px; flex-shrink: 0; }
+
+  &--ok {
+    background: rgba(34, 139, 34, 0.08);
+    border-left: 4px solid #1f7a3a;
+    color: #1f7a3a;
+    mat-icon { color: #1f7a3a; }
+  }
+
+  &--warn {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6d20;
+    mat-icon { color: #8a6d20; }
+  }
+
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+
+  &--info {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+}
+
+.adobe-verdict-text { display: flex; flex-direction: column; gap: 2px; }
+.adobe-verdict-label { font-size: 14px; font-weight: 700; letter-spacing: 0.03em; }
+.adobe-verdict-type {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-weight: 500;
+}
+
+.adobe-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.adobe-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  ul {
+    list-style: disc inside;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.adobe-list-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.adobe-bases li {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}

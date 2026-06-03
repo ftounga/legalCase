@@ -554,6 +554,10 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "cohabitation_legale_be_detectee");
+        // SF-223-02 — flag pivot CONTEXTUAL Famille BE : recevabilité de
+        // l'adoption (loi du 24/04/2003 ; CC art. 343-1 et s.). Consolidé dans
+        // Sf223Detail (@JsonUnwrapped) → aplati sur familleNode → lu à plat.
+        addBooleanFlagIfTrue(detected, familleNode, "adoption_be_detectee");
         addBooleanFlagIfTrue(detected, familleNode, "pacte_successoral_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "kafala_recueil_detecte");
         return detected;

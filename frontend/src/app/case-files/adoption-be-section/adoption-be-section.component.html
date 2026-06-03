@@ -1,0 +1,205 @@
+<section class="adobe-section">
+  <header class="adobe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="adobe-body">
+    <mat-icon class="adobe-icon">family_restroom</mat-icon>
+    <span class="adobe-title">ADOPTION — RECEVABILITÉ (BELGIQUE)</span>
+    @if (result()) {
+      <span class="adobe-chip-summary"
+            [class.adobe-chip-summary--ok]="result()!.verdict === 'RECEVABLE'"
+            [class.adobe-chip-summary--warn]="result()!.verdict === 'RECEVABLE_SOUS_CONDITIONS'"
+            [class.adobe-chip-summary--ko]="result()!.verdict === 'IRRECEVABLE'"
+            [class.adobe-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="adobe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="adobe-body" class="adobe-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="adobe-country-banner" data-testid="adobe-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — recevabilité de l'adoption (loi du 24/04/2003 ; CC art. 343-1 et s. — à vérifier par avocat belge). Distinct de l'adoption française. L'adoption internationale (Convention de La Haye) fait l'objet d'un outil séparé.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="adobe-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="adobe-form" (ngSubmit)="calculate()">
+            <div class="adobe-block adobe-full">
+              <span class="adobe-block-label">Type d'adoption</span>
+              <mat-form-field appearance="outline" class="adobe-inline-field">
+                <mat-label>Type d'adoption à analyser</mat-label>
+                <mat-select [ngModel]="typeAdoption()"
+                            (ngModelChange)="onTypeChange($event)"
+                            name="typeAdoption" required>
+                  @for (opt of typeOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="adobe-block adobe-full">
+              <span class="adobe-block-label">Âges et écart (CC art. 343-1 / 345 — à vérifier)</span>
+              <div class="adobe-row">
+                <mat-form-field appearance="outline" class="adobe-num-field">
+                  <mat-label>Âge de l'adoptant</mat-label>
+                  <input matInput type="number" min="1" max="120"
+                         [ngModel]="ageAdoptant()"
+                         (ngModelChange)="ageAdoptant.set($event)"
+                         name="ageAdoptant" required>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="adobe-num-field">
+                  <mat-label>Âge de l'adopté</mat-label>
+                  <input matInput type="number" min="1" max="120"
+                         [ngModel]="ageAdopte()"
+                         (ngModelChange)="ageAdopte.set($event)"
+                         name="ageAdopte" required>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="adobe-num-field">
+                  <mat-label>Écart d'âge (facultatif)</mat-label>
+                  <input matInput type="number" min="0" max="120"
+                         [ngModel]="ecartAgeAnnees()"
+                         (ngModelChange)="ecartAgeAnnees.set($event)"
+                         name="ecartAgeAnnees">
+                </mat-form-field>
+              </div>
+            </div>
+
+            @if (isCoParentale()) {
+              <div class="adobe-block adobe-full">
+                <span class="adobe-block-label">Adoption co-parentale (CC art. 343 — à vérifier)</span>
+                <mat-slide-toggle [ngModel]="adoptantEnCoupleAvecParentBiologique()"
+                                  (ngModelChange)="adoptantEnCoupleAvecParentBiologique.set($event)"
+                                  name="adoptantEnCoupleAvecParentBiologique">
+                  L'adoptant est en couple avec le parent biologique de l'enfant
+                </mat-slide-toggle>
+                <mat-slide-toggle [ngModel]="lienCohabitationLegaleOuMariage()"
+                                  (ngModelChange)="lienCohabitationLegaleOuMariage.set($event)"
+                                  name="lienCohabitationLegaleOuMariage">
+                  Lien de mariage ou de cohabitation légale avec le parent biologique
+                </mat-slide-toggle>
+              </div>
+            }
+
+            <div class="adobe-block adobe-full">
+              <span class="adobe-block-label">Agrément et consentements (CC art. 346-1 / 348-1 et s. — à vérifier)</span>
+              <mat-slide-toggle [ngModel]="agrementObtenu()"
+                                (ngModelChange)="agrementObtenu.set($event)"
+                                name="agrementObtenu">
+                Agrément préalable du tribunal de la famille obtenu (enquête sociale)
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="consentementAdopteOuRepresentants()"
+                                (ngModelChange)="consentementAdopteOuRepresentants.set($event)"
+                                name="consentementAdopteOuRepresentants">
+                Consentement de l'adopté (≥ 12 ans) ou de ses représentants recueilli
+              </mat-slide-toggle>
+              <mat-form-field appearance="outline" class="adobe-inline-field">
+                <mat-label>Consentement des parents biologiques d'origine</mat-label>
+                <mat-select [ngModel]="consentementParentsBiologiques()"
+                            (ngModelChange)="consentementParentsBiologiques.set($event)"
+                            name="consentementParentsBiologiques" required>
+                  @for (opt of consentementParentsOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="adobe-block adobe-full">
+              <mat-form-field appearance="outline" class="adobe-inline-field">
+                <mat-label>Commentaire (facultatif)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="adobe-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Analyser la recevabilité
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="adobe-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="adobe-verdict-text">
+                <span class="adobe-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="adobe-verdict-type">{{ typeLabel(r.typeAdoption) }}</span>
+              </div>
+            </div>
+
+            @if (r.messages.length) {
+              <ul class="adobe-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.motifsConditions.length) {
+              <div class="adobe-list-block">
+                <span class="adobe-list-title">{{ motifsTitle(r.verdict) }}</span>
+                <ul>
+                  @for (c of r.motifsConditions; track c) {
+                    <li [innerHTML]="c | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.actesAProduire.length) {
+              <div class="adobe-list-block">
+                <span class="adobe-list-title">Actes à produire</span>
+                <ul>
+                  @for (a of r.actesAProduire; track a) {
+                    <li [innerHTML]="a | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="adobe-list-block adobe-bases">
+                <span class="adobe-list-title">Bases juridiques (à vérifier par avocat belge)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="adobe-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>

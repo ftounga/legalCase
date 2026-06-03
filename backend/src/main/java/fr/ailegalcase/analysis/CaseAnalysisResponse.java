@@ -5788,6 +5788,14 @@ public record CaseAnalysisResponse(
      * {@code cohabitationLegaleBeDetectee} reste porté par le record parent
      * (ajouté F-202) ; ce sous-record porte les champs value pré-remplissables.
      * Tous nullables — le prompt impose null hors BE / hors certitude.</p>
+     *
+     * <p>SF-223-02 — l'outil {@code adoption-be} (recevabilité de l'adoption BE,
+     * loi du 24/04/2003 ; CC art. 343-1 et s.) est CONSOLIDÉ dans ce même
+     * sous-record : son flag pivot CONTEXTUAL {@code adoptionBeDetectee} ET ses
+     * champs value (type d'adoption, agrément mentionné) y sont ajoutés plutôt
+     * qu'au record parent {@link FamilleExtractedData}, pour rester sous le
+     * plafond JVM 255 paramètres (cf. feedback consolidation). Clés JSON
+     * inchangées (record @JsonUnwrapped).</p>
      */
     public record Sf223Detail(
             // Mention d'une déclaration de cohabitation légale enregistrée
@@ -5795,11 +5803,22 @@ public record CaseAnalysisResponse(
             Boolean declarationCohabitationLegaleMentionneeBeDetectee,
             // Existence d'un domicile commun documenté (pertinent vue EFFETS —
             // CC art. 1477 — à vérifier).
-            Boolean domicileCommunBeDetecte
+            Boolean domicileCommunBeDetecte,
+            // SF-223-02 — flag pivot CONTEXTUAL de l'outil adoption-be. Lu à
+            // plat sur le nœud famille (@JsonUnwrapped) par
+            // DecisionToolVisibilityService → trigger `adoption_be_detectee`.
+            // BELGIQUE UNIQUEMENT.
+            Boolean adoptionBeDetectee,
+            // SF-223-02 — type d'adoption pré-rempli si factualisable
+            // (PLENIERE / SIMPLE / CO_PARENTALE), sinon null.
+            String adoptionBeTypeDetecte,
+            // SF-223-02 — true si les pièces mentionnent un agrément du tribunal
+            // de la famille déjà obtenu (CC art. 346-1 — à vérifier).
+            Boolean adoptionBeAgrementMentionneBeDetecte
     ) {
         /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
         public static Sf223Detail empty() {
-            return new Sf223Detail(null, null);
+            return new Sf223Detail(null, null, null, null, null);
         }
     }
 
@@ -7376,6 +7395,10 @@ public record CaseAnalysisResponse(
     /** SF-216-09 : whitelist lien familial tiers délégation AP FR (art. 376-1 Cciv). */
     private static final java.util.Set<String> TIERS_LIEN_FAMILIAL_WHITELIST = java.util.Set.of(
             "GRANDS_PARENTS", "ONCLE_TANTE", "FAMILLE_ELARGIE", "ASSOCIATION_HABILITEE", "AUTRE");
+
+    /** SF-223-02 : whitelist type d'adoption BE (loi du 24/04/2003 ; CC art. 343-1 et s.). */
+    private static final java.util.Set<String> ADOPTION_BE_TYPE_WHITELIST = java.util.Set.of(
+            "PLENIERE", "SIMPLE", "CO_PARENTALE");
 
     /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
     private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
@@ -9305,9 +9328,25 @@ public record CaseAnalysisResponse(
                 ? booleanOrNull(clbe, "declaration_cohabitation_legale_mentionnee") : null;
         Boolean domicileCommunBeDetecte = clbeObject
                 ? booleanOrNull(clbe, "domicile_commun") : null;
+        // SF-223-02 : flag pivot + sous-objet `adoption_be_detection` — outil
+        // adoption-be (loi du 24/04/2003 ; CC art. 343-1 et s.). BELGIQUE
+        // UNIQUEMENT — null si dossier FR. Consolidé dans Sf223Detail (plafond
+        // JVM 255). Le flag `adoption_be_detectee` (lu à plat, @JsonUnwrapped)
+        // gouverne la visibilité CONTEXTUAL de l'outil.
+        Boolean adoptionBeDetectee = booleanOrNull(node, "adoption_be_detectee");
+        JsonNode adoptBe = node.get("adoption_be_detection");
+        boolean adoptBeObject = adoptBe != null && adoptBe.isObject();
+        String adoptionBeTypeDetecte = adoptBeObject
+                ? normalizeEnumCode(textOrNull(adoptBe, "type_adoption"), ADOPTION_BE_TYPE_WHITELIST)
+                : null;
+        Boolean adoptionBeAgrementMentionneBeDetecte = adoptBeObject
+                ? booleanOrNull(adoptBe, "agrement_mentionne") : null;
         Sf223Detail sf223Detail = new Sf223Detail(
                 declarationCohabitationLegaleMentionneeBeDetectee,
-                domicileCommunBeDetecte);
+                domicileCommunBeDetecte,
+                adoptionBeDetectee,
+                adoptionBeTypeDetecte,
+                adoptionBeAgrementMentionneBeDetecte);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.

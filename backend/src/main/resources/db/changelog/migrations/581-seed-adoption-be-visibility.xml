@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="581-seed-adoption-be-visibility" author="legalcase">
+        <comment>
+            SF-223-02 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel `adoption-be` (BELGIQUE).
+
+            Mode `CONTEXTUAL`. NOUVEAU flag pivot `adoption_be_detectee` ajouté
+            au sous-record `Sf223Detail` (@JsonUnwrapped sur
+            `FamilleExtractedData`, SF-223-01) — JSON HTTP plat préservé — et
+            câblé dans `DecisionToolVisibilityService.buildResponse`
+            (addBooleanFlagIfTrue, après cohabitation_legale_be_detectee). Lu à
+            plat sur `familleNode` car @JsonUnwrapped aplatit le sous-record.
+
+            La contrainte CK_DTVR_LAYER_TRIGGER (migration 104) impose qu'une
+            règle CONTEXTUAL ait des `trigger_field` / `trigger_value` non nuls.
+
+            priority = 77 : numéro suivant après 76 (cohabitation-legale-be,
+            SF-223-01).
+
+            Le seed est couplé à l'entrée TOOL_REGISTRY frontend livrée dans le
+            même commit (decisional-tools-panel.component.ts) — sans ce
+            couplage, le garde-fou DecisionToolVisibilityIntegrityIT échoue.
+            tool_id = `adoption-be` (identique à la clé TOOL_REGISTRY et au
+            TOOL_ID du ToolBranchRegistry).
+
+            Numéro 581 = numéro libre suivant après 580 (création table).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('c33a7492-3b42-4221-aac3-262b5e231e6c', 'DROIT_FAMILLE', 'BELGIQUE', 'adoption-be', 'CONTEXTUAL', 'adoption_be_detectee', 'true', 77);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'c33a7492-3b42-4221-aac3-262b5e231e6c';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
