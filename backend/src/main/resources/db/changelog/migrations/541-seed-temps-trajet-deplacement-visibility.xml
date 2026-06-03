@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e" author="legalcase">
+        <comment>
+            SF-218-51 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Temps de trajet / deplacement professionnel"
+            (F-DT-81-temps-trajet-deplacement, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de temps de trajet (mentions « temps de trajet », « temps de
+            deplacement professionnel », « contrepartie au temps de trajet »,
+            « salarie itinerant », « deplacement domicile-client », « depassement
+            du temps normal de trajet »). Flag pivot `temps_trajet_detecte` = true.
+            trigger_field = 'temps_trajet_detecte', trigger_value = 'true'.
+            priority 98 — valeur libre pre-assignee pour le couple
+            (DROIT_DU_TRAVAIL, FRANCE) au-dela du seed CONTEXTUAL FR le plus
+            recent (F-DT-80 RTT acquisition = 97).
+
+            DISTINCT du remboursement de frais de deplacement et de l'astreinte —
+            invariant « un outil = une situation ».
+
+            Source juridique : art. L.3121-4 du Code du travail ; CJUE C-266/14.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-81-temps-trajet-deplacement', 'CONTEXTUAL', 'temps_trajet_detecte', 'true', 98);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

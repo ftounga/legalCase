@@ -107,6 +107,8 @@ import { CongeParentalEducationSectionComponent } from '../conge-parental-educat
 import { CongeProcheAidantSectionComponent } from '../conge-proche-aidant-section/conge-proche-aidant-section.component';
 // SF-218-50 : composant complet F-DT-80-rtt-acquisition — calcul du nombre théorique de JRTT acquis selon un accord d'aménagement du temps de travail sur l'année (art. L.3121-41 à L.3121-44 CT), sans majoration ; renvoi heures sup à défaut d'accord. DISTINCT de F-DT-19 (heures supplémentaires) et F-DT-51 (monétisation RTT) (Travail FR).
 import { RttAcquisitionSectionComponent } from '../rtt-acquisition-section/rtt-acquisition-section.component';
+// SF-218-52 : composant complet F-DT-81-temps-trajet-deplacement — qualification du temps de trajet professionnel (temps de travail effectif ou non) + verdict de contrepartie due (art. L.3121-4 CT ; CJUE C-266/14 « Tyco »). DISTINCT du remboursement de frais de déplacement et de l'astreinte (Travail FR).
+import { TempsTrajetDeplacementSectionComponent } from '../temps-trajet-deplacement-section/temps-trajet-deplacement-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -2108,6 +2110,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-80-rtt-acquisition', {
         displayLabel: 'RTT — acquisition (FR)',
         component: RttAcquisitionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-52 : composant complet F-DT-81-temps-trajet-deplacement —
+      // qualifie le temps de trajet professionnel (temps de travail effectif ou
+      // non) et détermine si une contrepartie (repos / financière) est due (art.
+      // L.3121-4 CT ; CJUE C-266/14 « Tyco »). Le trajet domicile ↔ lieu habituel
+      // n'est pas du temps de travail effectif ; s'il dépasse le temps normal, il
+      // ouvre droit à une contrepartie sauf si déjà prévue. Salarié itinérant sans
+      // lieu fixe → temps de travail effectif. FR uniquement, CONTEXTUAL (flag
+      // tempsTrajetDetecte). DISTINCT du remboursement de frais de déplacement et
+      // de l'astreinte — invariant « un outil = une situation ». Pré-fill IA 2
+      // champs (typeTrajet, tempsTrajetQuotidienMinutes) via static getPrefillCount
+      // + TempsTrajetDeplacementPrefillRules.
+      ['F-DT-81-temps-trajet-deplacement', {
+        displayLabel: 'Temps de trajet (FR)',
+        component: TempsTrajetDeplacementSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5496,6 +5519,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-78-conge-parental-education', 'DIAGNOSTIC'],
     ['F-DT-79-conge-proche-aidant', 'INDEMNITES'],
     ['F-DT-80-rtt-acquisition', 'INDEMNITES'],
+    // SF-218-52 : F-DT-81 temps de trajet / déplacement professionnel (art.
+    // L.3121-4 CT ; CJUE C-266/14, FR-only) — thème INDEMNITES : l'outil qualifie
+    // le temps de trajet et détermine si une contrepartie (repos / financière) est
+    // due, cohérent avec les autres outils INDEMNITES (verdict de quantum / droit).
+    ['F-DT-81-temps-trajet-deplacement', 'INDEMNITES'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).

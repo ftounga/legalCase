@@ -1,0 +1,200 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ttd-body">
+    <mat-icon class="is-icon">directions_car</mat-icon>
+    <span class="is-title">TEMPS DE TRAJET (FR)</span>
+    @if (result()) {
+      <span [class]="qualificationChipClass(result()!.qualification)" data-testid="qualification-chip">
+        {{ qualificationLabel(result()!.qualification) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ttd-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Temps de trajet professionnel — régime français uniquement</div>
+            <div class="is-banner-sub">
+              La qualification du temps de trajet professionnel et la contrepartie
+              au dépassement du temps normal de trajet (art. L.3121-4 du Code du
+              travail) relèvent du droit du travail français : elles n'ont pas
+              d'équivalent direct en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>directions_car</mat-icon>
+                <span>Qualification du temps de trajet professionnel (temps de travail effectif ou non) et détermination de la contrepartie due en cas de dépassement du temps normal de trajet (art. L.3121-4 CT ; CJUE C-266/14 « Tyco »). Pour un salarié itinérant sans lieu de travail fixe, le déplacement domicile ↔ premier/dernier client est qualifié de temps de travail effectif.</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de trajet</mat-label>
+                  <mat-select [ngModel]="typeTrajet()"
+                              (ngModelChange)="onTypeTrajetChange($event)"
+                              name="typeTrajet"
+                              data-testid="type-trajet-select" required>
+                    @for (opt of typeTrajetOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Nature du déplacement professionnel.</mat-hint>
+                </mat-form-field>
+                @if (provenanceType() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-type"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().TYPE_TRAJET; as alert) {
+                  <span class="is-coherence-badge"
+                        data-testid="coherence-type"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning_amber</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Temps de trajet quotidien (minutes)</mat-label>
+                  <input matInput type="number" min="0" max="1440" step="5"
+                         [ngModel]="tempsTrajetQuotidienMinutes()"
+                         (ngModelChange)="onQuotidienChange($event)"
+                         name="tempsTrajetQuotidienMinutes"
+                         data-testid="quotidien-input" required />
+                  <mat-hint>Durée quotidienne de trajet constatée (≥ 0).</mat-hint>
+                </mat-form-field>
+                @if (provenanceQuotidien() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-quotidien"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().QUOTIDIEN; as alert) {
+                  <span class="is-coherence-badge"
+                        data-testid="coherence-quotidien"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning_amber</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              @if (!isItinerant()) {
+                <div class="is-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Temps de trajet « normal » de référence (minutes)</mat-label>
+                    <input matInput type="number" min="0" max="1440" step="5"
+                           [ngModel]="tempsTrajetNormalMinutes()"
+                           (ngModelChange)="onNormalChange($event)"
+                           name="tempsTrajetNormalMinutes"
+                           data-testid="normal-input" required />
+                    <mat-hint>Temps normal de trajet domicile ↔ lieu habituel de travail (≥ 0).</mat-hint>
+                  </mat-form-field>
+                </div>
+
+                <div class="is-field-wrap is-field-wrap--check">
+                  <mat-checkbox [ngModel]="contrepartiePrevueAccord()"
+                                (ngModelChange)="onContrepartiePrevueChange($event)"
+                                name="contrepartiePrevueAccord"
+                                data-testid="contrepartie-prevue-check">
+                    Une contrepartie (repos / financière) est déjà prévue par accord ou usage
+                  </mat-checkbox>
+                  <span class="is-field-hint">Si une contrepartie est déjà prévue, le dépassement n'ouvre pas de contrepartie supplémentaire.</span>
+                </div>
+              } @else {
+                <div class="is-field-hint" data-testid="itinerant-hint">
+                  Pour un salarié itinérant sans lieu de travail fixe, le déplacement est
+                  qualifié de temps de travail effectif (CJUE C-266/14) : le temps normal de
+                  référence et la contrepartie ne s'appliquent pas.
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Qualifier le temps de trajet</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div class="is-badges">
+                <span [class]="qualificationChipClass(result()!.qualification)" data-testid="qualification-badge">
+                  <mat-icon class="is-chip-icon">directions_car</mat-icon>
+                  {{ qualificationLabel(result()!.qualification) }}
+                </span>
+                <span [class]="contrepartieChipClass(result()!.contrepartieDue)" data-testid="contrepartie-badge">
+                  <mat-icon class="is-chip-icon">{{ result()!.contrepartieDue ? 'check_circle' : 'cancel' }}</mat-icon>
+                  {{ contrepartieLabel(result()!.contrepartieDue) }}
+                </span>
+                @if (result()!.depassementMinutes > 0) {
+                  <span class="is-chip is-chip--neutral is-mono" data-testid="depassement-chip">
+                    Dépassement {{ result()!.depassementMinutes }} min
+                  </span>
+                }
+              </div>
+
+              <div class="is-banner"
+                   [class.is-banner--success]="result()!.qualification === 'TEMPS_TRAVAIL' || result()!.contrepartieDue"
+                   [class.is-banner--neutral]="result()!.qualification !== 'TEMPS_TRAVAIL' && !result()!.contrepartieDue"
+                   role="status" data-testid="result-banner">
+                <mat-icon>directions_car</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">
+                    {{ typeTrajetLabel(result()!.typeTrajet) }}
+                  </div>
+                  <div class="is-banner-sub">{{ result()!.base }}</div>
+                </div>
+              </div>
+
+              @if (result()!.notes && result()!.notes.length > 0) {
+                <ul class="is-consequences" data-testid="notes">
+                  @for (n of result()!.notes; track n) {
+                    <li class="is-consequence-item">
+                      <mat-icon>arrow_right</mat-icon>
+                      <span>{{ n }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base is-mono">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
