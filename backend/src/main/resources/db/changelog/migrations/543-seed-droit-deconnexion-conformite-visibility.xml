@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="39028c3f-0572-411c-95b9-a142a198884d" author="legalcase">
+        <comment>
+            SF-218-53 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Droit a la deconnexion — conformite"
+            (F-DT-83-droit-deconnexion-conformite, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de droit a la deconnexion (mentions « droit a la deconnexion »,
+            « charte de deconnexion », « plages de deconnexion », « usage des
+            outils numeriques », « sollicitations hors temps de travail »,
+            « emails en dehors des heures de travail »). Flag pivot
+            `droit_deconnexion_detecte` = true. trigger_field =
+            'droit_deconnexion_detecte', trigger_value = 'true'. priority 99 —
+            valeur libre pre-assignee pour le couple (DROIT_DU_TRAVAIL, FRANCE).
+
+            Source juridique : art. L.2242-17 7° CT.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('39028c3f-0572-411c-95b9-a142a198884d', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-83-droit-deconnexion-conformite', 'CONTEXTUAL', 'droit_deconnexion_detecte', 'true', 99);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '39028c3f-0572-411c-95b9-a142a198884d';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
