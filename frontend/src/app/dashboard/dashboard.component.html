@@ -13,75 +13,73 @@
   } @else if (summary()) {
     @let data = summary()!;
 
-    <!-- ── Hero d'accueil ──────────────────────────────────────────── -->
+    <!-- ── Bandeau d'accueil sobre : salutation + date uniquement ───── -->
     <header class="hero">
-      <div class="hero-glow" aria-hidden="true"></div>
-      <div class="hero-content">
-
-        <div class="hero-top">
-          <div class="hero-welcome">
-            <h1 class="hero-greeting">{{ greeting() }}</h1>
-            <p class="hero-date">{{ today }}</p>
-          </div>
-
-          @if (sparkline(); as spark) {
-            <a class="hero-spark" tabindex="0" (click)="scrollTo('activity')"
-               (keydown.enter)="scrollTo('activity')">
-              <span class="spark-label">Votre semaine</span>
-              <svg class="spark-svg" [attr.viewBox]="'0 0 ' + spark.width + ' ' + spark.height"
-                   preserveAspectRatio="none" aria-hidden="true">
-                <path class="spark-area" [attr.d]="spark.area" />
-                <path class="spark-line" [attr.d]="spark.line" />
-                <circle class="spark-dot" [attr.cx]="spark.last.x" [attr.cy]="spark.last.y" r="2.6" />
-              </svg>
-              <span class="spark-total">
-                @if (spark.total > 0) {
-                  {{ spark.total }} analyse{{ spark.total > 1 ? 's' : '' }}
-                } @else {
-                  Aucune analyse
-                }
-              </span>
-            </a>
-          }
-        </div>
-
-        @if (headline(); as head) {
-          <button class="hero-headline" [class]="'headline-' + head.level"
-                  [disabled]="!head.anchor" (click)="scrollTo(head.anchor)">
-            <mat-icon class="headline-icon">{{ head.icon }}</mat-icon>
-            <span class="headline-text">{{ head.text }}</span>
-            @if (head.anchor) {
-              <mat-icon class="headline-arrow">arrow_forward</mat-icon>
-            }
-          </button>
-        }
-
-        <div class="hero-kpis">
-          <button class="kpi" (click)="scrollTo('cases')">
-            <span class="kpi-value">{{ kpiCases() }}</span>
-            <span class="kpi-label">Dossiers actifs</span>
-            @if (data.casesOpenedThisWeek > 0) {
-              <span class="kpi-delta">+{{ data.casesOpenedThisWeek }} cette semaine</span>
-            }
-          </button>
-          <button class="kpi" [class.kpi-alert-red]="data.urgentDeadlines.length > 0"
-                  (click)="scrollTo('deadlines')">
-            <span class="kpi-value">{{ kpiDeadlines() }}</span>
-            <span class="kpi-label">Délais urgents</span>
-          </button>
-          <button class="kpi" [class.kpi-alert-orange]="data.staleChecks.length > 0"
-                  (click)="scrollTo('checks')">
-            <span class="kpi-value">{{ kpiChecks() }}</span>
-            <span class="kpi-label">Alertes checklist</span>
-          </button>
-          <button class="kpi" (click)="scrollTo('activity')">
-            <span class="kpi-value">{{ kpiAnalyses() }}</span>
-            <span class="kpi-label">Analyses récentes</span>
-          </button>
-        </div>
-
+      <div class="hero-welcome">
+        <h1 class="hero-greeting">{{ greeting() }}</h1>
+        <p class="hero-date">{{ today }}</p>
       </div>
     </header>
+
+    <!-- ── Vue d'ensemble sur fond clair ────────────────────────────── -->
+    <section class="dash-overview">
+
+      @if (headline(); as head) {
+        <button class="hero-headline" [class]="'headline-' + head.level"
+                [disabled]="!head.anchor" (click)="scrollTo(head.anchor)">
+          <mat-icon class="headline-icon">{{ head.icon }}</mat-icon>
+          <span class="headline-text">{{ head.text }}</span>
+          @if (head.anchor) {
+            <mat-icon class="headline-arrow">arrow_forward</mat-icon>
+          }
+        </button>
+      }
+
+      <div class="hero-kpis">
+        <button class="kpi" (click)="scrollTo('cases')">
+          <span class="kpi-value">{{ kpiCases() }}</span>
+          <span class="kpi-label">Dossiers actifs</span>
+          @if (data.casesOpenedThisWeek > 0) {
+            <span class="kpi-delta">+{{ data.casesOpenedThisWeek }} cette semaine</span>
+          }
+        </button>
+        <button class="kpi" [class.kpi-alert-red]="data.urgentDeadlines.length > 0"
+                (click)="scrollTo('deadlines')">
+          <span class="kpi-value">{{ kpiDeadlines() }}</span>
+          <span class="kpi-label">Délais urgents</span>
+        </button>
+        <button class="kpi" [class.kpi-alert-orange]="data.staleChecks.length > 0"
+                (click)="scrollTo('checks')">
+          <span class="kpi-value">{{ kpiChecks() }}</span>
+          <span class="kpi-label">Alertes checklist</span>
+        </button>
+        <button class="kpi" (click)="scrollTo('activity')">
+          <span class="kpi-value">{{ kpiAnalyses() }}</span>
+          <span class="kpi-label">Analyses récentes</span>
+        </button>
+      </div>
+
+      @if (sparkline(); as spark) {
+        <a class="hero-spark" tabindex="0" (click)="scrollTo('activity')"
+           (keydown.enter)="scrollTo('activity')">
+          <span class="spark-label">Votre semaine</span>
+          <svg class="spark-svg" [attr.viewBox]="'0 0 ' + spark.width + ' ' + spark.height"
+               preserveAspectRatio="none" aria-hidden="true">
+            <path class="spark-area" [attr.d]="spark.area" />
+            <path class="spark-line" [attr.d]="spark.line" />
+            <circle class="spark-dot" [attr.cx]="spark.last.x" [attr.cy]="spark.last.y" r="2.6" />
+          </svg>
+          <span class="spark-total">
+            @if (spark.total > 0) {
+              {{ spark.total }} analyse{{ spark.total > 1 ? 's' : '' }}
+            } @else {
+              Aucune analyse
+            }
+          </span>
+        </a>
+      }
+
+    </section>
 
     <!-- ── Sections ───────────────────────────────────────────────── -->
     <div class="dashboard-layout">

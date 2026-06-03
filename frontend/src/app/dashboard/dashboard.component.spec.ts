@@ -85,10 +85,16 @@ describe('DashboardComponent — hero (F-249)', () => {
     fixture.detectChanges();
   });
 
-  // DASH-UI-06 : le hero porte 4 compteurs KPI
-  it('DASH-UI-06: affiche 4 compteurs KPI dans le hero', () => {
-    const kpis = fixture.nativeElement.querySelectorAll('.hero .kpi');
+  // DASH-UI-06 : la vue d'ensemble porte 4 compteurs KPI (cartes blanches sous le bandeau)
+  it('DASH-UI-06: affiche 4 compteurs KPI', () => {
+    const kpis = fixture.nativeElement.querySelectorAll('.kpi');
     expect(kpis.length).toBe(4);
+  });
+
+  // DASH-F249-10 : KPI sortis du bandeau navy → rendus dans .dash-overview, pas sous .hero
+  it('DASH-F249-10: les KPI sont rendus hors du bandeau .hero (cartes blanches)', () => {
+    expect(fixture.nativeElement.querySelectorAll('.hero .kpi').length).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('.dash-overview .kpi').length).toBe(4);
   });
 
   // DASH-UI-07 : KPI délais urgents en rouge si > 0
@@ -110,10 +116,12 @@ describe('DashboardComponent — hero (F-249)', () => {
     expect(head?.anchor).toBe('deadlines');
   });
 
-  // DASH-F249-03 : sparkline calculé à partir de weeklyActivity
-  it('DASH-F249-03: le sparkline totalise les analyses de la semaine', () => {
+  // DASH-F249-03 : sparkline calculé à partir de weeklyActivity, rendu hors du bandeau navy
+  it('DASH-F249-03: le sparkline totalise les analyses de la semaine et est rendu hors du .hero', () => {
     expect(component.sparkline()?.total).toBe(10);
     expect(fixture.nativeElement.querySelector('.spark-line')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.hero .hero-spark')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.dash-overview .hero-spark')).not.toBeNull();
   });
 
   // DASH-F249-04 : delta « dossiers cette semaine » affiché si > 0
@@ -124,9 +132,17 @@ describe('DashboardComponent — hero (F-249)', () => {
   // DASH-F249-05 : clic KPI déclenche scrollTo vers la section
   it('DASH-F249-05: cliquer un KPI appelle scrollTo avec la bonne ancre', () => {
     const spy = jest.spyOn(component, 'scrollTo');
-    const kpi = fixture.nativeElement.querySelector('.hero .kpi') as HTMLButtonElement;
+    const kpi = fixture.nativeElement.querySelector('.kpi') as HTMLButtonElement;
     kpi.click();
     expect(spy).toHaveBeenCalledWith('cases');
+  });
+
+  // DASH-F249-11 : clic sparkline déclenche scrollTo('activity')
+  it('DASH-F249-11: cliquer la sparkline appelle scrollTo(\'activity\')', () => {
+    const spy = jest.spyOn(component, 'scrollTo');
+    const spark = fixture.nativeElement.querySelector('.hero-spark') as HTMLAnchorElement;
+    spark.click();
+    expect(spy).toHaveBeenCalledWith('activity');
   });
 });
 

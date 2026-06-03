@@ -215,21 +215,23 @@ Border-radius des badges : `4px`, padding : `4px 8px`, police Inter 500 12px.
 
 ## 10 — Couche d'accueil — dashboard (dérogation encadrée, F-249)
 
-> Ajoutée par **F-249** (refonte futuriste du tableau de bord d'accueil). **Dérogation strictement limitée à l'écran `/dashboard`** (`frontend/src/app/dashboard/`). Le reste du produit reste régi sans exception par les sections 1 à 9.
+> Ajoutée par **F-249** (refonte du tableau de bord d'accueil). **Dérogation strictement limitée à l'écran `/dashboard`** (`frontend/src/app/dashboard/`). Le reste du produit reste régi sans exception par les sections 1 à 9.
+>
+> **Amendement SF-249-02 (2026-06-03, retour PO).** Le hero « futuriste » livré par SF-249-01 (gros dégradé navy + halo doré + KPI glassmorphism) a été jugé **trop massif et grossier**. La dérogation est **réduite** : le bandeau d'accueil devient sobre (bande navy fine portant uniquement salutation + date), le **halo / glow doré** et le **glassmorphism** sont **supprimés**, et les **KPI repassent en cartes blanches standard** (section 5) posées sous le bandeau, hors du bleu. Seul subsiste un léger dégradé navy sur la seule bande d'accueil.
 
-Le tableau de bord d'accueil est la page d'accueil de l'application — la première chose que voit l'avocat à chaque session. Pour lui donner un caractère plus moderne et un point focal fort, une **couche de rendu d'accueil** est autorisée sur ce seul écran. Elle n'introduit **aucune couleur ni police nouvelle** — uniquement de nouvelles *façons d'utiliser* la palette existante.
+Le tableau de bord d'accueil est la page d'accueil de l'application — la première chose que voit l'avocat à chaque session. Pour lui donner un caractère soigné et une salutation personnalisée, une **bande d'accueil** discrète est autorisée sur ce seul écran. Elle n'introduit **aucune couleur ni police nouvelle** — uniquement de nouvelles *façons d'utiliser* la palette existante.
 
 ### Autorisé sur `/dashboard` uniquement
 
 | Élément | Règle |
 |---|---|
-| **Dégradés navy** | Dégradés linéaires entre nuances de navy de la palette Material primary (`#1A3A5C` → `#0E2341`, soit primary 500 → 800). Réservés au hero. Aucune autre teinte. |
-| **Halo / glow doré** | Lueur diffuse `#C9973A` à faible opacité (≤ 18 %) en accent du hero et au survol des cartes. Jamais en aplat. |
-| **Glassmorphism** | Surfaces translucides (blanc à 6–12 % d'opacité) avec `backdrop-filter: blur(...)` et fine bordure claire — uniquement pour les compteurs KPI **posés sur le hero en dégradé**. Les cartes de section restent blanches opaques (section 5 inchangée). |
+| **Dégradé navy (bande d'accueil)** | Dégradé linéaire léger entre nuances de navy de la palette Material primary (`#1A3A5C` → `#0E2341`, soit primary 500 → 800). Réservé à la **seule bande d'accueil fine** (salutation + date). Aucune autre teinte, aucun autre bloc. |
+| ~~**Halo / glow doré**~~ | **Obsolète (SF-249-02).** Supprimé du hero et des cartes. Ne plus réintroduire de lueur dorée en aplat ou en accent. |
+| ~~**Glassmorphism**~~ | **Obsolète (SF-249-02).** Plus de surfaces translucides ni de `backdrop-filter`. Les compteurs KPI sont des **cartes blanches opaques** standard (section 5). |
 | **Compteurs animés** | Animation *count-up* des valeurs KPI à l'entrée de page, **une seule fois**, durée ≤ 800 ms. Jamais en boucle. |
-| **Profondeur** | Ombres en couches plus prononcées que la section 5, autorisées sur le hero et au survol des cartes (`0 4px 12px` + `0 8px 24px`, navy teinté). |
+| **Profondeur** | Ombres standard de la section 5 sur les cartes KPI / sparkline (`$shadow-card`, `$shadow-hover` au survol). Plus d'ombre « hero » renforcée. |
 | **Transitions** | Entrée en cascade des blocs (stagger), `cubic-bezier(0.22, 1, 0.36, 1)`. Transitions de survol ≤ 240 ms. |
-| **Sparkline** | Mini-graphe de tendance d'activité (7 jours) en accent du hero, tracé en or sur le dégradé navy. Décoratif léger, sans axes. |
+| **Sparkline** | Mini-graphe de tendance d'activité (7 jours) tracé en or, en **carte blanche discrète** sous le bandeau (et non plus sur le dégradé navy). Décoratif léger, sans axes. |
 
 ### Interdit, même sur `/dashboard`
 

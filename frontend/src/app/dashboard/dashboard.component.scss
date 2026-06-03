@@ -18,7 +18,6 @@ $border:        #E8ECF0;
 $ease:          cubic-bezier(0.22, 1, 0.36, 1);
 $shadow-card:   0 1px 3px rgba(16, 35, 65, .06), 0 6px 16px rgba(16, 35, 65, .06);
 $shadow-hover:  0 4px 12px rgba(16, 35, 65, .12), 0 8px 24px rgba(16, 35, 65, .10);
-$shadow-hero:   0 4px 12px rgba(16, 35, 65, .18), 0 8px 24px rgba(16, 35, 65, .12);
 
 // ── Animations d'entrée (jouées une seule fois — DESIGN_SYSTEM §10) ────────
 @keyframes dashRise {
@@ -55,42 +54,20 @@ $shadow-hero:   0 4px 12px rgba(16, 35, 65, .18), 0 8px 24px rgba(16, 35, 65, .1
   .error-text { font-size: 1rem; margin: 0; }
 }
 
-// ── Hero d'accueil ─────────────────────────────────────────────────────────
+// ── Bandeau d'accueil sobre (DESIGN_SYSTEM §10 — dérogation réduite) ─────────
 .hero {
-  position: relative;
-  overflow: hidden;
-  border-radius: 16px;
-  margin-bottom: 20px;
-  padding: 28px 32px;
-  background: linear-gradient(135deg, $navy 0%, $navy-mid 55%, $navy-dark 100%);
-  box-shadow: $shadow-hero;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, $navy 0%, $navy-dark 100%);
+  box-shadow: $shadow-card;
   animation: dashRise .5s $ease both;
-}
-
-.hero-glow {
-  position: absolute;
-  top: -45%;
-  right: -8%;
-  width: 460px;
-  height: 460px;
-  background: radial-gradient(circle, rgba(201, 151, 58, .22) 0%, rgba(201, 151, 58, 0) 70%);
-  pointer-events: none;
-}
-
-.hero-content { position: relative; }
-
-.hero-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
 }
 
 .hero-greeting {
   margin: 0;
   font-family: 'Merriweather', serif;
-  font-size: 1.6rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #fff;
   line-height: 1.25;
@@ -104,64 +81,25 @@ $shadow-hero:   0 4px 12px rgba(16, 35, 65, .18), 0 8px 24px rgba(16, 35, 65, .1
   &::first-letter { text-transform: uppercase; }
 }
 
-// Sparkline « votre semaine »
-.hero-spark {
+// ── Vue d'ensemble sur fond clair ───────────────────────────────────────────
+.dash-overview {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .06);
-  border: 1px solid rgba(255, 255, 255, .12);
-  text-decoration: none;
-  cursor: pointer;
-  transition: background .2s $ease;
-
-  &:hover { background: rgba(255, 255, 255, .11); }
-  &:focus-visible { outline: 2px solid $gold-light; outline-offset: 2px; }
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.spark-label {
-  font-size: .64rem;
-  text-transform: uppercase;
-  letter-spacing: .09em;
-  font-weight: 700;
-  color: rgba(255, 255, 255, .58);
-}
-
-.spark-svg {
-  width: 132px;
-  height: 36px;
-  display: block;
-}
-
-.spark-area { fill: rgba(201, 151, 58, .18); }
-.spark-line {
-  fill: none;
-  stroke: $gold-light;
-  stroke-width: 2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-.spark-dot { fill: $gold-light; }
-
-.spark-total {
-  font-size: .72rem;
-  color: rgba(255, 255, 255, .82);
-  font-family: 'JetBrains Mono', monospace;
-}
-
-// Headline d'orientation
+// Headline d'orientation (sur fond clair)
 .hero-headline {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin: 20px 0 22px;
+  margin: 0;
   padding: 10px 16px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, .16);
-  background: rgba(255, 255, 255, .10);
-  color: #fff;
+  border: 1px solid $border;
+  background: $surface;
+  color: $text;
   font-family: 'Inter', sans-serif;
   font-size: .9rem;
   font-weight: 600;
@@ -171,7 +109,7 @@ $shadow-hero:   0 4px 12px rgba(16, 35, 65, .18), 0 8px 24px rgba(16, 35, 65, .1
 
   &:hover:not(:disabled) { transform: translateX(3px); }
   &:disabled { cursor: default; }
-  &:focus-visible { outline: 2px solid $gold-light; outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid $gold; outline-offset: 2px; }
 }
 
 .headline-icon { font-size: 18px; width: 18px; height: 18px; }
@@ -179,25 +117,26 @@ $shadow-hero:   0 4px 12px rgba(16, 35, 65, .18), 0 8px 24px rgba(16, 35, 65, .1
 .headline-arrow { font-size: 16px; width: 16px; height: 16px; opacity: .75; }
 
 .headline-critical {
-  background: rgba(197, 48, 48, .94);
-  border-color: rgba(255, 255, 255, .14);
-  box-shadow: 0 4px 14px rgba(197, 48, 48, .35);
+  background: $red-bg;
+  color: $red;
+  border-color: rgba(197, 48, 48, .30);
+  box-shadow: none;
 }
 
 .headline-warn {
-  background: $gold;
-  border-color: rgba(255, 255, 255, .18);
-  color: #2A1C00;
-  box-shadow: 0 4px 14px rgba(201, 151, 58, .32);
+  background: $orange-bg;
+  color: $orange;
+  border-color: rgba(201, 151, 58, .35);
+  box-shadow: none;
 }
 
 .headline-ok {
-  background: rgba(39, 174, 96, .16);
-  border-color: rgba(39, 174, 96, .40);
-  color: #D6F5E0;
+  background: #EAF7EF;
+  color: $green;
+  border-color: rgba(39, 174, 96, .30);
 }
 
-// KPI en glassmorphism, posés sur le hero
+// KPI en cartes blanches
 .hero-kpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -214,30 +153,29 @@ $shadow-hero:   0 4px 12px rgba(16, 35, 65, .18), 0 8px 24px rgba(16, 35, 65, .1
   gap: 3px;
   padding: 14px 16px 13px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, .07);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, .13);
-  border-top: 2px solid rgba(255, 255, 255, .24);
+  background: $surface;
+  border: 1px solid $border;
+  border-top: 2px solid $border;
+  box-shadow: $shadow-card;
   cursor: pointer;
   appearance: none;
   text-align: left;
   font-family: inherit;
-  transition: transform .2s $ease, background .2s $ease, border-top-color .2s $ease;
+  transition: transform .2s $ease, box-shadow .2s $ease, border-top-color .2s $ease;
 
   &:hover {
     transform: translateY(-3px);
-    background: rgba(255, 255, 255, .12);
+    box-shadow: $shadow-hover;
     border-top-color: $gold;
   }
-  &:focus-visible { outline: 2px solid $gold-light; outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid $gold; outline-offset: 2px; }
 }
 
 .kpi-value {
   font-family: 'Merriweather', serif;
   font-size: 1.9rem;
   font-weight: 700;
-  color: #fff;
+  color: $navy;
   line-height: 1;
 }
 
@@ -246,26 +184,75 @@ $shadow-hero:   0 4px 12px rgba(16, 35, 65, .18), 0 8px 24px rgba(16, 35, 65, .1
   text-transform: uppercase;
   letter-spacing: .07em;
   font-weight: 600;
-  color: rgba(255, 255, 255, .62);
+  color: $muted;
 }
 
 .kpi-delta {
   margin-top: 2px;
   font-size: .66rem;
   font-weight: 600;
-  color: $gold-light;
+  color: $gold;
 }
 
 .kpi-alert-red {
-  background: rgba(197, 48, 48, .18);
-  border-top-color: #E57373;
-  .kpi-value { color: #FF9E9E; }
+  background: $red-bg;
+  border-top-color: $red;
+  .kpi-value { color: $red; }
 }
 
 .kpi-alert-orange {
-  background: rgba(201, 151, 58, .16);
+  background: $orange-bg;
   border-top-color: $gold;
-  .kpi-value { color: $gold-light; }
+  .kpi-value { color: $orange; }
+}
+
+// Sparkline « votre semaine » (carte blanche compacte)
+.hero-spark {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: $surface;
+  border: 1px solid $border;
+  box-shadow: $shadow-card;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow .2s $ease;
+
+  &:hover { box-shadow: $shadow-hover; }
+  &:focus-visible { outline: 2px solid $gold; outline-offset: 2px; }
+}
+
+.spark-label {
+  font-size: .64rem;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  font-weight: 700;
+  color: $muted;
+}
+
+.spark-svg {
+  width: 132px;
+  height: 36px;
+  display: block;
+}
+
+.spark-area { fill: rgba(201, 151, 58, .16); }
+.spark-line {
+  fill: none;
+  stroke: $gold;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.spark-dot { fill: $gold; }
+
+.spark-total {
+  font-size: .72rem;
+  color: $navy;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 // ── Layout 2 colonnes ──────────────────────────────────────────────────────
