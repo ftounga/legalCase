@@ -36,6 +36,7 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'liquidation-partage-be', label: 'Liquidation-partage post-divorce (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'mariage-etranger-be-reconnaissance', label: 'Reconnaissance mariage / divorce étranger (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'cohabitation-legale-be', label: 'Cohabitation légale — régime (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'adoption-be', label: 'Adoption — recevabilité (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'pacte-successoral-be-2018', label: 'Pacte successoral 2018 (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'protection-majeur-be', label: 'Protection du majeur (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'regime-mat-be-communaute-legale', label: 'Régime de communauté légale (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },

@@ -482,6 +482,7 @@ import { SuccessionBeAcceptationRenonciationSectionComponent } from '../successi
 // F-217 SF-217-17 — section décisionnelle Vague 3 Famille BE — Reconnaissance mariage / divorce étranger (talaq inclus). Backend SF-217-16 bundle.
 import { MariageEtrangerBeReconnaissanceSectionComponent } from '../mariage-etranger-be-reconnaissance-section/mariage-etranger-be-reconnaissance-section.component';
 import { CohabitationLegaleBeSectionComponent } from '../cohabitation-legale-be-section/cohabitation-legale-be-section.component';
+import { AdoptionBeSectionComponent } from '../adoption-be-section/adoption-be-section.component';
 // F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
 import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
 // F-217 SF-217-19 — section décisionnelle Vague 3 Famille BE — Contestation de filiation (CC art. 318 nouveau).
@@ -5782,6 +5783,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // SF-223-02 : recevabilité de l'adoption BE (loi du 24/04/2003 ; CC
+      // art. 343-1 et s. — à vérifier). Outil multi-vues unique (PLENIERE /
+      // SIMPLE / CO_PARENTALE). Migration 581 — CONTEXTUAL, NOUVEAU flag pivot
+      // `adoption_be_detectee` (consolidé dans Sf223Detail). Pré-fill IA F-246 :
+      // type + agrément. Backend SF-223-02 bundle.
+      ['adoption-be', {
+        displayLabel: 'Adoption — recevabilité (Belgique)',
+        component: AdoptionBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
       // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
       // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
       // Migration 281 — CONTEXTUAL avec trigger non extrait V1
@@ -6540,6 +6556,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // de validité d'ordre public (CDIP art. 21+ / 27 — talaq inclus).
     ['mariage-etranger-be-reconnaissance', 'VALIDITE'],
     ['cohabitation-legale-be', 'VALIDITE'],
+    // SF-223-02 : recevabilité de l'adoption BE (loi du 24/04/2003 ; CC
+    // art. 343-1 et s.). VALIDITE — qualification de recevabilité, pas un délai.
+    ['adoption-be', 'VALIDITE'],
     // F-217 SF-217-15 : protection du majeur BE — outil d'orientation /
     // qualification de la mesure adéquate (loi 17/03/2013). VALIDITE plutôt
     // que DELAIS malgré l'urgence potentielle (qui est qualifiée à l'audience,

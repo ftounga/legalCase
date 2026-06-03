@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="580-create-adoption-be-analyses" author="legalcase">
+        <comment>
+            SF-223-02 : table dédiée à l'outil décisionnel "Recevabilité de
+            l'adoption en Belgique" (loi du 24/04/2003 réformant l'adoption ;
+            Code civil belge art. 343-1 et s. — à vérifier par avocat belge,
+            renumérotation CC post-réformes 2017-2019).
+
+            Outil multi-vues unique (1 outil = 1 situation « recevabilité de
+            l'adoption ») couvrant les trois types : PLENIERE (rupture du lien
+            d'origine — CC art. 356-1+), SIMPLE (maintien de certains liens —
+            CC art. 353-1+) et CO_PARENTALE (adoption de l'enfant du conjoint /
+            cohabitant légal — exige un lien de mariage ou de cohabitation
+            légale avec le parent biologique).
+
+            Verdict en 4 niveaux : RECEVABLE / RECEVABLE_SOUS_CONDITIONS /
+            IRRECEVABLE / QUALIFICATION_INCOMPLETE. Conditions d'âge, d'écart
+            d'âge, d'agrément préalable (enquête sociale) et de consentements.
+
+            BELGIQUE UNIQUEMENT — ≠ adoption française (Cciv art. 343+,
+            structurellement distincte). L'adoption internationale (Convention
+            de La Haye + autorité centrale) est différée (P4 F-224). La
+            contestation de filiation relève d'un outil distinct (F-217).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul
+            (pattern F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 581
+            livrée dans le même bundle SF-223-02 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 580 = numéro libre suivant après 579 (seed SF-223-01
+            cohabitation-legale-be).
+        </comment>
+
+        <createTable tableName="adoption_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_adoption_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="adoption_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_adoption_be_analyses_case_file"/>
+
+        <createIndex tableName="adoption_be_analyses"
+                     indexName="idx_adoption_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="adoption_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
