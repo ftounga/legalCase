@@ -373,6 +373,34 @@ export interface TravailExtractedData {
    */
   reglementInterieurPresent?: boolean | null;
   /**
+   * SF-218-38 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de monétisation de jours de RTT (mentions « rachat de RTT », « monétisation
+   * des RTT », « renonciation à des jours de RTT », « jours de RTT payés »,
+   * « rémunération majorée des RTT »). FR-only. Déclenche l'apparition de
+   * F-DT-51-rtt-monetisation (n'est PAS un champ de formulaire).
+   *
+   * NB : le sous-record backend consolidé `Sf218dDetail` est sérialisé
+   * `@JsonUnwrapped` avec des clés JSON SNAKE_CASE explicites (`@JsonProperty`)
+   * — d'où le nom de propriété snake_case ci-dessous (contrairement aux champs
+   * camelCase du record parent et du sous-record Sf218cIrpDetail). Ne PAS
+   * renommer en camelCase sous peine de pré-fill vide.
+   */
+  rtt_monetisation_detectee?: boolean | null;
+  /**
+   * SF-218-38 : nombre de jours de RTT auxquels le salarié renonce, détecté par
+   * l'IA dans les pièces du dossier (demande de monétisation, avenant). Pré-fill
+   * du champ `nombreJoursRttRenonces` de F-DT-51-rtt-monetisation (FR
+   * uniquement). Clé JSON SNAKE_CASE (Sf218dDetail `@JsonProperty`).
+   */
+  nombre_jours_rtt_renonces?: number | null;
+  /**
+   * SF-218-38 : salaire journalier brut de référence détecté par l'IA dans les
+   * pièces du dossier (bulletins, contrat). Pré-fill du champ
+   * `salaireJournalierBrut` de F-DT-51-rtt-monetisation (FR uniquement). Clé JSON
+   * SNAKE_CASE (Sf218dDetail `@JsonProperty`).
+   */
+  salaire_journalier_brut?: number | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de

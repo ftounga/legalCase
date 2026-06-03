@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="56c47132-2c45-485b-a77f-4c162516509f" author="legalcase">
+        <comment>
+            SF-218-37 — table `rtt_monetisation_analyses` pour l'outil decisionnel
+            "RTT — monetisation (rachat de jours de RTT)" (F-DT-51-rtt-monetisation,
+            FRANCE).
+
+            Outil single-country FR : apprecie l'eligibilite au dispositif de
+            monetisation des jours de RTT (loi n° 2022-1157 du 16/08/2022 (LFR
+            2022) art. 5, prolonge jusqu'au 31/12/2026) et calcule le montant brut
+            majore. Si les jours ne sont pas acquis dans la fenetre 01/01/2022 →
+            31/12/2026 → NON_ELIGIBLE (aucun montant). Sinon montant brut =
+            nombreJoursRttRenonces × salaireJournalierBrut × (1 + taux/100), taux
+            borne dans [10, 25] (regime des heures supplementaires). Persiste
+            l'analyse 1:1 par dossier (upsert).
+
+            Distinct de F-DT-19 heures supplementaires et de F-DT-80 acquisition de
+            JRTT (invariant « un outil = une situation »).
+
+            Source juridique : loi n° 2022-1157 du 16/08/2022 art. 5.
+        </comment>
+
+        <createTable tableName="rtt_monetisation_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_rtt_monetisation_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="nombre_jours_rtt_renonces" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_journalier_brut" type="DECIMAL(12, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="taux_applique" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+            <column name="jours_acquis_dans_fenetre" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_brut" type="DECIMAL(14, 2)"/>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="rtt_monetisation_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

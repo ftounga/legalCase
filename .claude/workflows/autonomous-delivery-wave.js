@@ -136,7 +136,7 @@ if (merged.length) {
         1 entrée historique PAR SF, MAJ ARCHITECTURE_CANONIQUE.md si nouvelles tables,
         MAJ MARKETING_BACKLOG.md si une feature couvre une tâche M-XX.
      2) Déploiement staging UNIQUE: gh workflow run backend.yml --ref master ; front auto ;
-        healthcheck https://staging.legalcase.ng-itconsulting.com/api/actuator/health (background).
+        healthcheck https://staging.legalcase.fr/api/actuator/health (background).
      Ne déclenche le redeploy qu'UNE fois, après tous les merges.`,
     { label: 'docs+staging', phase: 'Docs+Staging' }
   )
