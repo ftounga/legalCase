@@ -1145,6 +1145,12 @@ class DashboardTileToolIdIntegrityIT {
             // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
             "F-DT-81-temps-trajet-deplacement",
+            // SF-218-53 : outil F-DT-83 droit à la déconnexion / conformité (art.
+            // L.2242-17 7° CT, FR-only, CONTEXTUAL) — pas de tuile dashboard
+            // (calcul sans action validée). Frontend SF-218-54 (même PR). Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme F-213 /
+            // F-219 / F-218 vagues, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-DT-83-droit-deconnexion-conformite",
             // SF-218-33 : outil F-DT-69 délégué syndical / RSS : désignation et
             // protection (art. L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT,
             // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-34 à

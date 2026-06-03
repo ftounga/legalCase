@@ -109,6 +109,8 @@ import { CongeProcheAidantSectionComponent } from '../conge-proche-aidant-sectio
 import { RttAcquisitionSectionComponent } from '../rtt-acquisition-section/rtt-acquisition-section.component';
 // SF-218-52 : composant complet F-DT-81-temps-trajet-deplacement — qualification du temps de trajet professionnel (temps de travail effectif ou non) + verdict de contrepartie due (art. L.3121-4 CT ; CJUE C-266/14 « Tyco »). DISTINCT du remboursement de frais de déplacement et de l'astreinte (Travail FR).
 import { TempsTrajetDeplacementSectionComponent } from '../temps-trajet-deplacement-section/temps-trajet-deplacement-section.component';
+// SF-218-54 : composant complet F-DT-83-droit-deconnexion-conformite — conformité à l'obligation relative au droit à la déconnexion (négociation dans la NAO QVCT pour les entreprises ≥ 50 salariés dotées d'un délégué syndical, à défaut charte employeur après avis du CSE — art. L.2242-17 7° CT). DISTINCT de la NAO dans son ensemble (F-DT-66) et de la désignation du délégué syndical (F-DT-69) (Travail FR).
+import { DroitDeconnexionConformiteSectionComponent } from '../droit-deconnexion-conformite-section/droit-deconnexion-conformite-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -2131,6 +2133,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-81-temps-trajet-deplacement', {
         displayLabel: 'Temps de trajet (FR)',
         component: TempsTrajetDeplacementSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-54 : composant complet F-DT-83-droit-deconnexion-conformite —
+      // analyse la conformité à l'obligation relative au droit à la déconnexion
+      // (art. L.2242-17 7° CT) : pour les entreprises d'au moins 50 salariés
+      // dotées d'au moins un délégué syndical, le droit à la déconnexion doit être
+      // négocié dans la NAO QVCT ; à défaut d'accord, l'employeur élabore une
+      // charte, après avis du CSE, prévoyant des actions de formation et de
+      // sensibilisation. Verdict CONFORME / NON_CONFORME / NON_REQUIS + checklist.
+      // FR uniquement, CONTEXTUAL (flag droitDeconnexionDetecte). DISTINCT de la
+      // NAO dans son ensemble (F-DT-66) et de la désignation du délégué syndical
+      // (F-DT-69) — invariant « un outil = une situation ». Pré-fill IA 1 champ
+      // (accordOuChartePresent) via static getPrefillCount +
+      // DroitDeconnexionConformitePrefillRules.
+      ['F-DT-83-droit-deconnexion-conformite', {
+        displayLabel: 'Droit à la déconnexion (FR)',
+        component: DroitDeconnexionConformiteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5524,6 +5548,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // le temps de trajet et détermine si une contrepartie (repos / financière) est
     // due, cohérent avec les autres outils INDEMNITES (verdict de quantum / droit).
     ['F-DT-81-temps-trajet-deplacement', 'INDEMNITES'],
+    // SF-218-54 : F-DT-83 droit à la déconnexion / conformité (art. L.2242-17 7°
+    // CT, FR-only) — thème DIAGNOSTIC : l'outil rend un verdict de conformité
+    // (CONFORME / NON_CONFORME / NON_REQUIS) + checklist, cohérent avec les autres
+    // outils DIAGNOSTIC (analyse de conformité / situation).
+    ['F-DT-83-droit-deconnexion-conformite', 'DIAGNOSTIC'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).

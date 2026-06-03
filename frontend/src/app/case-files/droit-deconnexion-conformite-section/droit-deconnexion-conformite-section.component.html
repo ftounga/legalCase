@@ -1,0 +1,216 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">phonelink_erase</mat-icon>
+    <span class="is-title">DROIT À LA DÉCONNEXION — CONFORMITÉ (FR)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statut)" data-testid="statut-chip">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Droit à la déconnexion — régime français uniquement</div>
+            <div class="is-banner-sub">
+              L'obligation de négocier le droit à la déconnexion dans la
+              négociation annuelle QVCT (art. L.2242-17 7° CT), à défaut une
+              charte employeur après avis du CSE, est propre au droit du travail
+              français : elle n'a pas d'équivalent en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>phonelink_erase</mat-icon>
+                <span>Conformité à l'obligation relative au droit à la déconnexion : négociation dans la NAO QVCT pour les entreprises d'au moins 50 salariés dotées d'au moins un délégué syndical (art. L.2242-17 7° CT) ; à défaut d'accord, charte employeur après avis du CSE, avec actions de sensibilisation.</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Effectif de l'entreprise (nombre de salariés)</mat-label>
+                  <input matInput type="number" min="1" step="1"
+                         [ngModel]="effectif()"
+                         (ngModelChange)="onEffectifChange($event)"
+                         name="effectif"
+                         data-testid="effectif-input" required />
+                  <mat-hint>Effectif habituel de l'entreprise — au moins 50 salariés (avec délégué syndical) déclenche l'obligation de négocier.</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="delegueSyndicalPresent()"
+                              (ngModelChange)="onDelegueSyndicalChange($event)"
+                              name="delegueSyndicalPresent"
+                              data-testid="delegue-syndical-checkbox">
+                  Au moins un délégué syndical est désigné dans l'entreprise
+                </mat-checkbox>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="accordOuChartePresent()"
+                              (ngModelChange)="onAccordOuCharteChange($event)"
+                              name="accordOuChartePresent"
+                              data-testid="accord-charte-checkbox">
+                  Un accord négocié ou une charte employeur sur le droit à la déconnexion existe
+                </mat-checkbox>
+                @if (provenanceAccordOuCharte() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-accord-charte"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().ACCORD_OU_CHARTE; as alert) {
+                  <span class="is-coherence-badge"
+                        data-testid="coherence-accord-charte"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning_amber</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="plagesDeconnexionDefinies()"
+                              (ngModelChange)="onPlagesChange($event)"
+                              name="plagesDeconnexionDefinies"
+                              data-testid="plages-checkbox">
+                  Des plages / modalités d'exercice du droit à la déconnexion sont définies
+                </mat-checkbox>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="actionsSensibilisation()"
+                              (ngModelChange)="onSensibilisationChange($event)"
+                              name="actionsSensibilisation"
+                              data-testid="sensibilisation-checkbox">
+                  Des actions de formation / sensibilisation à un usage raisonnable des outils numériques sont prévues
+                </mat-checkbox>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-checkbox [ngModel]="avisCseRecueilliPourCharte()"
+                              (ngModelChange)="onAvisCseChange($event)"
+                              name="avisCseRecueilliPourCharte"
+                              data-testid="avis-cse-checkbox">
+                  L'avis du CSE a été recueilli avant l'élaboration de la charte (le cas échéant)
+                </mat-checkbox>
+              </div>
+
+              @if (obligationPrevisible()) {
+                <div class="is-badges">
+                  <span class="is-chip is-chip--neutral is-mono" data-testid="seuil-previsible-chip">
+                    Obligation de négocier (effectif ≥ 50 + délégué syndical)
+                  </span>
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la conformité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="is-banner-sub">
+                    @if (result()!.statut === 'NON_CONFORME') {
+                      Au moins un point de la checklist du droit à la déconnexion n'est pas satisfait (à vérifier par avocat).
+                    } @else if (result()!.statut === 'CONFORME') {
+                      Tous les points de conformité du droit à la déconnexion sont remplis.
+                    } @else {
+                      L'obligation de négocier le droit à la déconnexion n'est pas déclenchée (effectif inférieur à 50 salariés ou absence de délégué syndical) ; l'employeur reste libre d'adopter une charte.
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="is-badges">
+                <span class="is-chip is-chip--neutral is-mono" data-testid="obligation-chip">
+                  Obligation de négocier : {{ result()!.obligationDeNegocier ? 'oui' : 'non' }}
+                </span>
+                <span class="is-chip is-mono"
+                      [class.is-chip--success]="result()!.itemsManquants === 0"
+                      [class.is-chip--danger]="result()!.itemsManquants > 0"
+                      data-testid="items-manquants-chip">
+                  Items manquants : {{ result()!.itemsManquants }}
+                </span>
+              </div>
+
+              <ul class="is-checklist" data-testid="checklist">
+                @for (c of result()!.checklist; track c.item) {
+                  <li class="is-checklist-item"
+                      [class.is-checklist-item--ko]="(c.type === 'OBLIGATION' || c.type === 'PROCEDURE') && !c.conforme"
+                      data-testid="checklist-item">
+                    <mat-icon class="is-checklist-icon"
+                              [class.is-checklist-icon--ok]="c.conforme"
+                              [class.is-checklist-icon--ko]="!c.conforme">
+                      {{ c.conforme ? 'check_circle' : 'cancel' }}
+                    </mat-icon>
+                    <div class="is-checklist-text">
+                      <span class="is-checklist-label">
+                        {{ c.item }}
+                        <span class="is-checklist-type is-mono">[{{ c.type }}]</span>
+                      </span>
+                      <span class="is-checklist-comment">{{ c.commentaire }}</span>
+                    </div>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.notes && result()!.notes.length > 0) {
+                <ul class="is-consequences" data-testid="notes">
+                  @for (n of result()!.notes; track n) {
+                    <li class="is-consequence-item">
+                      <mat-icon>arrow_right</mat-icon>
+                      <span>{{ n }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base is-mono">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

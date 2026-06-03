@@ -530,6 +530,23 @@ export interface TravailExtractedData {
    */
   temps_trajet_quotidien_minutes?: number | null;
   /**
+   * SF-218-54 : flag pivot CONTEXTUAL — l'IA a détecté des signaux de droit à la
+   * déconnexion (mentions « droit à la déconnexion », « charte de déconnexion »,
+   * « plages de déconnexion », « usage des outils numériques », « sollicitations
+   * hors temps de travail », « emails en dehors des heures de travail »).
+   * Déclenche l'apparition de F-DT-83-droit-deconnexion-conformite (FR
+   * uniquement). Clé JSON SNAKE_CASE (Sf218dDetail `@JsonProperty`). N'est PAS un
+   * champ de formulaire.
+   */
+  droit_deconnexion_detecte?: boolean | null;
+  /**
+   * SF-218-54 : présence d'un accord ou d'une charte sur le droit à la
+   * déconnexion détectée par l'IA, pour pré-fill du champ `accordOuChartePresent`
+   * de F-DT-83-droit-deconnexion-conformite (FR uniquement). Clé JSON SNAKE_CASE
+   * (Sf218dDetail `@JsonProperty`).
+   */
+  accord_deconnexion_present?: boolean | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de

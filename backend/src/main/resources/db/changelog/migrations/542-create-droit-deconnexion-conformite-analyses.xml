@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="040d1125-5b70-4b1d-8229-d4e91841551e" author="legalcase">
+        <comment>
+            SF-218-53 — table `droit_deconnexion_conformite_analyses` pour l'outil
+            decisionnel "Droit a la deconnexion — conformite"
+            (F-DT-83-droit-deconnexion-conformite, FRANCE).
+
+            Outil single-country FR : apprecie la conformite a l'obligation
+            relative au droit a la deconnexion (art. L.2242-17 7° CT). Pour les
+            entreprises d'au moins 50 salaries dotees d'au moins un delegue
+            syndical, le droit a la deconnexion doit etre negocie dans la
+            negociation annuelle obligatoire (NAO) sur l'egalite professionnelle
+            et la qualite de vie et des conditions de travail (QVCT) ; a defaut
+            d'accord, l'employeur elabore une charte, apres avis du CSE,
+            definissant les modalites d'exercice du droit a la deconnexion et
+            prevoyant des actions de formation et de sensibilisation.
+
+            Verdict : NON_REQUIS si effectif inferieur a 50 ou absence de delegue
+            syndical (obligation de negociation non declenchee). Sinon checklist
+            de conformite (accord ou charte present, plages definies,
+            sensibilisation, avis du CSE en cas de charte) → CONFORME si tous les
+            items remplis, sinon NON_CONFORME avec items manquants. Persiste
+            l'analyse 1:1 par dossier (upsert).
+
+            Distinct de la NAO dans son ensemble (F-DT-66) et de la designation du
+            delegue syndical (F-DT-69) — invariant « un outil = une situation ».
+
+            Source juridique : art. L.2242-17 7° CT.
+        </comment>
+
+        <createTable tableName="droit_deconnexion_conformite_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_droit_deconnexion_conformite_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="effectif" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delegue_syndical_present" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accord_ou_charte_present" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="plages_deconnexion_definies" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actions_sensibilisation" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="avis_cse_recueilli_pour_charte" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="obligation_de_negocier" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="items_manquants" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="droit_deconnexion_conformite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
