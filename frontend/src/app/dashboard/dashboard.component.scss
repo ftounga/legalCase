@@ -55,7 +55,10 @@ $shadow-hover:  0 4px 12px rgba(16, 35, 65, .12), 0 8px 24px rgba(16, 35, 65, .1
 }
 
 // ── En-tête d'accueil sobre — sans fond bleu (DESIGN_SYSTEM §10) ─────────────
-.hero {
+// Classe renommée `.dash-hero` (et non `.hero`) : la landing est en
+// ViewEncapsulation.None et définit globalement `.hero { min-height:100vh;
+// background: navy }`, qui polluait le dashboard (SF-249-04, bug collision).
+.dash-hero {
   margin-bottom: 20px;
   animation: dashRise .5s $ease both;
 }
