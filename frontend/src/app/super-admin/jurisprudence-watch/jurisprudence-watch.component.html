@@ -100,6 +100,34 @@
             }
           </div>
         }
+
+        <div class="bootstrap__reevaluation" data-test="reevaluation">
+          <h3>Qualité des citations existantes (F-JU-06)</h3>
+          <p class="bootstrap__hint">
+            Ré-évalue tous les mappings actifs et archive ceux qui sont vides,
+            peu fiables (confiance &lt; 0,70) ou hors-sujet. Les archivages
+            apparaissent dans l'onglet « Audit log ». À lancer hors fenêtre de
+            déploiement (un déploiement interrompt le job).
+          </p>
+          @if (!confirmingReevaluation) {
+            <button mat-stroked-button color="warn" type="button"
+                    (click)="requestReevaluation()"
+                    [disabled]="reevaluating"
+                    data-test="reevaluate-btn">
+              @if (reevaluating) { Lancement… } @else { Ré-évaluer la qualité des citations }
+            </button>
+          } @else {
+            <span class="bootstrap__confirm" data-test="reevaluate-confirm-label">
+              Confirmer la ré-évaluation ? Les mappings non conformes seront archivés.
+            </span>
+            <button mat-flat-button color="warn" type="button"
+                    (click)="requestReevaluation()"
+                    data-test="reevaluate-confirm">Confirmer</button>
+            <button mat-button type="button"
+                    (click)="cancelReevaluation()"
+                    data-test="reevaluate-cancel">Annuler</button>
+          }
+        </div>
       </section>
     </mat-tab>
 

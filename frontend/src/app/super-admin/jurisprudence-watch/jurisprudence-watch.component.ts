@@ -121,6 +121,10 @@ export class JurisprudenceWatchComponent implements OnInit, OnDestroy {
   manualMapping: ManualMappingCreateRequest = this.emptyManualMapping();
   loadingManualMapping = false;
 
+  /** SF-JU-06-02 — ré-évaluation/archivage des mappings existants. */
+  confirmingReevaluation = false;
+  reevaluating = false;
+
   @ViewChild('fileInput', { static: false })
   protected fileInput?: ElementRef<HTMLInputElement>;
 
@@ -368,6 +372,39 @@ export class JurisprudenceWatchComponent implements OnInit, OnDestroy {
           ? 'Mapping déjà existant pour ce triplet (tool_id, branche, arret_ref)'
           : (err?.error?.message || err?.message || 'erreur inconnue');
         this.snackBar.open(`Échec création : ${msg}`, 'OK', { duration: 5000 });
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** SF-JU-06-02 — 1er clic : demande confirmation ; 2ᵉ clic : lance. */
+  protected requestReevaluation(): void {
+    if (!this.confirmingReevaluation) {
+      this.confirmingReevaluation = true;
+      return;
+    }
+    this.launchReevaluation();
+  }
+
+  protected cancelReevaluation(): void {
+    this.confirmingReevaluation = false;
+  }
+
+  private launchReevaluation(): void {
+    this.confirmingReevaluation = false;
+    this.reevaluating = true;
+    this.client.reevaluate().subscribe({
+      next: started => {
+        this.reevaluating = false;
+        this.snackBar.open(
+          `Ré-évaluation lancée (${started.totalAEvaluer} mappings). Suivez les archivages dans l'onglet « Audit log ».`,
+          'OK', { duration: 7000 });
+        this.cdr.markForCheck();
+      },
+      error: err => {
+        this.reevaluating = false;
+        const msg = err?.error?.message || err?.message || 'erreur inconnue';
+        this.snackBar.open(`Échec du lancement : ${msg}`, 'OK', { duration: 5000 });
         this.cdr.markForCheck();
       },
     });

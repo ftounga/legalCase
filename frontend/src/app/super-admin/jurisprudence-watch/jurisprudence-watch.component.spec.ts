@@ -40,6 +40,7 @@ describe('JurisprudenceWatchComponent', () => {
         arretRef: 'Cass. soc. ref', juridiction: 'Cass.', dateArret: '2024-03-12',
         numeroPourvoi: '22-X', lienLegifrance: 'https://x', chapeauOfficiel: 'Chap.',
       })),
+      reevaluate: jest.fn().mockReturnValue(of({ totalAEvaluer: 42 })),
     } as any;
     snackBar = { open: jest.fn() } as any;
 
@@ -442,6 +443,29 @@ describe('JurisprudenceWatchComponent', () => {
       commentUser: null,
     };
   }
+
+  // SF-JU-06-02 — ré-évaluation/archivage
+  it('requestReevaluation : 1er clic demande confirmation sans appeler le client', () => {
+    (component as any).requestReevaluation();
+    expect(component.confirmingReevaluation).toBe(true);
+    expect(client.reevaluate).not.toHaveBeenCalled();
+  });
+
+  it('requestReevaluation : 2ᵉ clic lance la ré-évaluation et notifie', () => {
+    (component as any).requestReevaluation();
+    (component as any).requestReevaluation();
+    expect(client.reevaluate).toHaveBeenCalledTimes(1);
+    expect(component.confirmingReevaluation).toBe(false);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('42'), 'OK', expect.anything());
+  });
+
+  it('cancelReevaluation : annule la confirmation', () => {
+    (component as any).requestReevaluation();
+    (component as any).cancelReevaluation();
+    expect(component.confirmingReevaluation).toBe(false);
+    expect(client.reevaluate).not.toHaveBeenCalled();
+  });
 });
 
 describe('parseBootstrapCsv', () => {
