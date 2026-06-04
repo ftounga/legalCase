@@ -36,6 +36,12 @@ export type NiveauUrgenceProtectionBe =
 /** Mode de saisine envisagé. */
 export type ModeSaisineProtectionBe = 'REQUETE_JP' | 'INDETERMINE';
 
+/**
+ * SF-223-10 : portée (étendue) du mandat extra-judiciaire — voie privée
+ * (loi 17/03/2013 / CC art. 490 nouveau — à vérifier).
+ */
+export type MandatEtendueBe = 'BIENS' | 'PERSONNE' | 'BIENS_ET_PERSONNE';
+
 /** Mesure de protection recommandée. */
 export type MesureProtectionBe =
   | 'MANDAT_EXTRA_JUDICIAIRE'
@@ -89,6 +95,11 @@ export interface ProtectionMajeurBeRequest {
   niveauUrgence: NiveauUrgenceProtectionBe;
   modeSaisineEnvisage: ModeSaisineProtectionBe;
   commentaire: string | null;
+  // --- SF-223-10 : branche mandat extra-judiciaire approfondie (nullables, rétro-compatibles) ---
+  mandatEtendue: MandatEtendueBe | null;
+  mandatCapaciteMandantConfirmee: boolean | null;
+  mandatEnregistreRegistreCentral: boolean | null;
+  declarationAnticipeeAdministrateurDesigne: boolean | null;
 }
 
 /**

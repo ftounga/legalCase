@@ -25,6 +25,11 @@ public record ProtectionMajeurBeResponse(
         ProtectionMajeurBeCalculator.NiveauUrgenceProtectionBe niveauUrgence,
         ProtectionMajeurBeCalculator.ModeSaisineProtectionBe modeSaisineEnvisage,
         String commentaire,
+        // --- SF-223-10 : branche mandat extra-judiciaire approfondie (snapshot) ---
+        ProtectionMajeurBeCalculator.MandatEtendueBe mandatEtendue,
+        Boolean mandatCapaciteMandantConfirmee,
+        Boolean mandatEnregistreRegistreCentral,
+        Boolean declarationAnticipeeAdministrateurDesigne,
         // --- Outputs calculés ---
         ProtectionMajeurBeCalculator.ProtectionMajeurBeVerdict verdict,
         ProtectionMajeurBeCalculator.MesureProtectionBe mesureRecommandee,

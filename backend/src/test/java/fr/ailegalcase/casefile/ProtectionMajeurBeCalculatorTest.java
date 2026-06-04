@@ -2,6 +2,7 @@ package fr.ailegalcase.casefile;
 
 import fr.ailegalcase.casefile.ProtectionMajeurBeCalculator.GraviteIncapaciteBe;
 import fr.ailegalcase.casefile.ProtectionMajeurBeCalculator.JuridictionProtectionBe;
+import fr.ailegalcase.casefile.ProtectionMajeurBeCalculator.MandatEtendueBe;
 import fr.ailegalcase.casefile.ProtectionMajeurBeCalculator.MesureProtectionBe;
 import fr.ailegalcase.casefile.ProtectionMajeurBeCalculator.ModeSaisineProtectionBe;
 import fr.ailegalcase.casefile.ProtectionMajeurBeCalculator.NatureAlterationBe;
@@ -308,5 +309,101 @@ class ProtectionMajeurBeCalculatorTest {
                 .build();
         var r = ProtectionMajeurBeCalculator.compute(in, "BELGIQUE");
         assertThat(r.messages()).anyMatch(m -> m.toLowerCase().contains("déclaration anticipée"));
+    }
+
+    // ---------------------------------------------------------------------------
+    // SF-223-10 — branche mandat extra-judiciaire approfondie
+    // ---------------------------------------------------------------------------
+
+    /** Base mandat valable (signé après 2014) à enrichir des nouveaux champs. */
+    private ProtectionMajeurBeInput.Builder mandatValableInput() {
+        return baseInput()
+                .mandatExtraJudiciaireSigne(true)
+                .mandatExtraJudiciaireDateSignature(LocalDate.of(2020, 1, 15));
+    }
+
+    @Test
+    void compute_mandatComplet_capaciteEtEnregistrementConfirmes_mandatValable() {
+        // Mandat couvrant les deux volets, capacité + enregistrement confirmés,
+        // incapacité LES_DEUX → voie privée prime entièrement (pas de juridiction).
+        var in = mandatValableInput()
+                .graviteIncapacite(GraviteIncapaciteBe.LES_DEUX)
+                .mandatEtendue(MandatEtendueBe.BIENS_ET_PERSONNE)
+                .mandatCapaciteMandantConfirmee(true)
+                .mandatEnregistreRegistreCentral(true)
+                .build();
+        var r = ProtectionMajeurBeCalculator.compute(in, "BELGIQUE");
+        assertThat(r.verdict()).isEqualTo(ProtectionMajeurBeVerdict.MANDAT_EXTRA_JUDICIAIRE_VALABLE);
+        assertThat(r.mesureRecommandee()).isEqualTo(MesureProtectionBe.MANDAT_EXTRA_JUDICIAIRE);
+        assertThat(r.juridictionCompetente()).isNull();
+        assertThat(r.messages()).anyMatch(m -> m.toLowerCase().contains("biens et personne"));
+        assertThat(r.messages()).anyMatch(m -> m.toLowerCase().contains("capacité du mandant"));
+    }
+
+    @Test
+    void compute_mandatPartiel_valableAvecAdministrationComplementaire() {
+        // Mandat limité aux biens mais incapacité LES_DEUX → mandat partiel :
+        // valable + administration judiciaire complémentaire pour le reste.
+        var in = mandatValableInput()
+                .graviteIncapacite(GraviteIncapaciteBe.LES_DEUX)
+                .mandatEtendue(MandatEtendueBe.BIENS)
+                .mandatCapaciteMandantConfirmee(true)
+                .mandatEnregistreRegistreCentral(true)
+                .build();
+        var r = ProtectionMajeurBeCalculator.compute(in, "BELGIQUE");
+        assertThat(r.verdict()).isEqualTo(ProtectionMajeurBeVerdict.MANDAT_EXTRA_JUDICIAIRE_VALABLE);
+        assertThat(r.juridictionCompetente()).isEqualTo(JuridictionProtectionBe.JUSTICE_PAIX);
+        assertThat(r.messages()).anyMatch(m -> m.toLowerCase().contains("partiel"));
+        assertThat(r.actionsConcretes()).anyMatch(a -> a.toLowerCase().contains("complément"));
+    }
+
+    @Test
+    void compute_mandatCapaciteNonConfirmee_qualificationIncompleteReserve() {
+        // Capacité du mandant explicitement infirmée → réserve.
+        var in = mandatValableInput()
+                .mandatEtendue(MandatEtendueBe.BIENS_ET_PERSONNE)
+                .mandatCapaciteMandantConfirmee(false)
+                .mandatEnregistreRegistreCentral(true)
+                .build();
+        var r = ProtectionMajeurBeCalculator.compute(in, "BELGIQUE");
+        assertThat(r.verdict()).isEqualTo(ProtectionMajeurBeVerdict.QUALIFICATION_INCOMPLETE);
+        assertThat(r.mesureRecommandee()).isEqualTo(MesureProtectionBe.AUCUNE_RECOMMANDATION);
+        assertThat(r.messages()).anyMatch(m -> m.toLowerCase().contains("capacité du mandant"));
+    }
+
+    @Test
+    void compute_mandatNonEnregistre_qualificationIncompleteReserve() {
+        // Non-enregistrement au registre central explicitement infirmé → réserve.
+        var in = mandatValableInput()
+                .mandatEtendue(MandatEtendueBe.BIENS_ET_PERSONNE)
+                .mandatCapaciteMandantConfirmee(true)
+                .mandatEnregistreRegistreCentral(false)
+                .build();
+        var r = ProtectionMajeurBeCalculator.compute(in, "BELGIQUE");
+        assertThat(r.verdict()).isEqualTo(ProtectionMajeurBeVerdict.QUALIFICATION_INCOMPLETE);
+        assertThat(r.messages()).anyMatch(m -> m.toLowerCase().contains("registre central"));
+    }
+
+    @Test
+    void compute_declarationAnticipeeAdministrateurDesigne_messageJuridictionLiee() {
+        var in = mandatValableInput()
+                .graviteIncapacite(GraviteIncapaciteBe.LES_DEUX)
+                .mandatEtendue(MandatEtendueBe.BIENS)
+                .declarationAnticipeeAdministrateurDesigne(true)
+                .build();
+        var r = ProtectionMajeurBeCalculator.compute(in, "BELGIQUE");
+        assertThat(r.messages()).anyMatch(m ->
+                m.toLowerCase().contains("choix anticipé") || m.toLowerCase().contains("liée"));
+    }
+
+    @Test
+    void compute_mandatValableSansNouveauxChamps_comportementF217Inchange() {
+        // Anti-régression : mandat valable sans aucun des nouveaux champs (null)
+        // → comportement F-217 inchangé (voie privée pleine, pas de juridiction).
+        var in = mandatValableInput().build();
+        var r = ProtectionMajeurBeCalculator.compute(in, "BELGIQUE");
+        assertThat(r.verdict()).isEqualTo(ProtectionMajeurBeVerdict.MANDAT_EXTRA_JUDICIAIRE_VALABLE);
+        assertThat(r.juridictionCompetente()).isNull();
+        assertThat(r.actesProteges()).isEmpty();
     }
 }

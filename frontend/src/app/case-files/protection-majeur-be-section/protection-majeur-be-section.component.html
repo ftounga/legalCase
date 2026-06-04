@@ -89,6 +89,41 @@
                   un mandat antérieur peut rester valable sous le droit transitoire,
                   à confirmer avec un avocat belge.
                 </p>
+
+                <!-- SF-223-10 — qualification approfondie de la branche mandat -->
+                <mat-form-field appearance="outline" class="pmb-inline-field">
+                  <mat-label>Portée du mandat</mat-label>
+                  <mat-select [ngModel]="mandatEtendue()"
+                              (ngModelChange)="mandatEtendue.set($event)"
+                              name="mandatEtendue">
+                    @for (opt of mandatEtendueOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="pmb-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="mandatCapaciteMandantConfirmee()"
+                      (ngModelChange)="mandatCapaciteMandantConfirmee.set($event)"
+                      name="mandatCapaciteMandantConfirmee">
+                    La capacité du mandant lors de la signature est confirmée
+                  </mat-slide-toggle>
+                </div>
+
+                <div class="pmb-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="mandatEnregistreRegistreCentral()"
+                      (ngModelChange)="mandatEnregistreRegistreCentral.set($event)"
+                      name="mandatEnregistreRegistreCentral">
+                    Mandat enregistré au registre central des mandats (opposabilité — à vérifier)
+                  </mat-slide-toggle>
+                </div>
+                <p class="pmb-block-hint">
+                  Un mandat partiel (ne couvrant pas toute la situation) prime pour
+                  le périmètre couvert ; une administration judiciaire complémentaire
+                  est recommandée pour le reste.
+                </p>
               }
 
               <div class="pmb-toggle-row">
@@ -99,6 +134,17 @@
                   Une déclaration anticipée du majeur existe (préférences d'administrateur)
                 </mat-slide-toggle>
               </div>
+
+              @if (declarationAnticipeeExiste()) {
+                <div class="pmb-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="declarationAnticipeeAdministrateurDesigne()"
+                      (ngModelChange)="declarationAnticipeeAdministrateurDesigne.set($event)"
+                      name="declarationAnticipeeAdministrateurDesigne">
+                    La déclaration anticipée désigne un administrateur préféré (juridiction en principe liée)
+                  </mat-slide-toggle>
+                </div>
+              }
             </div>
 
             <!-- Bloc environnement + urgence + saisine -->
@@ -174,6 +220,12 @@
                 <span class="pmb-summary-label">Juridiction compétente</span>
                 <span class="pmb-summary-value">{{ juridictionLabel(result()!.juridictionCompetente) }}</span>
               </div>
+              @if (result()!.mandatExtraJudiciaireSigne && result()!.mandatEtendue) {
+                <div class="pmb-summary-card" data-testid="pmb-mandat-etendue">
+                  <span class="pmb-summary-label">Portée du mandat</span>
+                  <span class="pmb-summary-value">{{ mandatEtendueLabel(result()!.mandatEtendue) }}</span>
+                </div>
+              }
             </div>
 
             <!-- Fondement procédural -->

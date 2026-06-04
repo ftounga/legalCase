@@ -183,6 +183,42 @@ class ProtectionMajeurBeControllerIT {
     }
 
     @Test
+    void POST_mandatPartiel_returns200_valableAvecAdministrationComplementaire() throws Exception {
+        // SF-223-10 : mandat limité aux biens mais incapacité LES_DEUX → mandat
+        // partiel valable + administration judiciaire complémentaire.
+        Map<String, Object> body = baseBody();
+        body.put("mandatExtraJudiciaireSigne", true);
+        body.put("mandatExtraJudiciaireDateSignature", "2020-01-15");
+        body.put("mandatEtendue", "BIENS");
+        body.put("mandatCapaciteMandantConfirmee", true);
+        body.put("mandatEnregistreRegistreCentral", true);
+        mockMvc.perform(post(url(familleBeCf.getId()))
+                        .with(authentication(authBe)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verdict").value("MANDAT_EXTRA_JUDICIAIRE_VALABLE"))
+                .andExpect(jsonPath("$.juridictionCompetente").value("JUSTICE_PAIX"))
+                .andExpect(jsonPath("$.mandatEtendue").value("BIENS"))
+                .andExpect(jsonPath("$.mandatCapaciteMandantConfirmee").value(true));
+    }
+
+    @Test
+    void POST_mandatCapaciteNonConfirmee_returns200_qualificationIncomplete() throws Exception {
+        // SF-223-10 : capacité du mandant explicitement infirmée → réserve.
+        Map<String, Object> body = baseBody();
+        body.put("mandatExtraJudiciaireSigne", true);
+        body.put("mandatExtraJudiciaireDateSignature", "2020-01-15");
+        body.put("mandatEtendue", "BIENS_ET_PERSONNE");
+        body.put("mandatCapaciteMandantConfirmee", false);
+        mockMvc.perform(post(url(familleBeCf.getId()))
+                        .with(authentication(authBe)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verdict").value("QUALIFICATION_INCOMPLETE"))
+                .andExpect(jsonPath("$.mesureRecommandee").value("AUCUNE_RECOMMANDATION"));
+    }
+
+    @Test
     void POST_recalcul_ecraseResultatPrecedent() throws Exception {
         // 1er calcul : nominal
         mockMvc.perform(post(url(familleBeCf.getId()))
