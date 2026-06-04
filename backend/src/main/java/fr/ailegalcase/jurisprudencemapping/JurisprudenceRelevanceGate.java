@@ -64,7 +64,15 @@ public class JurisprudenceRelevanceGate {
         if (arret == null) {
             return new RelevanceVerdict(false, "Aucun arrêt à évaluer");
         }
-        String chapeau = arret.chapeauOfficiel() == null ? "" : arret.chapeauOfficiel();
+        return assess(sujetOutil, arret.ref(), arret.juridiction(), arret.chapeauOfficiel());
+    }
+
+    /**
+     * SF-JU-06-02 — surcharge pour ré-évaluer un mapping <strong>déjà en base</strong>
+     * (qui n'a pas de {@link JudilibreArret} associé). Mêmes garde-fous.
+     */
+    public RelevanceVerdict assess(String sujetOutil, String ref, String juridiction, String chapeauOfficiel) {
+        String chapeau = chapeauOfficiel == null ? "" : chapeauOfficiel;
         if (chapeau.length() > MAX_CHAPEAU) {
             chapeau = chapeau.substring(0, MAX_CHAPEAU);
         }
@@ -76,8 +84,8 @@ public class JurisprudenceRelevanceGate {
                 - chapeau : %s
                 """.formatted(
                 sujetOutil == null ? "" : sujetOutil,
-                arret.ref() == null ? "" : arret.ref(),
-                arret.juridiction() == null ? "" : arret.juridiction(),
+                ref == null ? "" : ref,
+                juridiction == null ? "" : juridiction,
                 chapeau.isBlank() ? "(aucun chapeau)" : chapeau);
 
         AnthropicResult result;

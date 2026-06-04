@@ -32,13 +32,16 @@ public class JurisprudenceWatchAdminController {
 
     private final JurisprudenceWatchAdminService adminService;
     private final JurisprudenceBootstrapService bootstrapService;
+    private final JurisprudenceReevaluationService reevaluationService;
     private final SuperAdminService superAdminService;
 
     public JurisprudenceWatchAdminController(JurisprudenceWatchAdminService adminService,
                                              JurisprudenceBootstrapService bootstrapService,
+                                             JurisprudenceReevaluationService reevaluationService,
                                              SuperAdminService superAdminService) {
         this.adminService = adminService;
         this.bootstrapService = bootstrapService;
+        this.reevaluationService = reevaluationService;
         this.superAdminService = superAdminService;
     }
 
@@ -93,6 +96,21 @@ public class JurisprudenceWatchAdminController {
                 .map(JurisprudenceBootstrapJobStatusResponse::from)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * SF-JU-06-02 — ré-évaluation + archivage des mappings existants (SUPER_ADMIN).
+     * Passe chaque mapping actif dans les garde-fous qualité (chapeau vide,
+     * confiance &lt; 0,70, 2ᵉ passe de pertinence) et archive les non-conformes.
+     * Asynchrone : suivre les archivages dans l'audit log. À lancer hors fenêtre
+     * de déploiement.
+     */
+    @PostMapping("/reevaluate")
+    public ResponseEntity<JurisprudenceReevaluationService.JurisprudenceReevaluationStarted> reevaluate(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        User user = superAdminService.assertSuperAdmin(oidcUser, OAuthProviderResolver.resolve(principal));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(reevaluationService.startReevaluation(user));
     }
 
     /**

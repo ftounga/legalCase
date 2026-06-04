@@ -49,4 +49,10 @@ public interface ToolJurisprudenceMappingRepository extends JpaRepository<ToolJu
      * {@code DataIntegrityViolationException}.
      */
     boolean existsByToolIdAndBrancheCalculIdAndArretRef(String toolId, String brancheCalculId, String arretRef);
+
+    /**
+     * SF-JU-06-02 — tous les mappings actifs (non archivés), pour la
+     * ré-évaluation/archivage de l'existant via {@code JurisprudenceReevaluationService}.
+     */
+    List<ToolJurisprudenceMapping> findByArchivedFalse();
 }

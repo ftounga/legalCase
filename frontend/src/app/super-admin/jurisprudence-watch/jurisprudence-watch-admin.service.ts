@@ -156,4 +156,19 @@ export class JurisprudenceWatchAdminClientService {
     return this.http.post<ManualMappingCreatedResponse>(
       `${this.base}/mappings`, payload);
   }
+
+  /**
+   * SF-JU-06-02 — lance la ré-évaluation/archivage des mappings existants
+   * (anti hors-sujet / vide / peu fiable). Async : suivre les archivages dans
+   * l'audit log. Retourne le nombre de mappings à évaluer.
+   */
+  reevaluate(): Observable<JurisprudenceReevaluationStarted> {
+    return this.http.post<JurisprudenceReevaluationStarted>(
+      `${this.base}/reevaluate`, {});
+  }
+}
+
+/** SF-JU-06-02 — payload 202 du POST /reevaluate. */
+export interface JurisprudenceReevaluationStarted {
+  totalAEvaluer: number;
 }
