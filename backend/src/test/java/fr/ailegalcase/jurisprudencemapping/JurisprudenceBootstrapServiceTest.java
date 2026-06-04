@@ -43,6 +43,7 @@ class JurisprudenceBootstrapServiceTest {
     private PlatformTransactionManager txManager;
     private JurisprudenceBeWebSearchClient beWebSearchClient;
     private JurisprudenceRelevanceGate relevanceGate;
+    private JudilibreQueryEnricher queryEnricher;
     private JurisprudenceBootstrapService service;
 
     @BeforeEach
@@ -54,6 +55,7 @@ class JurisprudenceBootstrapServiceTest {
         jobRepo = mock(JurisprudenceBootstrapJobRepository.class);
         beWebSearchClient = mock(JurisprudenceBeWebSearchClient.class);
         relevanceGate = mock(JurisprudenceRelevanceGate.class);
+        queryEnricher = mock(JudilibreQueryEnricher.class);
         // SF-JU-06-01 — par défaut la 2ᵉ passe juge pertinent (les tests de rejet l'overrident).
         when(relevanceGate.assess(any(), any()))
                 .thenReturn(new JurisprudenceRelevanceGate.RelevanceVerdict(true, "pertinent"));
@@ -62,7 +64,38 @@ class JurisprudenceBootstrapServiceTest {
         // SyncTaskExecutor : exécute le Runnable immédiatement sur le thread courant —
         // simplifie l'assertion sur l'état du job après startBootstrap.
         service = new JurisprudenceBootstrapService(judilibre, beWebSearchClient, evaluator,
-                mappingRepo, auditRepo, jobRepo, txManager, new SyncTaskExecutor(), relevanceGate);
+                mappingRepo, auditRepo, jobRepo, txManager, new SyncTaskExecutor(), relevanceGate, queryEnricher);
+    }
+
+    // --- SF-JU-06-03 — requêtes JUDILIBRE ciblées ---
+
+    @Test
+    void runBootstrap_enrichQueriesTrue_passesEnrichedQueryToJudilibre() {
+        when(queryEnricher.enrich(any(), any(), any())).thenReturn("requête ciblée enrichie");
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret("AAA")));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret("AAA"), new BigDecimal("0.90"), "ok"));
+
+        service.runBootstrap(new JurisprudenceBootstrapRequest(List.of(entry("f-dt-30", "branche-1")), true), triggerUser());
+
+        org.mockito.ArgumentCaptor<String> q = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(judilibre).fetchArretsByKeyword(q.capture(), any(), any(), anyInt());
+        assertThat(q.getValue()).isEqualTo("requête ciblée enrichie");
+        verify(queryEnricher).enrich("f-dt-30", "branche-1", "mot-clé test");
+    }
+
+    @Test
+    void runBootstrap_enrichQueriesFalse_usesOriginalKeyword_andNeverEnriches() {
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret("AAA")));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret("AAA"), new BigDecimal("0.90"), "ok"));
+
+        service.runBootstrap(new JurisprudenceBootstrapRequest(List.of(entry("f-dt-30", "branche-1"))), triggerUser());
+
+        org.mockito.ArgumentCaptor<String> q = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(judilibre).fetchArretsByKeyword(q.capture(), any(), any(), anyInt());
+        assertThat(q.getValue()).isEqualTo("mot-clé test");
+        verify(queryEnricher, never()).enrich(any(), any(), any());
     }
 
     // --- SF-JU-06-01 — garde-fous qualité (chapeau vide / confiance / pertinence) ---

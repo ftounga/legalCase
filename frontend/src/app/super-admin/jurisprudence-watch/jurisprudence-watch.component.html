@@ -63,6 +63,10 @@
         </div>
 
         <div class="bootstrap__actions">
+          <mat-checkbox [(ngModel)]="enrichBootstrapQueries"
+                        data-test="enrich-queries">
+            Enrichir les requêtes (IA) — meilleure couverture, +1 appel IA par entrée
+          </mat-checkbox>
           <button mat-flat-button color="primary"
                   type="button"
                   (click)="runBootstrap()"

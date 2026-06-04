@@ -52,6 +52,7 @@ public class JurisprudenceBootstrapService {
     private final TransactionTemplate txTemplate;
     private final TaskExecutor taskExecutor;
     private final JurisprudenceRelevanceGate relevanceGate;
+    private final JudilibreQueryEnricher queryEnricher;
 
     /**
      * SF-JU-06-01 — seuil de confiance minimal pour retenir un mapping au bootstrap
@@ -67,7 +68,8 @@ public class JurisprudenceBootstrapService {
                                          JurisprudenceBootstrapJobRepository jobRepository,
                                          PlatformTransactionManager txManager,
                                          @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor,
-                                         JurisprudenceRelevanceGate relevanceGate) {
+                                         JurisprudenceRelevanceGate relevanceGate,
+                                         JudilibreQueryEnricher queryEnricher) {
         this.judilibreClient = judilibreClient;
         this.beWebSearchClient = beWebSearchClient;
         this.evaluator = evaluator;
@@ -77,6 +79,7 @@ public class JurisprudenceBootstrapService {
         this.txTemplate = new TransactionTemplate(txManager);
         this.taskExecutor = taskExecutor;
         this.relevanceGate = relevanceGate;
+        this.queryEnricher = queryEnricher;
     }
 
     /**
@@ -199,6 +202,10 @@ public class JurisprudenceBootstrapService {
         for (JurisprudenceBootstrapEntry entry : request.entries()) {
             processed++;
             LocalDate from = entry.dateMin() != null ? entry.dateMin() : now.minusYears(10);
+            // SF-JU-06-03 — requête ciblée optionnelle (fallback sur le mot-clé d'origine).
+            String query = request.enrichQueries()
+                    ? queryEnricher.enrich(entry.toolId(), entry.brancheCalculId(), entry.motCleRecherche())
+                    : entry.motCleRecherche();
             List<JudilibreArret> candidates;
             try {
                 // SF-JU-01-13 / SF-JU-04-02 — routage selon pays :
@@ -206,10 +213,10 @@ public class JurisprudenceBootstrapService {
                 //   BE             → JurisprudenceBeWebSearchClient (Claude+web_search sur JUPORTAL).
                 if (isBelgianEntry(entry)) {
                     candidates = beWebSearchClient.fetchArretsByKeyword(
-                            entry.motCleRecherche(), from, now, 5);
+                            query, from, now, 5);
                 } else {
                     candidates = judilibreClient.fetchArretsByKeyword(
-                            entry.motCleRecherche(), from, now, 20);
+                            query, from, now, 20);
                 }
             } catch (Exception e) {
                 log.warn("F-JU-01 — Bootstrap fetchArretsByKeyword failed for {}:{}: {}",

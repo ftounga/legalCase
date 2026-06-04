@@ -136,11 +136,11 @@ export class JurisprudenceWatchAdminClientService {
    * SF-JU-01-10 — démarre un bootstrap async. Retourne immédiatement le jobId
    * à utiliser avec {@link getBootstrapJobStatus} pour le polling.
    */
-  triggerBootstrap(entries: JurisprudenceBootstrapEntry[]):
+  triggerBootstrap(entries: JurisprudenceBootstrapEntry[], enrichQueries = false):
       Observable<JurisprudenceBootstrapJobStarted> {
     return this.http.post<JurisprudenceBootstrapJobStarted>(
       `${this.base}/bootstrap`,
-      { entries });
+      { entries, enrichQueries });
   }
 
   /** SF-JU-01-10 — récupère l'état courant d'un job de bootstrap async. */
