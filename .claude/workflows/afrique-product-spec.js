@@ -140,7 +140,11 @@ const specs = await parallel(domains.map(d => async () => {
      Si ${OUTPUT} existe déjà, lis la section de CE domaine et AMÉLIORE-la (ne repars pas de zéro).
      Couvre les situations métier réelles de l'Acte : ${JSON.stringify(d.situations || [])}.
      Applique le pattern dossier-centric (D3) : situation → upload pièces → analyse pipeline IA →
-     outil décisionnel/simulateur → génération d'acte. Marque groundedness pour chaque feature
+     outil décisionnel/simulateur → génération d'acte.
+     INVARIANT D11 (cadrage) : OHADA = domaine UNIQUE à loi uniforme, AUCUNE variante législative
+     par pays ; le pays est un attribut du DOSSIER pré-rempli par l'IA (devise/juridiction/RCCM),
+     JAMAIS un sélecteur de pays bloquant à l'authentification. Ne réintroduis pas un tel sélecteur.
+     Marque groundedness pour chaque feature
      (acte-uniforme / plateforme-reutilisee / hypothese). IDs forme F-OH-<CLE>-NN.
      ${extra || ''} Retourne DOMAINSPEC_SCHEMA.`
 
