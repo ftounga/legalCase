@@ -8242,8 +8242,15 @@ public record CaseAnalysisResponse(
         boolean victimeTraiteDetecte =
                 Boolean.TRUE.equals(booleanOrNull(root, "victime_traite_detecte"));
         String victimeTraitePhaseRaw = textOrNull(root, "victime_traite_phase");
+        // HF master-red : VICTIME_TRAITE_BE_PHASES est un Set.of(...) immuable dont
+        // .contains(null) lève NPE (Objects.requireNonNull). Le champ `victime_traite_phase`
+        // est absent de quasi tous les fixtures (mono-champ, legacy all-null, dublin, oqt…),
+        // donc raw=null → NPE avalée par catch(Exception ignored) de from() → immigration +
+        // parsing suivant null (92F+5E CaseAnalysisResponseTest). Garde null d'abord, comme
+        // normalizeRecoursCode / normalizeTitleCode.
         String victimeTraitePhase =
-                VICTIME_TRAITE_BE_PHASES.contains(victimeTraitePhaseRaw) ? victimeTraitePhaseRaw : null;
+                victimeTraitePhaseRaw != null && VICTIME_TRAITE_BE_PHASES.contains(victimeTraitePhaseRaw)
+                        ? victimeTraitePhaseRaw : null;
         Boolean victimeTraiteRupture = booleanOrNull(root, "victime_traite_rupture");
         Boolean victimeTraiteAccompagnement = booleanOrNull(root, "victime_traite_accompagnement");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
