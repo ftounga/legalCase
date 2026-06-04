@@ -43,6 +43,7 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'regime-be-separation-biens', label: 'Régime de séparation de biens (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'dip-be-loi-applicable-famille', label: 'Loi applicable en droit de la famille (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'dip-be-reconnaissance-decision-etrangere', label: 'Reconnaissance / exequatur d\'une décision familiale étrangère (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'etat-civil-be-modification', label: 'Modification de l\'état civil (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'pacte-successoral-be-2018', label: 'Pacte successoral 2018 (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'protection-majeur-be', label: 'Protection du majeur (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'regime-mat-be-communaute-legale', label: 'Régime de communauté légale (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },

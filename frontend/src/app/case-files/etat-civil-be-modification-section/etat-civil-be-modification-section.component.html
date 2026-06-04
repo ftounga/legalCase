@@ -1,0 +1,203 @@
+<section class="eciv-section">
+  <header class="eciv-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ecivmod-body">
+    <mat-icon class="eciv-icon">badge</mat-icon>
+    <span class="eciv-title">MODIFICATION DE L'ÉTAT CIVIL (BELGIQUE)</span>
+    @if (result()) {
+      <span class="eciv-chip-summary"
+            [class.eciv-chip-summary--ok]="result()!.verdict === 'MODIFICATION_RECEVABLE'"
+            [class.eciv-chip-summary--warn]="result()!.verdict === 'MODIFICATION_RECEVABLE_SOUS_CONDITIONS'"
+            [class.eciv-chip-summary--ko]="result()!.verdict === 'MODIFICATION_IRRECEVABLE'"
+            [class.eciv-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="eciv-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ecivmod-body" class="eciv-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="eciv-country-banner" data-testid="ecivmod-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — modification de l'état civil (changement de nom / prénom — loi 18/06/2018 ; changement de sexe — loi 25/06/2017, auto-déclaration administrative — à vérifier par avocat belge).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="eciv-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="eciv-form" (ngSubmit)="calculate()">
+            <div class="eciv-block eciv-full">
+              <span class="eciv-block-label">Type de modification</span>
+              <mat-form-field appearance="outline" class="eciv-inline-field">
+                <mat-label>Type</mat-label>
+                <mat-select [ngModel]="typeModification()"
+                            (ngModelChange)="typeModification.set($event)"
+                            name="typeModification" required>
+                  @for (opt of typeOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="eciv-block eciv-full">
+              <span class="eciv-block-label">Situation de la personne</span>
+              <mat-checkbox [ngModel]="personneMajeure()"
+                            (ngModelChange)="personneMajeure.set($event)"
+                            name="personneMajeure">
+                La personne concernée est majeure
+              </mat-checkbox>
+              <mat-checkbox [ngModel]="nationaliteBelgeOuResident()"
+                            (ngModelChange)="nationaliteBelgeOuResident.set($event)"
+                            name="nationaliteBelgeOuResident">
+                Belge ou inscrit aux registres (population / étrangers)
+              </mat-checkbox>
+              @if (!personneMajeure()) {
+                <mat-checkbox [ngModel]="consentementRepresentantsSiMineur()"
+                              (ngModelChange)="consentementRepresentantsSiMineur.set($event)"
+                              name="consentementRepresentantsSiMineur">
+                  Consentement des représentants légaux recueilli (mineur)
+                </mat-checkbox>
+              }
+            </div>
+
+            @if (isNom()) {
+              <div class="eciv-block eciv-full">
+                <span class="eciv-block-label">Changement de nom (SPF Justice)</span>
+                <mat-checkbox [ngModel]="motifLegitime()"
+                              (ngModelChange)="motifLegitime.set($event)"
+                              name="motifLegitime">
+                  Un motif sérieux est invoqué (absence de confusion / d'atteinte aux tiers)
+                </mat-checkbox>
+                <span class="eciv-hint">Le changement de nom relève du SPF Justice (ministre de la Justice) — à distinguer du changement de prénom (officier de l'état civil).</span>
+              </div>
+            }
+
+            @if (isPrenom()) {
+              <div class="eciv-block eciv-full">
+                <span class="eciv-block-label">Changement de prénom (officier de l'état civil — loi 18/06/2018)</span>
+                <mat-checkbox [ngModel]="secondeDemandePrenom()"
+                              (ngModelChange)="secondeDemandePrenom.set($event)"
+                              name="secondeDemandePrenom">
+                  Demande ultérieure (au-delà de la première)
+                </mat-checkbox>
+                <span class="eciv-hint">La première demande de changement de prénom bénéficie d'un tarif réduit / d'une gratuité dans certains cas (à vérifier auprès de la commune).</span>
+              </div>
+            }
+
+            @if (isSexe()) {
+              <div class="eciv-block eciv-full">
+                <span class="eciv-block-label">Changement de sexe (auto-déclaration — loi 25/06/2017)</span>
+                <mat-checkbox [ngModel]="declarationSexeReiteree()"
+                              (ngModelChange)="declarationSexeReiteree.set($event)"
+                              name="declarationSexeReiteree">
+                  La seconde déclaration confirmative a été réitérée (après le délai de réflexion)
+                </mat-checkbox>
+                <span class="eciv-hint">Auto-déclaration administrative en deux temps : première déclaration, puis seconde déclaration confirmative devant l'officier de l'état civil après le délai de réflexion. Sans condition médicale (spécificité belge).</span>
+              </div>
+            }
+
+            <div class="eciv-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Qualifier la modification
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="eciv-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="eciv-verdict-text">
+                <span class="eciv-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="eciv-verdict-type">{{ typeLabel(r.typeModification) }}</span>
+              </div>
+            </div>
+
+            @if (r.autoriteCompetente) {
+              <div class="eciv-autorite">
+                <mat-icon>account_balance</mat-icon>
+                <span>Autorité compétente : {{ r.autoriteCompetente }}</span>
+              </div>
+            }
+
+            @if (r.messages.length) {
+              <ul class="eciv-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.motifs.length) {
+              <div class="eciv-list-block">
+                <span class="eciv-list-title">Motifs</span>
+                <ul>
+                  @for (mo of r.motifs; track mo) {
+                    <li [innerHTML]="mo | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.demarches.length) {
+              <div class="eciv-list-block">
+                <span class="eciv-list-title">Démarches / procédure</span>
+                <ul>
+                  @for (d of r.demarches; track d) {
+                    <li [innerHTML]="d | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.conseils.length) {
+              <div class="eciv-list-block">
+                <span class="eciv-list-title">Conseils / points de vigilance</span>
+                <ul>
+                  @for (c of r.conseils; track c) {
+                    <li [innerHTML]="c | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="eciv-list-block eciv-bases">
+                <span class="eciv-list-title">Bases juridiques (à vérifier par avocat belge — lois 18/06/2018 + 25/06/2017)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="eciv-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>

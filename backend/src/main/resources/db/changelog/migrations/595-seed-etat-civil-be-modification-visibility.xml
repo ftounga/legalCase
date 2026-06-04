@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="595-seed-etat-civil-be-modification-visibility" author="legalcase">
+        <comment>
+            SF-223-09 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel `etat-civil-be-modification` (BELGIQUE).
+
+            Mode `CONTEXTUAL`. NOUVEAU flag pivot
+            `etat_civil_modification_be_detectee`, ajouté dans le sous-record
+            `Sf223Detail` (@JsonUnwrapped → aplati sur `familleExtractedData`) et
+            câblé dans `DecisionToolVisibilityService.extractDetectedSituations`
+            (addBooleanFlagIfTrue). Lu à plat sur `familleNode`. BELGIQUE
+            UNIQUEMENT (null / false hors BE) — déclenche quand le dossier évoque
+            un changement de nom, de prénom ou de sexe (modification de l'état
+            civil) en Belgique.
+
+            La contrainte CK_DTVR_LAYER_TRIGGER (migration 104) impose qu'une
+            règle CONTEXTUAL ait des `trigger_field` / `trigger_value` non nuls.
+
+            priority = 84 : numéro suivant après 83
+            (dip-be-reconnaissance-decision-etrangere, SF-223-08).
+
+            Le seed est couplé à l'entrée TOOL_REGISTRY frontend livrée dans le
+            même commit (decisional-tools-panel.component.ts) — sans ce
+            couplage, le garde-fou DecisionToolVisibilityIntegrityIT échoue.
+            tool_id = `etat-civil-be-modification` (identique à la clé
+            TOOL_REGISTRY et au TOOL_ID du ToolBranchRegistry).
+
+            Numéro 595 = numéro libre suivant après 594 (création table).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('a6ba7165-fb59-4045-a75f-a5f3532244a9', 'DROIT_FAMILLE', 'BELGIQUE', 'etat-civil-be-modification', 'CONTEXTUAL', 'etat_civil_modification_be_detectee', 'true', 84);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'a6ba7165-fb59-4045-a75f-a5f3532244a9';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
