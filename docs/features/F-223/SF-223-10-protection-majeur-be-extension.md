@@ -1,7 +1,9 @@
 # Mini-spec — F-223 / SF-223-10 — Extension mandat extra-judiciaire + déclaration anticipée dans `protection-majeur-be`
 
 ## Identifiant
-`F-223 / SF-223-10` — **extension** de l'outil existant `protection-majeur-be` (F-217, SF-217-14/15) — **PAS un nouvel outil** (cf. étape 0, même situation « protection du majeur vulnérable » que l'administration judiciaire déjà livrée) — statut `ready` — créé 2026-06-03 — branche `feat/SF-223-10-protection-majeur-be-extension`
+`F-223 / SF-223-10` — **extension** de l'outil existant `protection-majeur-be` (F-217, SF-217-14/15) — **PAS un nouvel outil** (cf. étape 0, même situation « protection du majeur vulnérable » que l'administration judiciaire déjà livrée) — statut `done` — créé 2026-06-03 — branche `feat/SF-223-10-protection-majeur-be-extension`
+
+> **Note dev SF-223-10** : aucune migration créée. Le stockage de `protection_majeur_be_analyses` repose sur un **snapshot JSON** (`snapshot_data` TEXT, migration 280) — les nouveaux champs (`mandatEtendue`, `mandatCapaciteMandantConfirmee`, `mandatEnregistreRegistreCentral`, `declarationAnticipeeAdministrateurDesigne`) sont sérialisés dans ce snapshot sans changement de schéma. Pas de colonne dédiée, donc pas de migration 596. Pré-fill IA conservé à 0 (`PREFILL_COUNT_ALWAYS_ZERO = true`) — champs saisis par l'avocat (mini-spec § Tables/IA). Aucun changement de visibilité / tool_id / TOOL_REGISTRY.
 
 ## Objectif (1 phrase)
 Approfondir, dans l'outil existant `protection-majeur-be`, la **branche de la protection conventionnelle** (mandat extra-judiciaire — loi 17/03/2013 / CC art. 490 nouveau, à vérifier par avocat belge ; déclaration anticipée du majeur), au-delà du simple aiguillage actuel, pour qualifier la validité et la portée du mandat et son articulation avec l'administration judiciaire.

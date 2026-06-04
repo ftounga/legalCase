@@ -24,6 +24,7 @@ import {
   ActeProtegeBeCode,
   GraviteIncapaciteBe,
   JuridictionProtectionBe,
+  MandatEtendueBe,
   MesureProtectionBe,
   ModeSaisineProtectionBe,
   NatureAlterationBe,
@@ -45,6 +46,7 @@ interface NatureOption { value: NatureAlterationBe; label: string; }
 interface GraviteOption { value: GraviteIncapaciteBe; label: string; }
 interface UrgenceOption { value: NiveauUrgenceProtectionBe; label: string; }
 interface SaisineOption { value: ModeSaisineProtectionBe; label: string; }
+interface MandatEtendueOption { value: MandatEtendueBe; label: string; }
 
 /**
  * F-217 SF-217-15 : composant Angular standalone pour l'outil décisionnel
@@ -135,6 +137,14 @@ export class ProtectionMajeurBeSectionComponent implements OnInit, OnChanges {
   ];
   readonly saisineOptions = ProtectionMajeurBeSectionComponent.SAISINE_OPTIONS;
 
+  // SF-223-10 — portée du mandat extra-judiciaire (voie privée).
+  static readonly MANDAT_ETENDUE_OPTIONS: readonly MandatEtendueOption[] = [
+    { value: 'BIENS', label: 'Biens uniquement' },
+    { value: 'PERSONNE', label: 'Personne uniquement (lieu de vie, soins)' },
+    { value: 'BIENS_ET_PERSONNE', label: 'Biens ET personne' },
+  ];
+  readonly mandatEtendueOptions = ProtectionMajeurBeSectionComponent.MANDAT_ETENDUE_OPTIONS;
+
   @Input() caseFileId!: string;
   /** F-177 — force l'expansion (mode modal). */
   @Input() forceExpanded = false;
@@ -158,6 +168,12 @@ export class ProtectionMajeurBeSectionComponent implements OnInit, OnChanges {
   niveauUrgence = signal<NiveauUrgenceProtectionBe | null>(null);
   modeSaisineEnvisage = signal<ModeSaisineProtectionBe | null>(null);
   commentaire = signal<string | null>(null);
+
+  // --- SF-223-10 : branche mandat extra-judiciaire approfondie (nullables) ---
+  mandatEtendue = signal<MandatEtendueBe | null>(null);
+  mandatCapaciteMandantConfirmee = signal<boolean>(false);
+  mandatEnregistreRegistreCentral = signal<boolean>(false);
+  declarationAnticipeeAdministrateurDesigne = signal<boolean>(false);
 
   alertsSummary = computed(() => ({ total: 0 }));
 
@@ -201,6 +217,10 @@ export class ProtectionMajeurBeSectionComponent implements OnInit, OnChanges {
     this.mandatExtraJudiciaireSigne.set(value);
     if (!value) {
       this.mandatExtraJudiciaireDateSignature.set(null);
+      // SF-223-10 — réinitialiser les champs propres à la branche mandat.
+      this.mandatEtendue.set(null);
+      this.mandatCapaciteMandantConfirmee.set(false);
+      this.mandatEnregistreRegistreCentral.set(false);
     }
   }
 
@@ -236,6 +256,17 @@ export class ProtectionMajeurBeSectionComponent implements OnInit, OnChanges {
       niveauUrgence: this.niveauUrgence()!,
       modeSaisineEnvisage: this.modeSaisineEnvisage()!,
       commentaire: this.commentaire()?.trim() || null,
+      // SF-223-10 — branche mandat approfondie (transmise uniquement si mandat signé).
+      mandatEtendue: this.mandatExtraJudiciaireSigne() ? this.mandatEtendue() : null,
+      mandatCapaciteMandantConfirmee: this.mandatExtraJudiciaireSigne()
+        ? this.mandatCapaciteMandantConfirmee()
+        : null,
+      mandatEnregistreRegistreCentral: this.mandatExtraJudiciaireSigne()
+        ? this.mandatEnregistreRegistreCentral()
+        : null,
+      declarationAnticipeeAdministrateurDesigne: this.declarationAnticipeeExiste()
+        ? this.declarationAnticipeeAdministrateurDesigne()
+        : null,
     };
     this.calculating.set(true);
     this.service.calculate(this.caseFileId, request).subscribe({
@@ -286,6 +317,11 @@ export class ProtectionMajeurBeSectionComponent implements OnInit, OnChanges {
     this.niveauUrgence.set(r.niveauUrgence);
     this.modeSaisineEnvisage.set(r.modeSaisineEnvisage);
     this.commentaire.set(r.commentaire);
+    // SF-223-10 — ré-hydratation des champs de la branche mandat.
+    this.mandatEtendue.set(r.mandatEtendue ?? null);
+    this.mandatCapaciteMandantConfirmee.set(!!r.mandatCapaciteMandantConfirmee);
+    this.mandatEnregistreRegistreCentral.set(!!r.mandatEnregistreRegistreCentral);
+    this.declarationAnticipeeAdministrateurDesigne.set(!!r.declarationAnticipeeAdministrateurDesigne);
   }
 
   // ---------------------------------------------------------------------------
@@ -396,5 +432,12 @@ export class ProtectionMajeurBeSectionComponent implements OnInit, OnChanges {
   urgenceLabel(u: NiveauUrgenceProtectionBe): string {
     const opt = this.urgenceOptions.find(o => o.value === u);
     return opt?.label ?? u;
+  }
+
+  /** SF-223-10 — libellé de la portée du mandat extra-judiciaire. */
+  mandatEtendueLabel(e: MandatEtendueBe | null): string {
+    if (e === null) return '—';
+    const opt = this.mandatEtendueOptions.find(o => o.value === e);
+    return opt?.label ?? e;
   }
 }

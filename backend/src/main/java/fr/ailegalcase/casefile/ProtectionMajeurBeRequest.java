@@ -20,7 +20,12 @@ public record ProtectionMajeurBeRequest(
         Boolean environnementFamilialProtecteur,
         ProtectionMajeurBeCalculator.NiveauUrgenceProtectionBe niveauUrgence,
         ProtectionMajeurBeCalculator.ModeSaisineProtectionBe modeSaisineEnvisage,
-        String commentaire
+        String commentaire,
+        // --- SF-223-10 : branche mandat extra-judiciaire approfondie (nullables, rétro-compatibles) ---
+        ProtectionMajeurBeCalculator.MandatEtendueBe mandatEtendue,
+        Boolean mandatCapaciteMandantConfirmee,
+        Boolean mandatEnregistreRegistreCentral,
+        Boolean declarationAnticipeeAdministrateurDesigne
 ) {
 
     ProtectionMajeurBeInput toInput() {
@@ -33,7 +38,11 @@ public record ProtectionMajeurBeRequest(
                 Boolean.TRUE.equals(environnementFamilialProtecteur),
                 niveauUrgence,
                 modeSaisineEnvisage,
-                commentaire
+                commentaire,
+                mandatEtendue,
+                mandatCapaciteMandantConfirmee,
+                mandatEnregistreRegistreCentral,
+                declarationAnticipeeAdministrateurDesigne
         );
     }
 }

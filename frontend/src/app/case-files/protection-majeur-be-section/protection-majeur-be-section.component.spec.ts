@@ -30,6 +30,11 @@ describe('ProtectionMajeurBeSectionComponent — SF-217-15', () => {
       niveauUrgence: 'URGENCE_PATRIMONIALE',
       modeSaisineEnvisage: 'REQUETE_JP',
       commentaire: null,
+      // SF-223-10 — branche mandat approfondie (snapshot).
+      mandatEtendue: null,
+      mandatCapaciteMandantConfirmee: null,
+      mandatEnregistreRegistreCentral: null,
+      declarationAnticipeeAdministrateurDesigne: null,
       // Champs calculés.
       verdict,
       mesureRecommandee: verdict === 'MANDAT_EXTRA_JUDICIAIRE_VALABLE'
@@ -351,5 +356,95 @@ describe('ProtectionMajeurBeSectionComponent — SF-217-15', () => {
   it('expose TOOL_LABEL / TOOL_ICON', () => {
     expect(ProtectionMajeurBeSectionComponent.TOOL_LABEL).toContain('PROTECTION DU MAJEUR');
     expect(ProtectionMajeurBeSectionComponent.TOOL_ICON).toBe('shield_person');
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-223-10 — branche mandat extra-judiciaire approfondie
+  // ---------------------------------------------------------------------------
+
+  it('calculate() — champs mandat approfondis transmis si mandat signé', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.natureAlteration.set('MEDICALE_DURABLE');
+    component.graviteIncapacite.set('LES_DEUX');
+    component.niveauUrgence.set('AUCUNE_URGENCE');
+    component.modeSaisineEnvisage.set('REQUETE_JP');
+    component.mandatExtraJudiciaireSigne.set(true);
+    component.mandatExtraJudiciaireDateSignature.set('2020-01-15');
+    component.mandatEtendue.set('BIENS');
+    component.mandatCapaciteMandantConfirmee.set(true);
+    component.mandatEnregistreRegistreCentral.set(true);
+    component.calculate();
+    const req = httpMock.expectOne((r) => r.method === 'POST');
+    expect(req.request.body.mandatEtendue).toBe('BIENS');
+    expect(req.request.body.mandatCapaciteMandantConfirmee).toBe(true);
+    expect(req.request.body.mandatEnregistreRegistreCentral).toBe(true);
+    req.flush(response('MANDAT_EXTRA_JUDICIAIRE_VALABLE'));
+  });
+
+  it('calculate() — champs mandat approfondis à null si mandat non signé', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.natureAlteration.set('MEDICALE_DURABLE');
+    component.graviteIncapacite.set('LES_DEUX');
+    component.niveauUrgence.set('URGENCE_PATRIMONIALE');
+    component.modeSaisineEnvisage.set('REQUETE_JP');
+    component.mandatExtraJudiciaireSigne.set(false);
+    // Même si les signaux portent une valeur résiduelle, le payload doit les
+    // remettre à null quand le mandat n'est pas signé.
+    component.mandatEtendue.set('BIENS');
+    component.mandatCapaciteMandantConfirmee.set(true);
+    component.calculate();
+    const req = httpMock.expectOne((r) => r.method === 'POST');
+    expect(req.request.body.mandatEtendue).toBeNull();
+    expect(req.request.body.mandatCapaciteMandantConfirmee).toBeNull();
+    expect(req.request.body.mandatEnregistreRegistreCentral).toBeNull();
+    req.flush(response('MESURE_PROTECTION_RECOMMANDEE'));
+  });
+
+  it('calculate() — déclaration anticipée administrateur transmise si déclaration existe', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.natureAlteration.set('MEDICALE_DURABLE');
+    component.graviteIncapacite.set('LES_DEUX');
+    component.niveauUrgence.set('AUCUNE_URGENCE');
+    component.modeSaisineEnvisage.set('REQUETE_JP');
+    component.declarationAnticipeeExiste.set(true);
+    component.declarationAnticipeeAdministrateurDesigne.set(true);
+    component.calculate();
+    const req = httpMock.expectOne((r) => r.method === 'POST');
+    expect(req.request.body.declarationAnticipeeExiste).toBe(true);
+    expect(req.request.body.declarationAnticipeeAdministrateurDesigne).toBe(true);
+    req.flush(response('MESURE_PROTECTION_RECOMMANDEE'));
+  });
+
+  it('onMandatChange(false) réinitialise les champs mandat approfondis', () => {
+    component.mandatExtraJudiciaireSigne.set(true);
+    component.mandatEtendue.set('BIENS_ET_PERSONNE');
+    component.mandatCapaciteMandantConfirmee.set(true);
+    component.mandatEnregistreRegistreCentral.set(true);
+    component.onMandatChange(false);
+    expect(component.mandatEtendue()).toBeNull();
+    expect(component.mandatCapaciteMandantConfirmee()).toBe(false);
+    expect(component.mandatEnregistreRegistreCentral()).toBe(false);
+  });
+
+  it('mandatEtendueLabel rend un libellé lisible et — si null', () => {
+    expect(component.mandatEtendueLabel('BIENS_ET_PERSONNE')).toContain('Biens ET personne');
+    expect(component.mandatEtendueLabel(null)).toBe('—');
+  });
+
+  it('GET 200 → champs mandat approfondis ré-hydratés depuis le snapshot', () => {
+    component.ngOnInit();
+    const r = response('MANDAT_EXTRA_JUDICIAIRE_VALABLE');
+    r.mandatExtraJudiciaireSigne = true;
+    r.mandatExtraJudiciaireDateSignature = '2020-01-15';
+    r.mandatEtendue = 'BIENS';
+    r.mandatCapaciteMandantConfirmee = true;
+    r.mandatEnregistreRegistreCentral = true;
+    httpMock.expectOne(BASE_URL).flush(r);
+    expect(component.mandatEtendue()).toBe('BIENS');
+    expect(component.mandatCapaciteMandantConfirmee()).toBe(true);
+    expect(component.mandatEnregistreRegistreCentral()).toBe(true);
   });
 });

@@ -17,7 +17,12 @@ public record ProtectionMajeurBeInput(
         boolean environnementFamilialProtecteur,
         ProtectionMajeurBeCalculator.NiveauUrgenceProtectionBe niveauUrgence,
         ProtectionMajeurBeCalculator.ModeSaisineProtectionBe modeSaisineEnvisage,
-        String commentaire
+        String commentaire,
+        // --- SF-223-10 : branche mandat extra-judiciaire approfondie (nullables, rétro-compatibles) ---
+        ProtectionMajeurBeCalculator.MandatEtendueBe mandatEtendue,
+        Boolean mandatCapaciteMandantConfirmee,
+        Boolean mandatEnregistreRegistreCentral,
+        Boolean declarationAnticipeeAdministrateurDesigne
 ) {
 
     /** Builder utilitaire — facilite la lisibilité des tests unitaires. */
@@ -31,6 +36,11 @@ public record ProtectionMajeurBeInput(
         private ProtectionMajeurBeCalculator.NiveauUrgenceProtectionBe niveauUrgence;
         private ProtectionMajeurBeCalculator.ModeSaisineProtectionBe modeSaisineEnvisage;
         private String commentaire;
+        // SF-223-10 — branche mandat approfondie (nullables).
+        private ProtectionMajeurBeCalculator.MandatEtendueBe mandatEtendue;
+        private Boolean mandatCapaciteMandantConfirmee;
+        private Boolean mandatEnregistreRegistreCentral;
+        private Boolean declarationAnticipeeAdministrateurDesigne;
 
         public Builder natureAlteration(ProtectionMajeurBeCalculator.NatureAlterationBe v) { this.natureAlteration = v; return this; }
         public Builder graviteIncapacite(ProtectionMajeurBeCalculator.GraviteIncapaciteBe v) { this.graviteIncapacite = v; return this; }
@@ -41,13 +51,19 @@ public record ProtectionMajeurBeInput(
         public Builder niveauUrgence(ProtectionMajeurBeCalculator.NiveauUrgenceProtectionBe v) { this.niveauUrgence = v; return this; }
         public Builder modeSaisineEnvisage(ProtectionMajeurBeCalculator.ModeSaisineProtectionBe v) { this.modeSaisineEnvisage = v; return this; }
         public Builder commentaire(String v) { this.commentaire = v; return this; }
+        public Builder mandatEtendue(ProtectionMajeurBeCalculator.MandatEtendueBe v) { this.mandatEtendue = v; return this; }
+        public Builder mandatCapaciteMandantConfirmee(Boolean v) { this.mandatCapaciteMandantConfirmee = v; return this; }
+        public Builder mandatEnregistreRegistreCentral(Boolean v) { this.mandatEnregistreRegistreCentral = v; return this; }
+        public Builder declarationAnticipeeAdministrateurDesigne(Boolean v) { this.declarationAnticipeeAdministrateurDesigne = v; return this; }
 
         public ProtectionMajeurBeInput build() {
             return new ProtectionMajeurBeInput(
                     natureAlteration, graviteIncapacite,
                     mandatExtraJudiciaireSigne, mandatExtraJudiciaireDateSignature,
                     declarationAnticipeeExiste, environnementFamilialProtecteur,
-                    niveauUrgence, modeSaisineEnvisage, commentaire);
+                    niveauUrgence, modeSaisineEnvisage, commentaire,
+                    mandatEtendue, mandatCapaciteMandantConfirmee,
+                    mandatEnregistreRegistreCentral, declarationAnticipeeAdministrateurDesigne);
         }
     }
 }

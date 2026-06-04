@@ -78,6 +78,16 @@ public final class ProtectionMajeurBeCalculator {
         INDETERMINE
     }
 
+    /**
+     * SF-223-10 : portée (étendue) du mandat extra-judiciaire — voie privée
+     * (loi 17/03/2013 / CC art. 490 nouveau — à vérifier).
+     */
+    public enum MandatEtendueBe {
+        BIENS,
+        PERSONNE,
+        BIENS_ET_PERSONNE
+    }
+
     /** Mesure de protection recommandée. */
     public enum MesureProtectionBe {
         MANDAT_EXTRA_JUDICIAIRE,
@@ -258,19 +268,62 @@ public final class ProtectionMajeurBeCalculator {
 
     private static ProtectionMajeurBeResult resultMandatValable(
             ProtectionMajeurBeInput in, String country) {
+
+        // SF-223-10 : la branche mandat valable est approfondie. Validité de la
+        // voie privée subordonnée à la capacité du mandant à la signature et à
+        // l'enregistrement au registre central des mandats (opposabilité —
+        // à vérifier). Si l'un de ces éléments est explicitement infirmé (false),
+        // la qualification reste incomplète (réserve) ; s'il n'est pas renseigné
+        // (null, cas legacy F-217), on conserve le comportement existant.
+        boolean capaciteInfirmee = Boolean.FALSE.equals(in.mandatCapaciteMandantConfirmee());
+        boolean enregistrementInfirme = Boolean.FALSE.equals(in.mandatEnregistreRegistreCentral());
+        if (capaciteInfirmee || enregistrementInfirme) {
+            return resultMandatReserve(in, country, capaciteInfirmee, enregistrementInfirme);
+        }
+
+        // Articulation portée du mandat vs étendue de l'incapacité (SF-223-10).
+        // Un mandat partiel (ne couvrant pas toute la situation) reste valable
+        // pour le périmètre couvert + recommandation d'administration
+        // judiciaire complémentaire pour le reste.
+        boolean mandatPartiel = mandatPartiel(in.mandatEtendue(), in.graviteIncapacite());
+
         List<String> actions = new ArrayList<>();
-        actions.add("Activer le mandat extra-judiciaire : voie privée — pas de saisine judiciaire nécessaire.");
-        actions.add("Vérifier que le mandat couvre bien les actes nécessaires à la gestion actuelle (biens "
-                + "et/ou personne) ; à défaut, envisager une saisine complémentaire de la justice de paix.");
+        actions.add("Activer le mandat extra-judiciaire : voie privée — pas de saisine judiciaire nécessaire "
+                + "pour le périmètre couvert par le mandat.");
+        if (mandatPartiel) {
+            actions.add("Le mandat ne couvre qu'une partie de la situation (portée : "
+                    + libelleEtendue(in.mandatEtendue()) + ") : saisir la Justice de paix en COMPLÉMENT "
+                    + "pour une administration judiciaire sur le périmètre non couvert (loi 17/03/2013 — à vérifier).");
+        } else {
+            actions.add("Vérifier que le mandat couvre bien les actes nécessaires à la gestion actuelle (biens "
+                    + "et/ou personne) ; à défaut, envisager une saisine complémentaire de la justice de paix.");
+        }
         if (in.environnementFamilialProtecteur()) {
             actions.add("L'environnement familial protecteur identifié peut servir d'appui à l'exécution "
                     + "du mandat (mandataire familial désigné dans l'acte).");
+        }
+        if (Boolean.TRUE.equals(in.mandatEnregistreRegistreCentral())) {
+            actions.add("Mandat enregistré au registre central des mandats : opposabilité aux tiers "
+                    + "facilitée (à vérifier).");
         }
 
         List<String> messages = new ArrayList<>();
         messages.add("Un mandat extra-judiciaire a été signé par le majeur alors qu'il était encore "
                 + "capable (CC art. 490 nouveau — à vérifier). La voie privée prime sur l'administration "
                 + "judiciaire : pas de saisine de la justice de paix nécessaire pour activer la protection.");
+        if (in.mandatEtendue() != null) {
+            messages.add("Portée du mandat qualifiée : " + libelleEtendue(in.mandatEtendue())
+                    + " (loi 17/03/2013 / CC art. 490 nouveau — à vérifier).");
+        }
+        if (mandatPartiel) {
+            messages.add("Le mandat est PARTIEL au regard de l'incapacité constatée : il prime pour le "
+                    + "périmètre couvert, mais une administration judiciaire COMPLÉMENTAIRE est recommandée "
+                    + "pour les actes non couverts (articulation mandat / administration — loi 17/03/2013, à vérifier).");
+        }
+        if (Boolean.TRUE.equals(in.mandatCapaciteMandantConfirmee())) {
+            messages.add("Capacité du mandant à la signature confirmée : condition de fond de la validité "
+                    + "du mandat satisfaite (à vérifier — CC art. 490 nouveau).");
+        }
         if (in.niveauUrgence() == NiveauUrgenceProtectionBe.URGENCE_PATRIMONIALE) {
             messages.add("Urgence patrimoniale signalée : vérifier que le mandat couvre les actes "
                     + "patrimoniaux urgents ; à défaut, saisir la justice de paix en complément.");
@@ -279,17 +332,102 @@ public final class ProtectionMajeurBeCalculator {
             messages.add("Une déclaration anticipée du majeur existe également (à vérifier) — elle peut "
                     + "compléter le mandat sur le volet de la personne (lieu de vie, soins).");
         }
+        if (Boolean.TRUE.equals(in.declarationAnticipeeAdministrateurDesigne())) {
+            messages.add("La déclaration anticipée désigne un administrateur préféré : en cas de saisine "
+                    + "judiciaire complémentaire, la juridiction est en principe liée par ce choix anticipé "
+                    + "du majeur, sauf motif grave (loi 17/03/2013 — à vérifier).");
+        }
 
         return new ProtectionMajeurBeResult(
                 ProtectionMajeurBeVerdict.MANDAT_EXTRA_JUDICIAIRE_VALABLE,
                 MesureProtectionBe.MANDAT_EXTRA_JUDICIAIRE,
-                null,
-                "CC art. 490 nouveau (à vérifier) — mandat extra-judiciaire (loi 17/03/2013)",
+                mandatPartiel ? JuridictionProtectionBe.JUSTICE_PAIX : null,
+                "CC art. 490 nouveau (à vérifier) — mandat extra-judiciaire (loi 17/03/2013)"
+                        + (mandatPartiel ? " ; administration judiciaire complémentaire — CJ art. 594-595 "
+                        + "(à vérifier) pour le périmètre non couvert" : ""),
                 List.of(),
                 actions,
                 basesJuridiques(),
                 messages,
                 country);
+    }
+
+    /**
+     * SF-223-10 : mandat signé valablement mais dont une condition de validité
+     * est explicitement infirmée (capacité du mandant à la signature non
+     * confirmée et/ou non-enregistrement au registre central) → réserve
+     * (QUALIFICATION_INCOMPLETE), sans 400 (champs nullables rétro-compatibles).
+     */
+    private static ProtectionMajeurBeResult resultMandatReserve(
+            ProtectionMajeurBeInput in, String country,
+            boolean capaciteInfirmee, boolean enregistrementInfirme) {
+        List<String> actions = new ArrayList<>();
+        List<String> messages = new ArrayList<>();
+        messages.add("Un mandat extra-judiciaire a été signalé, mais sa validité ne peut être confirmée en "
+                + "l'état : la voie privée est en réserve (CC art. 490 nouveau — à vérifier).");
+        if (capaciteInfirmee) {
+            messages.add("La capacité du mandant au moment de la signature n'est pas confirmée : condition "
+                    + "de fond de la validité du mandat non satisfaite — risque de nullité (à vérifier).");
+            actions.add("Faire confirmer par un avocat belge la capacité du mandant lors de la signature du "
+                    + "mandat (condition de validité — CC art. 490 nouveau, à vérifier).");
+        }
+        if (enregistrementInfirme) {
+            messages.add("Le mandat n'est pas enregistré au registre central des mandats : son opposabilité "
+                    + "aux tiers peut être compromise (à vérifier).");
+            actions.add("Faire procéder à l'enregistrement du mandat au registre central des mandats "
+                    + "(condition d'opposabilité — à vérifier).");
+        }
+        actions.add("À défaut de régularisation, envisager une saisine de la Justice de paix pour une "
+                + "administration judiciaire (loi 17/03/2013 — à vérifier).");
+        if (Boolean.TRUE.equals(in.declarationAnticipeeAdministrateurDesigne())) {
+            messages.add("La déclaration anticipée désigne un administrateur préféré : la juridiction saisie "
+                    + "est en principe liée par ce choix anticipé du majeur, sauf motif grave (à vérifier).");
+        }
+
+        return new ProtectionMajeurBeResult(
+                ProtectionMajeurBeVerdict.QUALIFICATION_INCOMPLETE,
+                MesureProtectionBe.AUCUNE_RECOMMANDATION,
+                null,
+                "CC art. 490 nouveau (à vérifier) — conditions de validité / opposabilité du mandat "
+                        + "extra-judiciaire à confirmer",
+                List.of(),
+                actions,
+                basesJuridiques(),
+                messages,
+                country);
+    }
+
+    /**
+     * SF-223-10 : un mandat est partiel s'il ne couvre pas l'intégralité de
+     * l'incapacité constatée. Si la portée du mandat n'est pas renseignée
+     * (null, cas legacy F-217), on ne qualifie pas le mandat de partiel.
+     */
+    private static boolean mandatPartiel(MandatEtendueBe etendue, GraviteIncapaciteBe gravite) {
+        if (etendue == null) {
+            return false;
+        }
+        boolean mandatCouvreBiens = etendue == MandatEtendueBe.BIENS
+                || etendue == MandatEtendueBe.BIENS_ET_PERSONNE;
+        boolean mandatCouvrePersonne = etendue == MandatEtendueBe.PERSONNE
+                || etendue == MandatEtendueBe.BIENS_ET_PERSONNE;
+        return switch (gravite) {
+            case INCAPACITE_GERER_BIENS -> !mandatCouvreBiens;
+            case INCAPACITE_GERER_PERSONNE -> !mandatCouvrePersonne;
+            case LES_DEUX -> !(mandatCouvreBiens && mandatCouvrePersonne);
+            // Incapacité partielle : par défaut rattachée aux biens.
+            case INCAPACITE_PARTIELLE -> !mandatCouvreBiens;
+        };
+    }
+
+    private static String libelleEtendue(MandatEtendueBe etendue) {
+        if (etendue == null) {
+            return "non précisée";
+        }
+        return switch (etendue) {
+            case BIENS -> "biens";
+            case PERSONNE -> "personne";
+            case BIENS_ET_PERSONNE -> "biens et personne";
+        };
     }
 
     private static ProtectionMajeurBeResult resultUrgenceVitale(
