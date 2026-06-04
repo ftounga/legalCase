@@ -120,7 +120,7 @@ describe('DashboardComponent — hero (F-249)', () => {
   it('DASH-F249-03: le sparkline totalise les analyses de la semaine et est rendu hors du .hero', () => {
     expect(component.sparkline()?.total).toBe(10);
     expect(fixture.nativeElement.querySelector('.spark-line')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.hero .hero-spark')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.dash-hero .hero-spark')).toBeNull();
     expect(fixture.nativeElement.querySelector('.dash-overview .hero-spark')).not.toBeNull();
   });
 
