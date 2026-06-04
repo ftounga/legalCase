@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="594-create-etat-civil-be-modification-analyses" author="legalcase">
+        <comment>
+            SF-223-09 : table dédiée à l'outil décisionnel "Modification de
+            l'état civil (Belgique)" : changement de nom / de prénom (loi du
+            18/06/2018) et changement de sexe (loi du 25/06/2017,
+            auto-déclaration administrative — à vérifier par avocat belge).
+
+            Outil multi-vues unique (1 outil = 1 situation « modification de
+            l'état civil ») couvrant les trois procédures, qui relèvent
+            d'autorités distinctes : changement de PRÉNOM et changement de SEXE
+            devant l'officier de l'état civil ; changement de NOM auprès du SPF
+            Justice.
+
+            DISTINCT de la rectification d'état civil (erreur matérielle d'acte —
+            P4 différé F-224) et du changement d'état civil FR (sous-objet
+            `changement_etat_civil_detection`, FR-only).
+
+            Verdict 4 niveaux : MODIFICATION_RECEVABLE /
+            MODIFICATION_RECEVABLE_SOUS_CONDITIONS / MODIFICATION_IRRECEVABLE /
+            QUALIFICATION_INCOMPLETE.
+
+            BELGIQUE UNIQUEMENT — BE-only pur (P3 Famille BE — F-223). Aucune
+            citation jurisprudentielle (F-JU-04 parké).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 595
+            livrée dans le même bundle SF-223-09 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 594 = numéro libre suivant après 593 (seed SF-223-08
+            dip-be-reconnaissance-decision-etrangere).
+        </comment>
+
+        <createTable tableName="etat_civil_be_modification_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_etat_civil_be_modification_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="etat_civil_be_modification_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_etat_civil_be_modification_case_file"/>
+
+        <createIndex tableName="etat_civil_be_modification_analyses"
+                     indexName="idx_etat_civil_be_modification_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="etat_civil_be_modification_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

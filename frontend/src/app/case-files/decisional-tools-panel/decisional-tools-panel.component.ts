@@ -489,6 +489,7 @@ import { RegimeAlgerienBeSectionComponent } from '../regime-algerien-be-section/
 import { RegimeBeSeparationBiensSectionComponent } from '../regime-be-separation-biens-section/regime-be-separation-biens-section.component';
 import { DipBeLoiApplicableFamilleSectionComponent } from '../dip-be-loi-applicable-famille-section/dip-be-loi-applicable-famille-section.component';
 import { DipBeReconnaissanceDecisionEtrangereSectionComponent } from '../dip-be-reconnaissance-decision-etrangere-section/dip-be-reconnaissance-decision-etrangere-section.component';
+import { EtatCivilBeModificationSectionComponent } from '../etat-civil-be-modification-section/etat-civil-be-modification-section.component';
 // F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
 import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
 // F-217 SF-217-19 — section décisionnelle Vague 3 Famille BE — Contestation de filiation (CC art. 318 nouveau).
@@ -5914,6 +5915,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // SF-223-09 — modification de l'état civil BE (changement de nom — SPF
+      // Justice ; prénom — officier de l'état civil — loi 18/06/2018 ; sexe —
+      // auto-déclaration administrative — loi 25/06/2017). Migration 595 —
+      // CONTEXTUAL, NOUVEAU flag pivot `etat_civil_modification_be_detectee`
+      // (Sf223Detail). Pré-fill IA F-246 : type + majorité + nationalité/résidence
+      // (sous-objet `etat_civil_modification_be_detection`). Backend SF-223-09
+      // bundle. DISTINCT de la rectification d'état civil (P4 différé F-224) et
+      // du changement d'état civil FR.
+      ['etat-civil-be-modification', {
+        displayLabel: 'Modification de l\'état civil (Belgique)',
+        component: EtatCivilBeModificationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
       // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
       // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
       // Migration 281 — CONTEXTUAL avec trigger non extrait V1
@@ -6697,6 +6716,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // BE. VALIDITE — qualification de la reconnaissance et de ses conditions,
     // pas un délai.
     ['dip-be-reconnaissance-decision-etrangere', 'VALIDITE'],
+    // SF-223-09 : modification de l'état civil BE (nom / prénom / sexe). VALIDITE
+    // — qualification de la recevabilité et de la procédure (autorité
+    // compétente), pas un délai.
+    ['etat-civil-be-modification', 'VALIDITE'],
     // F-217 SF-217-15 : protection du majeur BE — outil d'orientation /
     // qualification de la mesure adéquate (loi 17/03/2013). VALIDITE plutôt
     // que DELAIS malgré l'urgence potentielle (qui est qualifiée à l'audience,

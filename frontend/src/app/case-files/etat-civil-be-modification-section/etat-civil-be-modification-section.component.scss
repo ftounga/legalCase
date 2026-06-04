@@ -1,0 +1,249 @@
+/**
+ * SF-223-09 : styles outil "Modification de l'état civil (Belgique)". Palette
+ * navy/or/vert/rouge alignée sur les outils Famille BE (THEME VALIDITE).
+ *
+ * Vert pour MODIFICATION_RECEVABLE. Or pour MODIFICATION_RECEVABLE_SOUS_CONDITIONS.
+ * Rouge pour MODIFICATION_IRRECEVABLE. Navy info pour QUALIFICATION_INCOMPLETE.
+ */
+
+.eciv-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.eciv-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.eciv-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.eciv-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.eciv-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok   { background: rgba(34, 139, 34, 0.10); color: #1f7a3a; }
+  &--warn { background: rgba(201, 165, 75, 0.14); color: #8a6d1e; }
+  &--ko   { background: rgba(176, 42, 42, 0.10); color: #b02a2a; }
+  &--info { background: rgba(26, 58, 92, 0.10); color: #1A3A5C; }
+}
+
+.eciv-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.eciv-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.eciv-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.eciv-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon { color: #1A3A5C; flex-shrink: 0; }
+}
+
+.eciv-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.eciv-full { width: 100%; }
+
+.eciv-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.eciv-block-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.eciv-inline-field { width: 100%; max-width: 460px; }
+
+.eciv-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+}
+
+.eciv-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+.eciv-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.eciv-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+
+  mat-icon { font-size: 24px; width: 24px; height: 24px; flex-shrink: 0; }
+
+  &--ok {
+    background: rgba(34, 139, 34, 0.08);
+    border-left: 4px solid #1f7a3a;
+    color: #1f7a3a;
+    mat-icon { color: #1f7a3a; }
+  }
+
+  &--warn {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6d1e;
+    mat-icon { color: #c9a54b; }
+  }
+
+  &--ko {
+    background: rgba(176, 42, 42, 0.08);
+    border-left: 4px solid #b02a2a;
+    color: #b02a2a;
+    mat-icon { color: #b02a2a; }
+  }
+
+  &--info {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+}
+
+.eciv-verdict-text { display: flex; flex-direction: column; gap: 2px; }
+.eciv-verdict-label { font-size: 14px; font-weight: 700; letter-spacing: 0.03em; }
+.eciv-verdict-type {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-weight: 500;
+}
+
+.eciv-autorite {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon { color: var(--ds-accent-gold, #c9a54b); font-size: 20px; width: 20px; height: 20px; }
+}
+
+.eciv-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.eciv-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  ul {
+    list-style: disc inside;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.eciv-list-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.eciv-bases li {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}

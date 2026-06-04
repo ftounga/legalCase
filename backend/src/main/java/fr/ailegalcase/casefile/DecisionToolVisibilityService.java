@@ -585,6 +585,11 @@ public class DecisionToolVisibilityService {
         // Consolidé dans Sf223Detail (@JsonUnwrapped) → aplati sur familleNode →
         // lu à plat.
         addBooleanFlagIfTrue(detected, familleNode, "dip_reconnaissance_decision_be_detectee");
+        // SF-223-09 — flag pivot CONTEXTUAL Famille BE : modification de l'état
+        // civil (changement de nom / prénom — loi 18/06/2018 ; changement de
+        // sexe — loi 25/06/2017). Consolidé dans Sf223Detail (@JsonUnwrapped) →
+        // aplati sur familleNode → lu à plat.
+        addBooleanFlagIfTrue(detected, familleNode, "etat_civil_modification_be_detectee");
         return detected;
     }
 

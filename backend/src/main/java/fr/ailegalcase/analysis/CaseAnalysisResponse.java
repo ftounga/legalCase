@@ -5902,13 +5902,30 @@ public record CaseAnalysisResponse(
             // ISO 3166-1 alpha-2), sinon null.
             String dipReconnaissancePaysDetecte,
             // SF-223-08 — date de la décision pré-remplie (ISO YYYY-MM-DD), sinon null.
-            String dipReconnaissanceDateDetectee
+            String dipReconnaissanceDateDetectee,
+            // SF-223-09 — flag pivot CONTEXTUAL de l'outil
+            // etat-civil-be-modification (modification de l'état civil BE :
+            // changement de nom / prénom — loi 18/06/2018 ; changement de sexe —
+            // loi 25/06/2017). Lu à plat sur le nœud famille (@JsonUnwrapped) par
+            // DecisionToolVisibilityService → trigger
+            // `etat_civil_modification_be_detectee`. BELGIQUE UNIQUEMENT.
+            Boolean etatCivilModificationBeDetectee,
+            // SF-223-09 — type de modification pré-rempli si factualisable
+            // (CHANGEMENT_NOM / CHANGEMENT_PRENOM / CHANGEMENT_SEXE), sinon null.
+            String etatCivilModificationTypeDetecte,
+            // SF-223-09 — majorité de la personne concernée pré-remplie si
+            // factualisable (true = majeur, false = mineur), sinon null.
+            Boolean etatCivilModificationMajeurDetecte,
+            // SF-223-09 — nationalité belge OU résidence inscrite pré-remplie si
+            // factualisable (true / false), sinon null.
+            Boolean etatCivilModificationNationaliteResidentDetectee
     ) {
         /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
         public static Sf223Detail empty() {
             return new Sf223Detail(null, null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null,
+                    null, null, null, null,
                     null, null, null, null);
         }
     }
@@ -7514,6 +7531,10 @@ public record CaseAnalysisResponse(
     /** SF-223-08 : whitelist nature de la décision pour la reconnaissance / exequatur BE (CDIP art. 22-27). */
     private static final java.util.Set<String> DIP_RECONNAISSANCE_BE_NATURE_WHITELIST = java.util.Set.of(
             "JUGEMENT_ETRANGER_HORS_UE", "MARIAGE_RELIGIEUX_NON_CIVIL");
+
+    /** SF-223-09 : whitelist type de modification de l'état civil BE (etat-civil-be-modification). */
+    private static final java.util.Set<String> ETAT_CIVIL_MODIFICATION_BE_TYPE_WHITELIST = java.util.Set.of(
+            "CHANGEMENT_NOM", "CHANGEMENT_PRENOM", "CHANGEMENT_SEXE");
 
     /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
     private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
@@ -9558,6 +9579,23 @@ public record CaseAnalysisResponse(
                 ? normalizeIso2(textOrNull(dipRecoBe, "pays_origine")) : null;
         String dipReconnaissanceDateDetectee = dipRecoBeObject
                 ? textOrNull(dipRecoBe, "date_decision") : null;
+        // SF-223-09 : flag pivot `etat_civil_modification_be_detectee` (lu à
+        // plat, @JsonUnwrapped) + sous-objet `etat_civil_modification_be_detection`
+        // — outil etat-civil-be-modification (changement de nom / prénom — loi
+        // 18/06/2018 ; changement de sexe — loi 25/06/2017). BELGIQUE UNIQUEMENT
+        // — null si dossier FR. Le flag gouverne la visibilité CONTEXTUAL de
+        // l'outil.
+        Boolean etatCivilModificationBeDetectee =
+                booleanOrNull(node, "etat_civil_modification_be_detectee");
+        JsonNode etatCivilModBe = node.get("etat_civil_modification_be_detection");
+        boolean etatCivilModBeObject = etatCivilModBe != null && etatCivilModBe.isObject();
+        String etatCivilModificationTypeDetecte = etatCivilModBeObject
+                ? normalizeEnumCode(textOrNull(etatCivilModBe, "type_modification"),
+                        ETAT_CIVIL_MODIFICATION_BE_TYPE_WHITELIST) : null;
+        Boolean etatCivilModificationMajeurDetecte = etatCivilModBeObject
+                ? booleanOrNull(etatCivilModBe, "personne_majeure") : null;
+        Boolean etatCivilModificationNationaliteResidentDetectee = etatCivilModBeObject
+                ? booleanOrNull(etatCivilModBe, "nationalite_belge_ou_resident") : null;
         Sf223Detail sf223Detail = new Sf223Detail(
                 declarationCohabitationLegaleMentionneeBeDetectee,
                 domicileCommunBeDetecte,
@@ -9586,7 +9624,11 @@ public record CaseAnalysisResponse(
                 dipReconnaissanceDecisionBeDetectee,
                 dipReconnaissanceNatureDetectee,
                 dipReconnaissancePaysDetecte,
-                dipReconnaissanceDateDetectee);
+                dipReconnaissanceDateDetectee,
+                etatCivilModificationBeDetectee,
+                etatCivilModificationTypeDetecte,
+                etatCivilModificationMajeurDetecte,
+                etatCivilModificationNationaliteResidentDetectee);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
