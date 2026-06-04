@@ -63,6 +63,24 @@ Chaque Acte = un domaine ; chaque domaine se décline en situations métier → 
 - **Domaines & TLS** : `legalcase.africa` (prod) + `staging.legalcase.africa` (staging) → CloudFront + ACM régionaux (D10).
 - **Coût indicatif à régime** (à chiffrer finement) : control plane EKS ~73 $/mois + nodes + RDS + NAT + CDN → ordre de grandeur de l'eu-west-3 actuel (~400 $/mois). À intégrer au dossier de finançabilité.
 
+### 3.2 Pont vers `legalcase-infra` — backlog `SF-INFRA-AF` à créer le moment venu
+
+> Le provisioning **n'est PAS une feature produit** : il ne va NI dans la fiche produit `docs/afrique/`, NI dans `PRODUCT_SPEC.md`. Il se spécifie dans le repo **`legalcase-infra`**, qui a sa **propre gouvernance** : backlog `docs/BACKLOG_INFRA.md` + specs `SF-INFRA-XX`, branches `feat/infra-*`, et **`terraform apply` manuel après revue du plan** (rien d'automatique). `legalcase-infra` ne provisionne donc **jamais tout seul** — il faut lui écrire les specs.
+
+Cette checklist est le **pont** : à l'engagement (verrou levé), chaque ligne devient un `SF-INFRA-AF-XX` quasi mécaniquement (les modules existent déjà, cf. D1 §3.1 — c'est de la config régionale).
+
+| SF-INFRA cible | Objet | Module(s) réutilisé(s) |
+|---|---|---|
+| `SF-INFRA-AF-01` | Networking `af-south-1` (VPC, subnets privés, NAT, IGW) | `networking` |
+| `SF-INFRA-AF-02` | Cluster EKS Afrique (node group + IAM), namespaces `staging` + `production` | `eks` |
+| `SF-INFRA-AF-03` | RDS PostgreSQL régional (résidence données D9) | `rds` |
+| `SF-INFRA-AF-04` | S3 documents + backups régionaux Afrique | `s3` + `backup` |
+| `SF-INFRA-AF-05` | CloudFront + ACM pour `legalcase.africa` / `staging.legalcase.africa` (D10) | `cdn` |
+| `SF-INFRA-AF-06` | ECR + Secrets Manager (réutilisation cross-région ou régional) | `ecr` |
+| `SF-INFRA-AF-07` | Monitoring + logs régionaux (CloudWatch) | `monitoring` |
+
+**Répartition produit ↔ infra** : les spécificités **produit** africaines (paiement CinetPay / mobile money, devise XOF/XAF, i18n, contexte-pays, consentement résidence côté UX) restent des **features produit** (`F-OH-…` dans la fiche). Seul le **provisioning** ci-dessus relève de `legalcase-infra`. La fiche produit ne doit donc **pas** réintroduire l'infra pure comme features.
+
 ## 4. Couche plateforme réutilisée (le ~90 % moteur, ré-exprimé pour le produit séparé)
 
 Fondations (auth, onboarding workspace, domaine = droit des affaires OHADA), gestion de dossiers,

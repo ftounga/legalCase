@@ -134,6 +134,11 @@ const map = await agent(
    et trous concurrents), marketDrivers (les besoins/trous que ce domaine doit couvrir), situations, existingIds.
    ${DOMAINS_OVERRIDE ? `Restreins-toi à : ${JSON.stringify(DOMAINS_OVERRIDE)}.` : ''}
    Respecte D5 (OHADA affaires only), D7 (francophone), D11 (pas de variante législative par pays).
+   RÈGLE INFRA (cohérence cadrage §3.2) : le domaine 'infra-afrique' ne couvre QUE les spécificités
+   PRODUIT user-facing (paiement CinetPay/mobile money, devise XOF/XAF, i18n, contexte-pays, consentement
+   résidence côté UX). Le PROVISIONING pur (cluster EKS, RDS, S3, réseau, domaines/TLS, monitoring) N'EST
+   PAS une feature produit → il vit dans le repo legalcase-infra (specs SF-INFRA-AF, cf. §3.2). N'en fais
+   AUCUNE feature produit.
    Retourne DOMAINMAP_SCHEMA.`,
   { label: 'domain-map', phase: 'Cartographier', schema: DOMAINMAP_SCHEMA, agentType: 'Explore' }
 )
@@ -158,7 +163,10 @@ const enriched = (await parallel(domains.map(d => () => {
        4) ${REFERENCE} = ANCRE de cohérence/qualité/format uniquement (granularité, pattern), pas le contenu cible.
      Pattern dossier-centric (D3) : situation → upload pièces → pipeline IA → outil décisionnel/simulateur → acte.
      INVARIANTS : D11 (jamais de sélecteur de pays à l'auth ; pays = contexte dossier pré-rempli) ;
-     « 1 outil décisionnel = 1 situation métier » (pas de doublon fonctionnel).
+     « 1 outil décisionnel = 1 situation métier » (pas de doublon fonctionnel) ;
+     INFRA (§3.2) — si ce domaine est 'infra-afrique', ne spécifie QUE des features PRODUIT user-facing
+     (paiement, devise, i18n, contexte-pays). NE crée AUCUNE feature de provisioning (cluster/RDS/S3/réseau/
+     domaines) : ça relève de legalcase-infra (SF-INFRA-AF). Référence-le, ne le spécifie pas comme feature.
      Chaque feature : provenance (${PROVENANCE.join('/')}), status "Hypothèse", et changeReason si nouvelle/modifiée.
      IDs stables F-OH-<CLE>-NN ; nouvelles features = NN suivant, ne réutilise pas un NN retiré.
      Retourne DOMAINSPEC_SCHEMA.`,
