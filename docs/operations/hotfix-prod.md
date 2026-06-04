@@ -1,6 +1,6 @@
 # Hotfix prod — Tableau de bord
 
-**Dernière analyse** : 2026-05-29T11:01:00Z (skill `prod-health-check` — investigation flap 27/05 + confirmation finale HF-02/HF-03)
+**Dernière analyse** : 2026-06-04T11:10:00Z (skill `prod-health-check` — prod runtime saine ; détection + résolution d'un master-red CI bloquant les déploiements)
 
 > Ce fichier est **généré et maintenu** par la skill `ai-skills/prod-health-check.md`.
 > Il liste les problèmes détectés en production que **l'humain** doit ensuite trier et corriger.
@@ -18,7 +18,26 @@ _(aucun)_
 
 ## 🟠 P1 — Dégradation significative
 
-_(aucun)_
+### HF-2026-06-04-01 — Master-red : Backend CI/CD Tests en échec → tous déploiements backend bloqués ✅ TERMINÉ
+
+- **Détecté** : 2026-06-04T11:00:00Z (scan prod-health-check — corrélation pods staging figés 14h + `gh run list`)
+- **Première occurrence** : 2026-06-04T10:14:00Z (1er run Backend CI/CD en `failure`)
+- **Dernière occurrence** : 2026-06-04T10:32:00Z (dernier run rouge avant fix)
+- **Occurrences 24h** : 2 runs `failure` + 2 `cancelled` (pushes successifs sur master rouge)
+- **Total observé** : master rouge ~1h (10:14 → 11:08, déblocage par #1601)
+- **Signature** : `hash:caseanalysis-immigration-npe-victimetraite`
+- **Logs sample** :
+  ```
+  [ERROR] Tests run: 341, Failures: 92, Errors: 5 — in fr.ailegalcase.analysis.CaseAnalysisResponseTest
+  AssertionError: Expecting actual not to be null (from(json).immigrationExtractedData() == null)
+  → NPE CaseAnalysisResponse.java:8244 VICTIME_TRAITE_BE_PHASES.contains(null) avalée par catch(Exception ignored)
+  ```
+- **Commit suspect (confirmé)** : `#1585` (SF-221-06 / F-IM-58) — sous-record `@JsonUnwrapped VictimeTraiteBeDetail`. `Set.of(...).contains(null)` lève NPE ; les fixtures sans champ `victime_traite_phase` (dublin/oqt/sf246/crrv/legacy…) déclenchaient la NPE, avalée silencieusement → `immigrationExtractedData` + tout le parsing postérieur (licenciement, rupture, famille succession) à null. **Vert en isolation (`-Dtest='VictimeTraite*'`), rouge sur master** (les autres fixtures de `CaseAnalysisResponseTest` exerçaient le `.contains(null)`).
+- **Root cause** : régression d'intégration parallèle (vagues F-220/F-221 mergées en rafale) — chaque PR verte seule, l'union casse. Le `catch (Exception ignored) {}` de `from()` masquait l'exception.
+- **Fix** : null-guard `victimeTraitePhaseRaw != null && VICTIME_TRAITE_BE_PHASES.contains(...)` (pattern existant `normalizeRecoursCode`). `catch (Exception ignored)` remis à l'identique. Fixed by **PR #1601** (merge `460ee88a`). CaseAnalysisResponseTest 92F+5E → **341/341 vert** ; package `fr.ailegalcase.analysis` 1238/1238 vert.
+- **Validation** : merge `460ee88a` tip de master, nouveau run Backend CI/CD relancé 11:08 (Build & Deploy débloqué). À re-confirmer au prochain scan que staging a bien basculé sur l'image incluant les 35 outils F-218d/220/221/222/223 + le hotfix F-DT-08/09.
+- **Status** : `✅ TERMINÉ` (Fixed by #1601)
+- **Leçon retenue** : tout sous-record/enum/`Set.of(...).contains(x)` construit dans `extractImmigrationData`/`extractTravailData`/`extractFamilleData` doit gérer le null AVANT l'appel. Et : une vague de N outils sur le MÊME record IA doit, en fin de vague, faire tourner le `CaseAnalysisResponseTest` COMPLET (pas seulement `-Dtest='<NouvelOutil>*'`) — c'est le seul test qui exerce l'union des fixtures.
 
 ---
 
@@ -146,12 +165,13 @@ Les items terminés depuis plus de 30 jours sont déplacés dans `docs/operation
 
 Ces points ne sont pas des hotfix à corriger, mais utiles pour le contexte au prochain audit :
 
-- **RDS prod** : **`db.t4g.small`** (✅ upgrade SF-INFRA-01 confirmé), storage 50 GB, status `available`. **Scan 2026-05-29T11:01Z** : CPU **avg 4.3% / max 8.0%** sur 24h, **max 20 connexions** (seuil 100), **49.73 GB libres** sur 50 (storage à peine entamé). Toutes les métriques très en dessous des seuils. Stable.
-- **RDS staging** : `db.t3.micro`, storage 20 GB. Stable.
-- **Pods K8s** (scan 2026-05-29T11:01Z) : 0 pod en non-Running, **0 restart** sur tous. Backend prod sur image stable depuis **35h**, 2 pods ready, CPU 3m, mémoire **636/695 Mi** (calme). Staging 1 pod backend (718 Mi). RabbitMQ prod & staging Running.
-- **Cost Anomaly 7j** (scan 2026-05-29) : RDS **+$2.15** au 2026-05-25 (corrélé au switch t3.micro→t4g.small, attendu), EBS +$0.91 au 27/05, Secrets Manager $0.04 (négligeables). Pas de nouvelle anomalie significative.
-- **Alarmes CloudWatch** : 7 configurées, **0 en ALARM** (scan 2026-05-29T11:01Z). `backend-error-rate` sans aucun flap depuis le 27/05 18:36 UTC (~40h) — incident ponctuel clos (HF-2026-05-27-01).
-- **DaemonSet Fluent Bit** : 3/3 Running depuis 7+ jours, 0 restart, logs shippés correctement (cf. HF-2026-05-21-01 résolu).
+- **RDS prod** : **`db.t4g.small`**, storage 50 GB. **Scan 2026-06-04** : alarmes `rds-connections-high` / `rds-cpu-high` / `rds-free-memory-low` toutes en **OK** depuis le 2026-05-20 (aucune transition). (Les `get-metric-statistics` du scan ont renvoyé `None` — souci de fenêtre/période côté requête, non bloquant : l'état des alarmes fait foi → RDS sain.)
+- **RDS staging** : `db.t3.micro`, storage 20 GB. Alarmes OK. Stable.
+- **Pods K8s** (scan 2026-06-04T11:10Z) : 0 pod en non-Running, **0 restart** partout. **Prod** : 2 backend + 2 frontend Running depuis **7j11h** (image stable, PAS ENCORE promue avec le travail des 03-04/06 — flux normal : merge→staging auto, prod promu séparément), CPU 3m, mémoire 643/701 Mi (calme). **Staging** : backend **figé à 14h** au moment du scan **à cause du master-red** (HF-2026-06-04-01) — les builds backend échouaient, donc l'image staging n'incluait pas encore les 35 nouveaux outils ; débloqué par #1601, à reconfirmer au prochain scan. RabbitMQ prod & staging Running.
+- **Cost Anomaly 7j** (scan 2026-06-04) : RDS **+$3.65**, EBS **+$1.88** — montants négligeables, pas d'anomalie significative (seuil 25 %).
+- **Alarmes CloudWatch** : 7 configurées, **0 en ALARM** (scan 2026-06-04T11:10Z). `backend-error-rate` OK stable depuis le 27/05 18:36 UTC.
+- **Logs ERROR prod 24h** : **0 occurrence** (namespace `production`). Prod runtime saine.
+- **Dette connue (non hotfix)** : smoke E2E rouge = host de test déprécié `staging.legalcase.ng-itconsulting.com` (301→legalcase.fr casse login OIDC) — faux négatif, fix = `BASE_URL → staging.legalcase.fr` (cf. mémoire `project_f218_complete_smoke_e2e_host`).
 
 ---
 
