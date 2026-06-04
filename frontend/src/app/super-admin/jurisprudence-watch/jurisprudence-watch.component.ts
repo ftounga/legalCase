@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inje
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -90,7 +91,7 @@ export function parseBootstrapCsv(input: string): BootstrapParseResult {
 @Component({
   selector: 'app-jurisprudence-watch',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatProgressBarModule, MatTabsModule, DatePipe],
+  imports: [CommonModule, FormsModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressBarModule, MatTabsModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './jurisprudence-watch.component.html',
   styleUrl: './jurisprudence-watch.component.scss',
@@ -124,6 +125,9 @@ export class JurisprudenceWatchComponent implements OnInit, OnDestroy {
   /** SF-JU-06-02 — ré-évaluation/archivage des mappings existants. */
   confirmingReevaluation = false;
   reevaluating = false;
+
+  /** SF-JU-06-03 — enrichissement IA des requêtes JUDILIBRE pour ce bootstrap. */
+  enrichBootstrapQueries = false;
 
   @ViewChild('fileInput', { static: false })
   protected fileInput?: ElementRef<HTMLInputElement>;
@@ -276,7 +280,7 @@ export class JurisprudenceWatchComponent implements OnInit, OnDestroy {
     this.pollSubscription = null;
     this.bootstrapJob = null;
     this.loadingBootstrap = true;
-    this.client.triggerBootstrap(this.parseResult.entries).subscribe({
+    this.client.triggerBootstrap(this.parseResult.entries, this.enrichBootstrapQueries).subscribe({
       next: started => {
         this.bootstrapJob = {
           jobId: started.jobId,

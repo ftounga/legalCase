@@ -126,7 +126,7 @@ describe('JurisprudenceWatchComponent', () => {
 
     component['runBootstrap']();
     // POST a déjà renseigné bootstrapJob (status synthétique RUNNING avec entriesTotal=3)
-    expect(client.triggerBootstrap).toHaveBeenCalledWith(component.parseResult.entries);
+    expect(client.triggerBootstrap).toHaveBeenCalledWith(component.parseResult.entries, false);
     expect(component.bootstrapJob?.jobId).toBe('job-1');
     expect(component.bootstrapJob?.status).toBe('RUNNING');
     expect(component.loadingBootstrap).toBe(true);
@@ -443,6 +443,15 @@ describe('JurisprudenceWatchComponent', () => {
       commentUser: null,
     };
   }
+
+  // SF-JU-06-03 — requêtes enrichies
+  it('runBootstrap : transmet enrichBootstrapQueries au client', () => {
+    fixture.detectChanges();
+    component['loadExample']();
+    component.enrichBootstrapQueries = true;
+    component['runBootstrap']();
+    expect(client.triggerBootstrap).toHaveBeenCalledWith(component.parseResult.entries, true);
+  });
 
   // SF-JU-06-02 — ré-évaluation/archivage
   it('requestReevaluation : 1er clic demande confirmation sans appeler le client', () => {
