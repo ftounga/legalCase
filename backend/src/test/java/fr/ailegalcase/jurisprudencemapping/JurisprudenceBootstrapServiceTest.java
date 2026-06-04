@@ -42,6 +42,7 @@ class JurisprudenceBootstrapServiceTest {
     private JurisprudenceBootstrapJobRepository jobRepo;
     private PlatformTransactionManager txManager;
     private JurisprudenceBeWebSearchClient beWebSearchClient;
+    private JurisprudenceRelevanceGate relevanceGate;
     private JurisprudenceBootstrapService service;
 
     @BeforeEach
@@ -52,12 +53,73 @@ class JurisprudenceBootstrapServiceTest {
         auditRepo = mock(JurisprudenceAuditLogRepository.class);
         jobRepo = mock(JurisprudenceBootstrapJobRepository.class);
         beWebSearchClient = mock(JurisprudenceBeWebSearchClient.class);
+        relevanceGate = mock(JurisprudenceRelevanceGate.class);
+        // SF-JU-06-01 — par défaut la 2ᵉ passe juge pertinent (les tests de rejet l'overrident).
+        when(relevanceGate.assess(any(), any()))
+                .thenReturn(new JurisprudenceRelevanceGate.RelevanceVerdict(true, "pertinent"));
         txManager = mock(PlatformTransactionManager.class);
         when(txManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
         // SyncTaskExecutor : exécute le Runnable immédiatement sur le thread courant —
         // simplifie l'assertion sur l'état du job après startBootstrap.
         service = new JurisprudenceBootstrapService(judilibre, beWebSearchClient, evaluator,
-                mappingRepo, auditRepo, jobRepo, txManager, new SyncTaskExecutor());
+                mappingRepo, auditRepo, jobRepo, txManager, new SyncTaskExecutor(), relevanceGate);
+    }
+
+    // --- SF-JU-06-01 — garde-fous qualité (chapeau vide / confiance / pertinence) ---
+
+    @Test
+    void runBootstrap_emptyChapeau_isRejectedWithoutPersist() {
+        JudilibreArret sansChapeau = new JudilibreArret("EMPTY", "Cass. soc. EMPTY",
+                "Cour de cassation, chambre sociale", LocalDate.of(2025, 1, 8),
+                "23-00.001", "", "https://www.legifrance.gouv.fr/juri/id/EMPTY");
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
+                .thenReturn(List.of(sansChapeau));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, sansChapeau, new BigDecimal("0.90"), "ok"));
+
+        JurisprudenceBootstrapResponse resp = service.runBootstrap(
+                new JurisprudenceBootstrapRequest(List.of(entry("f-dt-30", "branche-1"))), triggerUser());
+
+        verify(mappingRepo, never()).save(any());
+        verify(relevanceGate, never()).assess(any(), any()); // rejet avant la 2ᵉ passe
+        assertThat(resp.mappingsCreated()).isZero();
+        assertThat(resp.entriesSkipped()).isEqualTo(1);
+    }
+
+    @Test
+    void runBootstrap_lowConfidence_isRejectedWithoutPersist() {
+        JudilibreArret arret = arret("LOW");
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
+                .thenReturn(List.of(arret));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret, new BigDecimal("0.55"), "marginal"));
+
+        JurisprudenceBootstrapResponse resp = service.runBootstrap(
+                new JurisprudenceBootstrapRequest(List.of(entry("f-dt-30", "branche-1"))), triggerUser());
+
+        verify(mappingRepo, never()).save(any());
+        assertThat(resp.mappingsCreated()).isZero();
+        assertThat(resp.entriesSkipped()).isEqualTo(1);
+    }
+
+    @Test
+    void runBootstrap_offTopicArret_isRejectedBySecondPass() {
+        JudilibreArret horsSujet = arret("OFFTOPIC"); // chapeau plein, confiance OK…
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
+                .thenReturn(List.of(horsSujet));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, horsSujet, new BigDecimal("0.72"), "marginal"));
+        // …mais la 2ᵉ passe le juge hors-sujet (cas « restauration ferroviaire »)
+        when(relevanceGate.assess(any(), any()))
+                .thenReturn(new JurisprudenceRelevanceGate.RelevanceVerdict(false, "porte sur une convention sectorielle sans rapport"));
+
+        JurisprudenceBootstrapResponse resp = service.runBootstrap(
+                new JurisprudenceBootstrapRequest(List.of(entry("f-dt-09-comparateur-indemnites", "default"))), triggerUser());
+
+        verify(relevanceGate).assess(any(), any());
+        verify(mappingRepo, never()).save(any());
+        assertThat(resp.mappingsCreated()).isZero();
+        assertThat(resp.entriesSkipped()).isEqualTo(1);
     }
 
     // --- SF-JU-04-02 — routage FR vs BE ---

@@ -51,6 +51,13 @@ public class JurisprudenceBootstrapService {
     private final JurisprudenceBootstrapJobRepository jobRepository;
     private final TransactionTemplate txTemplate;
     private final TaskExecutor taskExecutor;
+    private final JurisprudenceRelevanceGate relevanceGate;
+
+    /**
+     * SF-JU-06-01 — seuil de confiance minimal pour retenir un mapping au bootstrap
+     * (≥ seuil d'affichage 0,60 de SF-JU-01-FIX). En dessous, l'arrêt est rejeté.
+     */
+    private static final BigDecimal MIN_BOOTSTRAP_CONFIDENCE = new BigDecimal("0.70");
 
     public JurisprudenceBootstrapService(JudilibreApiClient judilibreClient,
                                          JurisprudenceBeWebSearchClient beWebSearchClient,
@@ -59,7 +66,8 @@ public class JurisprudenceBootstrapService {
                                          JurisprudenceAuditLogRepository auditLogRepository,
                                          JurisprudenceBootstrapJobRepository jobRepository,
                                          PlatformTransactionManager txManager,
-                                         @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
+                                         @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor,
+                                         JurisprudenceRelevanceGate relevanceGate) {
         this.judilibreClient = judilibreClient;
         this.beWebSearchClient = beWebSearchClient;
         this.evaluator = evaluator;
@@ -68,6 +76,7 @@ public class JurisprudenceBootstrapService {
         this.jobRepository = jobRepository;
         this.txTemplate = new TransactionTemplate(txManager);
         this.taskExecutor = taskExecutor;
+        this.relevanceGate = relevanceGate;
     }
 
     /**
@@ -224,6 +233,36 @@ public class JurisprudenceBootstrapService {
             ToolJurisprudenceMapping pseudoMapping = pseudoMappingFromEntry(entry);
             ClaudeEvaluation evaluation = evaluator.evaluate(pseudoMapping, candidates);
             if (evaluation.action() == EvaluationAction.NONE || evaluation.arretChoisi() == null) {
+                skipped++;
+                notifyProgress(onProgress, processed, created, skipped);
+                continue;
+            }
+            // SF-JU-06-01 — garde-fous qualité avant persistance (« silence > erreur ») :
+            JudilibreArret chosen = evaluation.arretChoisi();
+            // (1) chapeau vide/blanc → rejet (sinon citation « » vide affichée à l'avocat)
+            if (chosen.chapeauOfficiel() == null || chosen.chapeauOfficiel().isBlank()) {
+                log.info("F-JU-06 — Bootstrap rejet (chapeau vide) {}:{} ref={}",
+                        entry.toolId(), entry.brancheCalculId(), chosen.ref());
+                skipped++;
+                notifyProgress(onProgress, processed, created, skipped);
+                continue;
+            }
+            // (2) confiance sous le seuil → rejet
+            if (evaluation.confidenceScore() == null
+                    || evaluation.confidenceScore().compareTo(MIN_BOOTSTRAP_CONFIDENCE) < 0) {
+                log.info("F-JU-06 — Bootstrap rejet (confiance {} < {}) {}:{} ref={}",
+                        evaluation.confidenceScore(), MIN_BOOTSTRAP_CONFIDENCE,
+                        entry.toolId(), entry.brancheCalculId(), chosen.ref());
+                skipped++;
+                notifyProgress(onProgress, processed, created, skipped);
+                continue;
+            }
+            // (3) 2ᵉ passe de pertinence sémantique → rejet si l'arrêt ne fonde pas le sujet
+            JurisprudenceRelevanceGate.RelevanceVerdict relevance =
+                    relevanceGate.assess(entry.motCleRecherche(), chosen);
+            if (!relevance.pertinent()) {
+                log.info("F-JU-06 — Bootstrap rejet (hors-sujet : {}) {}:{} ref={}",
+                        relevance.raison(), entry.toolId(), entry.brancheCalculId(), chosen.ref());
                 skipped++;
                 notifyProgress(onProgress, processed, created, skipped);
                 continue;

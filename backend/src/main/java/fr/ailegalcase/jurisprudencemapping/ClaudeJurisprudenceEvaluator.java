@@ -55,36 +55,42 @@ public class ClaudeJurisprudenceEvaluator {
     /**
      * Prompt distinct utilisé en mode bootstrap initial — il n'existe encore aucun
      * mapping pour ce couple (outil × branche), donc CONFIRM / REPLACE / ARCHIVE
-     * n'ont pas de sens. Claude doit choisir l'arrêt le plus structurant parmi
-     * les candidats, et n'a le droit de renvoyer NONE que si aucun candidat
-     * n'est pertinent (SF-JU-01-08).
+     * n'ont pas de sens. Actions ADD ou NONE uniquement.
+     *
+     * <p>SF-JU-06-01 (2026-06-03) — biais INVERSÉ vs SF-JU-01-12 : on privilégie
+     * désormais NONE en cas de doute (« silence &gt; erreur »). Un arrêt hors-sujet
+     * cité sous un outil décrédibilise l'avocat — pire que pas de citation. Cause
+     * du durcissement : le comparateur d'indemnités F-DT-09 citait un arrêt
+     * « restauration ferroviaire » (prime d'ancienneté) retenu à confiance 0,72.</p>
      */
     private static final String SYSTEM_PROMPT_BOOTSTRAP = """
             Tu es un juriste senior spécialisé en jurisprudence française.
             On démarre le bootstrap initial des mappings de jurisprudence : pour un
             couple (outil décisionnel × branche de calcul), AUCUN arrêt n'est encore
             cité. On te présente 1 à N arrêts entrants candidats issus de JUDILIBRE.
-            Tu dois choisir l'arrêt le plus structurant pour fonder ce mapping.
 
             Actions autorisées : ADD ou NONE uniquement.
 
-            Règles (SF-JU-01-12 — assoupli vs SF-11 trop strict) :
-            - ADD : sélectionne l'arrêt LE MOINS ÉLOIGNÉ du sujet parmi les
-              candidats, MÊME s'il n'est pas idéal. Tout arrêt de la Cour de
-              cassation qui mentionne le sujet de la branche de calcul est
-              admissible. Aucune exigence de formation plénière, de publication
-              au Bulletin, ou de centralité parfaite. À niveau de pertinence
-              équivalent, préfère la chambre la plus adaptée (sociale pour
-              droit du travail, etc.) et la date la plus récente. Renseigne
-              arret_choisi_id avec son id JUDILIBRE.
-            - NONE : utilisation TRÈS exceptionnelle. À réserver aux cas où
-              AUCUN candidat ne porte la moindre proximité avec la branche
-              de calcul. Si même un seul candidat évoque vaguement le sujet,
-              choisis ADD. Le but du bootstrap est d'amorcer le mapping avec
-              ce qui est disponible — la veille mensuelle ultérieure se
-              chargera d'affiner avec de meilleurs arrêts au fil du temps.
-              **Confidence_score** doit refléter l'incertitude (0.3-0.5 pour
-              un arrêt marginal mais pertinent) — mais l'action reste ADD.
+            PRINCIPE DIRECTEUR — « silence > erreur » (SF-JU-06-01) :
+            Mieux vaut NE PAS citer d'arrêt que d'en citer un hors-sujet. Une
+            citation hors-sujet décrédibilise l'avocat devant le juge. Tu ne
+            choisis un arrêt QUE s'il FONDE RÉELLEMENT la situation traitée par
+            l'outil (son chapeau / sommaire porte bien sur CE sujet).
+
+            Règles :
+            - ADD : choisis un arrêt UNIQUEMENT s'il porte DIRECTEMENT sur le sujet
+              de la branche de calcul. À pertinence équivalente, préfère la chambre
+              adaptée (sociale pour le droit du travail, etc.) et la date la plus
+              récente. Renseigne arret_choisi_id avec son id JUDILIBRE.
+            - NONE : dès qu'AUCUN candidat ne porte directement sur le sujet. Cela
+              inclut les candidats qui ne font qu'évoquer vaguement un thème proche,
+              ou qui portent sur une convention collective / un régime / une matière
+              SANS rapport avec la situation de l'outil. EN CAS DE DOUTE → NONE.
+              NONE est une réponse normale et fréquente, pas un échec.
+
+            Le confidence_score reflète à quel point l'arrêt choisi FONDE le sujet :
+            0.85+ = arrêt de principe directement applicable ; 0.70 = clairement
+            pertinent. En dessous de 0.70, tu préfères NONE.
 
             RÈGLE DE FORMAT ABSOLUE — non négociable (SF-JU-01-11) :
             Ta réponse DOIT être un objet JSON unique commençant par « { » et
@@ -94,14 +100,11 @@ public class ClaudeJurisprudenceEvaluator {
             externe au champ "raison". Si tu hésites, mets l'analyse dans
             "raison" — mais le JSON reste la SEULE chose à produire.
 
-            Exemple de réponse valide (arrêt central, forte confiance) :
+            Exemple ADD (arrêt directement applicable) :
             {"action":"ADD","arret_choisi_id":"abc123def456","confidence_score":0.85,"raison":"Cass. soc. qui pose le principe applicable à la branche."}
 
-            Exemple de réponse valide (arrêt marginal mais admissible — toujours ADD) :
-            {"action":"ADD","arret_choisi_id":"xyz789","confidence_score":0.40,"raison":"Arrêt secondaire mais mentionnant la branche — meilleur disponible."}
-
-            Exemple NONE (très rare — aucun candidat n'évoque même vaguement le sujet) :
-            {"action":"NONE","arret_choisi_id":null,"confidence_score":0.10,"raison":"Aucun candidat ne porte sur la branche (probable mismatch JUDILIBRE FR / branche BE)."}
+            Exemple NONE (candidats hors-sujet — cas à privilégier en cas de doute) :
+            {"action":"NONE","arret_choisi_id":null,"confidence_score":0.10,"raison":"Les candidats portent sur la prime d'ancienneté d'une convention sectorielle, sans rapport avec le calcul d'indemnités de licenciement de l'outil."}
 
             Schéma attendu :
             {

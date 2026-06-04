@@ -152,10 +152,10 @@ class ClaudeJurisprudenceEvaluatorTest {
         // Au moins un exemple JSON inline (sert de few-shot)
         assertThat(systemPrompt).contains("{\"action\":\"ADD\"");
         assertThat(systemPrompt).contains("{\"action\":\"NONE\"");
-        // SF-JU-01-12 — assouplissement : préférer ADD même si arrêt marginal
-        assertThat(systemPrompt).contains("MÊME s'il n'est pas idéal");
-        assertThat(systemPrompt).contains("Aucune exigence de formation plénière");
-        assertThat(systemPrompt).contains("TRÈS exceptionnelle");
+        // SF-JU-06-01 — biais INVERSÉ : « silence > erreur », NONE privilégié en cas de doute
+        assertThat(systemPrompt).contains("silence > erreur");
+        assertThat(systemPrompt).contains("EN CAS DE DOUTE → NONE");
+        assertThat(systemPrompt).contains("FONDE RÉELLEMENT");
     }
 
     @Test
