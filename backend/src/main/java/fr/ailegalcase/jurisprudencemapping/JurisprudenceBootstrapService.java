@@ -240,6 +240,10 @@ public class JurisprudenceBootstrapService {
             ToolJurisprudenceMapping pseudoMapping = pseudoMappingFromEntry(entry);
             ClaudeEvaluation evaluation = evaluator.evaluate(pseudoMapping, candidates);
             if (evaluation.action() == EvaluationAction.NONE || evaluation.arretChoisi() == null) {
+                // SF-JU-06-FIX — tracer le NONE de l'évaluateur (sinon skip silencieux,
+                // diagnostic aveugle). Inclut la justification renvoyée par l'évaluateur.
+                log.info("F-JU-06 — Bootstrap skip (évaluateur NONE) {}:{} (query='{}') — raison: {}",
+                        entry.toolId(), entry.brancheCalculId(), query, evaluation.raison());
                 skipped++;
                 notifyProgress(onProgress, processed, created, skipped);
                 continue;

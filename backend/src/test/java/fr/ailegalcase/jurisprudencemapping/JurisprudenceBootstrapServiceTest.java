@@ -263,6 +263,31 @@ class JurisprudenceBootstrapServiceTest {
         assertThat(resp.entriesSkipped()).isEqualTo(1);
     }
 
+    // SF-JU-06-FIX — le skip pour cause de NONE évaluateur doit être tracé (diagnostic)
+    @Test
+    void runBootstrap_noneAction_logsReason() {
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger)
+                org.slf4j.LoggerFactory.getLogger(JurisprudenceBootstrapService.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
+                    .thenReturn(List.of(arret("AAA")));
+            when(evaluator.evaluate(any(), any()))
+                    .thenReturn(ClaudeEvaluation.none("Aucun candidat ne fonde l'outil"));
+
+            service.runBootstrap(new JurisprudenceBootstrapRequest(List.of(entry("f-dt-30", "branche-1"))), triggerUser());
+
+            assertThat(appender.list)
+                    .anyMatch(e -> e.getFormattedMessage().contains("évaluateur NONE")
+                            && e.getFormattedMessage().contains("Aucun candidat ne fonde l'outil"));
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
     @Test
     void runBootstrap_dbFailureOnSecondEntry_continuesOnThird() {
         JudilibreArret arret1 = arret("AAA");
