@@ -110,3 +110,19 @@ Quel provider S3-compatible sera utilisé en production ?
 - Packages Java : `fr.ailegalcase.{workspace,casefile,document,analysis,auth,billing,shared}`
 - Nommage Angular : kebab-case composants, PascalCase classes/services
 - Conventions SQL : déjà posées dans ARCHITECTURE_CANONIQUE
+
+---
+
+## Périmètre des scorings / conclusions / métrage : outils CALCULÉS seulement, ou champs pré-remplis ?
+**Soulevé le 2026-06-06** (arbitrage PO fiche produit DRH, décision D — sujet transverse au-delà du DRH).
+
+Les conclusions générées, le scoring d'exposition et le métrage à l'usage doivent-ils s'appuyer :
+- **uniquement sur les outils CALCULÉS / persistés** (clic « Calculer » → résultat enregistré), ou
+- **aussi sur les champs pré-remplis non cliqués** (valeurs présentes en UI mais sans calcul lancé) ?
+
+Aujourd'hui, seuls les outils calculés alimentent les conclusions → **risque de score / conclusion / facturation appauvris sans alerte** quand l'avocat (ou le DRH) n'a pas cliqué « Calculer ». Trois options :
+- **Option A — alerte avant génération** (recommandée PO) : signaler que des outils pertinents non calculés sont ignorés, sans forcer le pré-calcul. Préserve le modèle « outils décisionnels = simulateurs indépendants ».
+- **Option B — pré-calcul automatique** des outils pré-remplis avant génération (coût IA / temps).
+- **Option C — laisser tel quel** (statu quo, risque d'appauvrissement silencieux).
+
+> Impacte le produit avocat existant (conclusions F-IA), les scorings DRH (CHIFFRAGE-07 et déclinaisons) **et le métrage facturable** (PRICING-04, API-SIRH-14 de la fiche DRH). À trancher **avant** tout dev de scoring ou de facturation à l'usage. Réf. : `docs/drh/PRODUCT_SPEC_DRH_DRAFT.md` (Décisions PO, D) + mémoire `project_coherence_conclusions_outils_non_calcules`.
