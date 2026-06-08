@@ -1,0 +1,29 @@
+@if (hasContent()) {
+  <article class="cd-sheet" data-testid="conclusions-content">
+    @for (section of sections(); track $index) {
+      <section class="cd-section">
+        @if (section.title) {
+          <h3 class="cd-section-title" data-testid="cd-section-title">
+            {{ section.title }}
+          </h3>
+        }
+
+        @if (section.dispositifItems) {
+          <ol class="cd-dispositif" data-testid="cd-dispositif">
+            @for (item of section.dispositifItems; track $index) {
+              <li class="cd-dispositif-item">{{ item }}</li>
+            }
+          </ol>
+        } @else {
+          @for (paragraph of section.paragraphs; track $index) {
+            <p class="cd-body" data-testid="cd-body">{{ paragraph }}</p>
+          }
+        }
+      </section>
+    }
+
+    <p class="cd-footer" data-testid="cd-footer">
+      Document de travail — à vérifier par l'avocat
+    </p>
+  </article>
+}

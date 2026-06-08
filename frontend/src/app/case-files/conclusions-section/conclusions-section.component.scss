@@ -228,21 +228,9 @@ $gold: #c9973a;
   flex-shrink: 0;
 }
 
-// ── Texte des conclusions (préformaté) ─────────────────────
-.cs-content {
-  margin: 0 0 16px;
-  padding: 16px 20px;
-  border-radius: 6px;
-  border: 1px solid #e6e1d4;
-  background: #fbfaf6;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #1a2330;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-x: auto;
-}
+// F-259 / SF-259-01 — `.cs-content` (le `<pre>` beige préformaté) retiré :
+// le rendu lecture est désormais délégué à `<app-conclusion-document>`
+// (document juridique structuré). L'éditeur ci-dessous reste inchangé.
 
 // ── Éditeur de relecture (SF-98-49) ────────────────────────
 .cs-editor {
