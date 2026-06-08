@@ -1,5 +1,7 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.jurisprudencemapping.JudilibreApiClient;
+import fr.ailegalcase.jurisprudencemapping.JudilibreArret;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,6 +10,11 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * F-179 SF-179-02 — recherche web publique de vérification d'existence d'une
@@ -42,9 +49,21 @@ public class WebSearchService {
             "geen resultaat", "no result"
     };
 
+    /**
+     * SF-179-05 — n° de pourvoi de la Cour de cassation dans une référence, au
+     * format {@code NN-NN.NNN} (ex. {@code 98-41.609}), séparateurs souples.
+     */
+    private static final Pattern POURVOI_PATTERN =
+            Pattern.compile("\\b(\\d{2}[.\\-\\s]\\d{2}[.\\-\\s]\\d{3})\\b");
+
+    /** SF-179-05 — fenêtre large pour une recherche JUDILIBRE par n° de pourvoi (discriminant). */
+    private static final LocalDate JUDILIBRE_PERIOD_START = LocalDate.of(1960, 1, 1);
+
     private final RestClient restClient;
     private final String legifranceBaseUrl;
     private final String juridatBaseUrl;
+    /** SF-179-05 — confirmation d'existence des arrêts FR Cour de cassation (API officielle). */
+    private final JudilibreApiClient judilibre;
 
     @org.springframework.beans.factory.annotation.Autowired
     public WebSearchService(
@@ -53,20 +72,24 @@ public class WebSearchService {
             String legifranceBaseUrl,
             @Value("${jurisprudence.web-search.juridat-base-url:https://juportal.be}")
             String juridatBaseUrl,
-            @Value("${jurisprudence.web-search.timeout-ms:8000}") long timeoutMs) {
+            @Value("${jurisprudence.web-search.timeout-ms:8000}") long timeoutMs,
+            JudilibreApiClient judilibre) {
         this.legifranceBaseUrl = legifranceBaseUrl;
         this.juridatBaseUrl = juridatBaseUrl;
+        this.judilibre = judilibre;
         var requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofMillis(timeoutMs));
         requestFactory.setReadTimeout(Duration.ofMillis(timeoutMs));
         this.restClient = builder.requestFactory(requestFactory).build();
     }
 
-    /** Constructeur de test (injection directe du {@link RestClient}). */
-    WebSearchService(RestClient restClient, String legifranceBaseUrl, String juridatBaseUrl) {
+    /** Constructeur de test (injection directe du {@link RestClient} et de JUDILIBRE). */
+    WebSearchService(RestClient restClient, String legifranceBaseUrl, String juridatBaseUrl,
+                     JudilibreApiClient judilibre) {
         this.restClient = restClient;
         this.legifranceBaseUrl = legifranceBaseUrl;
         this.juridatBaseUrl = juridatBaseUrl;
+        this.judilibre = judilibre;
     }
 
     /**
@@ -82,6 +105,17 @@ public class WebSearchService {
         }
         boolean belgium = country != null
                 && country.trim().toUpperCase(java.util.Locale.ROOT).startsWith("BE");
+
+        // SF-179-05 — pour la France, on tente d'abord l'API officielle JUDILIBRE
+        // (Cour de cassation) par n° de pourvoi : fiable et structurée, là où le
+        // scraping Légifrance échoue à confirmer des arrêts réels peu connus.
+        if (!belgium) {
+            Optional<WebSearchResult> judilibreHit = tryJudilibreConfirmation(reference);
+            if (judilibreHit.isPresent()) {
+                return judilibreHit.get();
+            }
+        }
+
         String baseUrl = belgium ? juridatBaseUrl : legifranceBaseUrl;
 
         // Un seul retry sur erreur réseau / 5xx (backoff exponentiel court).
@@ -126,6 +160,56 @@ public class WebSearchService {
             }
         }
         return WebSearchResult.uncertain();
+    }
+
+    /**
+     * SF-179-05 — Confirmation d'existence via JUDILIBRE (Cour de cassation FR).
+     *
+     * <p>Extrait le n° de pourvoi de la référence et interroge l'API officielle.
+     * Renvoie {@code FOUND(lienLegifrance)} si un arrêt au numéro <strong>exactement
+     * matchant</strong> est trouvé. Renvoie {@code Optional.empty()} (→ le flux
+     * scraping prend le relais) dans tous les autres cas : pas de numéro, JUDILIBRE
+     * sans credentials / vide / en erreur, ou aucun arrêt au bon numéro. Ne
+     * propage jamais d'exception et n'émet jamais un faux positif.</p>
+     */
+    Optional<WebSearchResult> tryJudilibreConfirmation(String reference) {
+        String numero = extractPourvoiNumber(reference);
+        if (numero == null) {
+            return Optional.empty();
+        }
+        try {
+            List<JudilibreArret> arrets = judilibre.fetchArretsByKeyword(
+                    numero, JUDILIBRE_PERIOD_START, LocalDate.now().plusDays(1), 5);
+            String target = normalizeNumber(numero);
+            for (JudilibreArret arret : arrets) {
+                if (arret != null && target.equals(normalizeNumber(arret.numeroPourvoi()))) {
+                    String url = (arret.lienLegifrance() == null || arret.lienLegifrance().isBlank())
+                            ? "https://www.courdecassation.fr/decision/" + arret.judilibreId()
+                            : arret.lienLegifrance();
+                    log.info("F-179 SF-179-05: existence confirmée par JUDILIBRE pour pourvoi {} → VERIFIED", numero);
+                    return Optional.of(WebSearchResult.found(url));
+                }
+            }
+        } catch (Exception e) {
+            // Tolérant à l'échec : on retombe sur le scraping (jamais d'exception propagée).
+            log.warn("F-179 SF-179-05: JUDILIBRE confirmation error for pourvoi {} — fallback scraping ({})",
+                    numero, e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    /** Extrait le 1er n° de pourvoi au format {@code NN-NN.NNN}, ou {@code null}. */
+    static String extractPourvoiNumber(String reference) {
+        if (reference == null) {
+            return null;
+        }
+        Matcher m = POURVOI_PATTERN.matcher(reference);
+        return m.find() ? m.group(1) : null;
+    }
+
+    /** Réduit un n° de pourvoi à ses chiffres seuls pour une comparaison robuste aux séparateurs. */
+    static String normalizeNumber(String number) {
+        return number == null ? "" : number.replaceAll("\\D", "");
     }
 
     /**
