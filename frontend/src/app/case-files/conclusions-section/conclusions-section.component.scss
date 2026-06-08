@@ -297,6 +297,48 @@ $gold: #c9973a;
   height: 18px;
 }
 
+// ── F-258 SF-258-01 — Alerte outils non calculés (or, jamais rouge) ──
+.cs-tools-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border-left: 3px solid $gold;
+  background: rgba(201, 151, 58, 0.1);
+  font-family: 'Inter', sans-serif;
+}
+
+.cs-tools-warning-icon {
+  flex-shrink: 0;
+  color: $gold;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.cs-tools-warning-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.cs-tools-warning-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: $navy;
+}
+
+.cs-tools-warning-action {
+  padding: 0;
+  min-width: 0;
+  font-weight: 600;
+  color: $navy;
+  text-decoration: underline;
+}
+
 // ── Indicateur de style appliqué (SF-98-48 / b2) ───────────
 .cs-style-applied {
   display: inline-flex;

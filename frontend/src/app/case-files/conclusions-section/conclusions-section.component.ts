@@ -2,13 +2,16 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  EventEmitter,
   Input,
   OnDestroy,
   OnInit,
+  Output,
   computed,
   inject,
   signal,
 } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,6 +21,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { ConclusionsService } from '../../core/services/conclusions.service';
+import { CaseFileService } from '../../core/services/case-file.service';
+import { CaseDashboardService } from '../../core/services/case-dashboard.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import {
@@ -107,6 +112,14 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    */
   @Input() caseTitle?: string;
 
+  /**
+   * F-258 / SF-258-01 — Demande de focalisation du panneau d'outils
+   * décisionnels. Émis quand l'avocat clique « Voir les outils à calculer »
+   * dans l'encart d'avertissement. Le parent (`case-file-detail`) fait défiler
+   * la page vers `#section-outils-decisionnels`.
+   */
+  @Output() viewToolsRequested = new EventEmitter<void>();
+
   /** Contenu de la version actuellement affichée. */
   readonly conclusion = signal<ConclusionResponse | null>(null);
   /** Historique des versions du dossier (tri version décroissante). */
@@ -130,12 +143,22 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   /** SF-98-49 — Enregistrement du texte édité en cours (PATCH). */
   readonly savingContent = signal(false);
 
+  /**
+   * F-258 / SF-258-01 — Nombre d'outils décisionnels **proposés** (pré-remplis)
+   * mais **non encore calculés** pour ce dossier. Calculé au montage à partir de
+   * la visibilité (`alwaysOn + contextual`) et du tableau de bord (`tiles`).
+   * `0` ⇒ aucun encart (cas par défaut, et en cas d'échec de l'un des appels).
+   */
+  readonly missingToolsCount = signal(0);
+
   /** Libellés des états de cycle de vie, exposés au template. */
   readonly lifecycleLabels = LIFECYCLE_LABELS;
   /** Ordre des états de cycle de vie, exposé au template. */
   readonly lifecycleOptions = LIFECYCLE_ORDER;
 
   private readonly conclusionsService = inject(ConclusionsService);
+  private readonly caseFileService = inject(CaseFileService);
+  private readonly caseDashboardService = inject(CaseDashboardService);
   private readonly docxExportService = inject(DocxExportService);
   private readonly pdfExportService = inject(PdfExportService);
   private readonly snackBar = inject(MatSnackBar);
@@ -207,6 +230,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.refreshMissingTools();
     this.conclusionsService.getConclusion(this.caseFileId).subscribe({
       next: (res) => {
         this.conclusion.set(res);
@@ -512,6 +536,44 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   /** Libellé FR d'un cycle de vie (utilitaire template). */
   lifecycleLabel(value: ConclusionLifecycleStatus | null): string {
     return value ? LIFECYCLE_LABELS[value] : '';
+  }
+
+  /**
+   * F-258 / SF-258-01 — Recalcule le nombre d'outils proposés non calculés.
+   *
+   * `N = (alwaysOn + contextual) − {toolId des tiles}`. Le `catalog` (outils
+   * non proposés sur ce dossier) n'est **jamais** compté — sinon faux positifs
+   * massifs (invariant cadrage étape 0). En cas d'échec de l'un des deux appels,
+   * on retombe à `0` (pas d'encart, pas de blocage) : on n'invente pas de N.
+   */
+  private refreshMissingTools(): void {
+    forkJoin({
+      visibility: this.caseFileService.getDecisionToolsVisibility(this.caseFileId),
+      dashboard: this.caseDashboardService.get(this.caseFileId),
+    }).subscribe({
+      next: ({ visibility, dashboard }) => {
+        const proposed = new Set([
+          ...visibility.alwaysOn,
+          ...visibility.contextual,
+        ]);
+        const calculated = new Set(
+          (dashboard.tiles ?? []).map((tile) => tile.toolId),
+        );
+        let missing = 0;
+        proposed.forEach((toolId) => {
+          if (!calculated.has(toolId)) {
+            missing += 1;
+          }
+        });
+        this.missingToolsCount.set(missing);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Dégradation silencieuse : sans données fiables, pas d'encart.
+        this.missingToolsCount.set(0);
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   /** Recharge l'historique des versions (best-effort, sans bloquer l'UI). */

@@ -31,6 +31,9 @@ describe('ConclusionsSectionComponent', () => {
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
   const GENERATE_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate`;
   const VERSIONS_URL = `/api/v1/case-files/${CASE_ID}/conclusions/versions`;
+  // F-258 SF-258-01 — endpoints du décompte « outils non calculés ».
+  const VISIBILITY_URL = `/api/v1/case-files/${CASE_ID}/decision-tools-visibility`;
+  const DASHBOARD_URL = `/api/v1/case-files/${CASE_ID}/dashboard`;
   const versionUrl = (id: string) => `${VERSIONS_URL}/${id}`;
   const lifecycleUrl = (id: string) => `${versionUrl(id)}/lifecycle`;
   const contentUrl = (id: string) => `${versionUrl(id)}/content`;
@@ -130,11 +133,35 @@ describe('ConclusionsSectionComponent', () => {
   /**
    * Sert le GET initial des conclusions PUIS le `listVersions` best-effort
    * qui suit toujours (SF-98-52). `versions` vaut `[]` par défaut.
+   *
+   * F-258 SF-258-01 — sert aussi les deux GET du décompte « outils non
+   * calculés » (visibilité + dashboard) déclenchés en parallèle au montage.
+   * Par défaut visibilité et tiles sont vides ⇒ N=0 ⇒ aucun encart, ce qui
+   * n'affecte pas les tests antérieurs.
    */
   function flushInitialLoad(
     conclusion: ConclusionResponse = response(),
     versions: ConclusionVersionSummary[] = [],
+    visibility: { alwaysOn: string[]; contextual: string[]; catalog: string[] } = {
+      alwaysOn: [],
+      contextual: [],
+      catalog: [],
+    },
+    tileToolIds: string[] = [],
   ): void {
+    httpMock.expectOne(VISIBILITY_URL).flush(visibility);
+    httpMock.expectOne(DASHBOARD_URL).flush({
+      caseFileId: CASE_ID,
+      legalDomain: 'TRAVAIL',
+      riskScore: null,
+      riskLevel: null,
+      tiles: tileToolIds.map((toolId) => ({
+        toolId,
+        theme: 'INDEMNITES',
+        label: toolId,
+        primaryValue: '—',
+      })),
+    });
     httpMock.expectOne(GET_URL).flush(conclusion);
     httpMock.expectOne(VERSIONS_URL).flush(versions);
   }
@@ -145,6 +172,9 @@ describe('ConclusionsSectionComponent', () => {
 
   it('montage → GET /conclusions + GET /versions déclenchés', () => {
     fixture.detectChanges();
+    // F-258 — les deux GET du décompte partent aussi au montage.
+    httpMock.expectOne(VISIBILITY_URL).flush({ alwaysOn: [], contextual: [], catalog: [] });
+    httpMock.expectOne(DASHBOARD_URL).flush({ caseFileId: CASE_ID, tiles: [] });
     const req = httpMock.expectOne(GET_URL);
     expect(req.request.method).toBe('GET');
     req.flush(response());
@@ -646,6 +676,9 @@ describe('ConclusionsSectionComponent', () => {
 
   it('GET initial en erreur → section indisponible + snackbar', () => {
     fixture.detectChanges();
+    // F-258 — le décompte part au montage (sans effet ici, N=0).
+    httpMock.expectOne(VISIBILITY_URL).flush({ alwaysOn: [], contextual: [], catalog: [] });
+    httpMock.expectOne(DASHBOARD_URL).flush({ caseFileId: CASE_ID, tiles: [] });
     httpMock
       .expectOne(GET_URL)
       .flush({}, { status: 500, statusText: 'Server Error' });
@@ -930,5 +963,103 @@ describe('ConclusionsSectionComponent', () => {
     httpMock.expectOne(VERSIONS_URL).flush(versionList());
 
     expect(component.status()).toBe('PENDING');
+  });
+
+  // ---------------------------------------------------------------------------
+  // F-258 SF-258-01 — Alerte « outils proposés non calculés »
+  // ---------------------------------------------------------------------------
+
+  describe('F-258 — alerte outils non calculés', () => {
+    const WARNING = '[data-testid="missing-tools-warning"]';
+    const VIEW_BTN = '[data-testid="view-tools-btn"]';
+
+    it('N = (alwaysOn + contextual) − tiles ; le catalog est ignoré', () => {
+      component.hasCompletedAnalysis = true;
+      fixture.detectChanges();
+      // proposés = A,B (alwaysOn) + C (contextual) ; calculés = A ; catalog = D (ignoré)
+      flushInitialLoad(
+        response(),
+        [],
+        { alwaysOn: ['A', 'B'], contextual: ['C'], catalog: ['D'] },
+        ['A'],
+      );
+      fixture.detectChanges();
+
+      // N = {B, C} = 2 (D du catalog jamais compté)
+      expect(component.missingToolsCount()).toBe(2);
+      const warning = fixture.nativeElement.querySelector(WARNING);
+      expect(warning).not.toBeNull();
+      expect(warning.textContent).toContain('2 outil');
+    });
+
+    it('tous les outils proposés sont calculés → N=0, aucun encart', () => {
+      component.hasCompletedAnalysis = true;
+      fixture.detectChanges();
+      flushInitialLoad(
+        response(),
+        [],
+        { alwaysOn: ['A'], contextual: ['B'], catalog: ['D'] },
+        ['A', 'B'],
+      );
+      fixture.detectChanges();
+
+      expect(component.missingToolsCount()).toBe(0);
+      expect(fixture.nativeElement.querySelector(WARNING)).toBeNull();
+    });
+
+    it('le bouton « Générer » reste actif même avec N>0 (non bloquant)', () => {
+      component.hasCompletedAnalysis = true;
+      fixture.detectChanges();
+      flushInitialLoad(
+        response(),
+        [],
+        { alwaysOn: ['A'], contextual: [], catalog: [] },
+        [],
+      );
+      fixture.detectChanges();
+
+      expect(component.missingToolsCount()).toBe(1);
+      const btn: HTMLButtonElement = fixture.nativeElement.querySelector(
+        '[data-testid="generate-btn"]',
+      );
+      expect(btn.disabled).toBe(false);
+    });
+
+    it('clic « Voir les outils à calculer » → émet viewToolsRequested', () => {
+      component.hasCompletedAnalysis = true;
+      const spy = jasmine.createSpy('viewTools');
+      component.viewToolsRequested.subscribe(spy);
+      fixture.detectChanges();
+      flushInitialLoad(
+        response(),
+        [],
+        { alwaysOn: ['A'], contextual: [], catalog: [] },
+        [],
+      );
+      fixture.detectChanges();
+
+      const viewBtn: HTMLButtonElement =
+        fixture.nativeElement.querySelector(VIEW_BTN);
+      expect(viewBtn).not.toBeNull();
+      viewBtn.click();
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('échec d\'un des appels (dashboard) → N=0, pas d\'encart, pas de crash', () => {
+      component.hasCompletedAnalysis = true;
+      fixture.detectChanges();
+      httpMock
+        .expectOne(VISIBILITY_URL)
+        .flush({ alwaysOn: ['A'], contextual: ['B'], catalog: [] });
+      httpMock
+        .expectOne(DASHBOARD_URL)
+        .flush('boom', { status: 500, statusText: 'Server Error' });
+      httpMock.expectOne(GET_URL).flush(response());
+      httpMock.expectOne(VERSIONS_URL).flush([]);
+      fixture.detectChanges();
+
+      expect(component.missingToolsCount()).toBe(0);
+      expect(fixture.nativeElement.querySelector(WARNING)).toBeNull();
+    });
   });
 });

@@ -753,6 +753,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     this.decisionPrefillTotal.set(total);
   }
 
+  /**
+   * F-258 / SF-258-01 — Réponse à `viewToolsRequested` de la section
+   * conclusions : ramène l'avocat au panneau d'outils décisionnels pour qu'il
+   * calcule les outils proposés non encore calculés.
+   */
+  scrollToDecisionTools(): void {
+    this.scrollAndHighlight('section-outils-decisionnels');
+  }
+
   /** SF-IA-03-19 : scroll + highlight pulse 2s sur une section. Retry 3× car le rendu est async. */
   private scrollAndHighlight(anchorId: string, attempt = 0): void {
     const el = document.getElementById(anchorId);

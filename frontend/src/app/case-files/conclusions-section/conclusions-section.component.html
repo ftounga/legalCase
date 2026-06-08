@@ -52,6 +52,27 @@
               <a routerLink="/workspace/style-learning">constituez votre corpus de style</a>.
             </span>
           </p>
+          <!-- F-258 SF-258-01 : alerte NON bloquante quand des outils
+               décisionnels proposés ne sont pas encore calculés. Conditionnelle
+               (rendue uniquement si N > 0) ; ne désactive jamais le bouton. -->
+          @if (missingToolsCount() > 0) {
+            <div class="cs-tools-warning" data-testid="missing-tools-warning" role="status">
+              <mat-icon class="cs-tools-warning-icon">info</mat-icon>
+              <div class="cs-tools-warning-body">
+                <span class="cs-tools-warning-text">
+                  {{ missingToolsCount() }} outil(s) décisionnel(s) pertinent(s)
+                  {{ missingToolsCount() > 1 ? 'ne sont pas encore calculés' : 'n\'est pas encore calculé' }}
+                  — les conclusions ne {{ missingToolsCount() > 1 ? 'les' : 'le' }} prendront pas en compte.
+                </span>
+                <button mat-button type="button"
+                        class="cs-tools-warning-action"
+                        data-testid="view-tools-btn"
+                        (click)="viewToolsRequested.emit()">
+                  Voir les outils à calculer
+                </button>
+              </div>
+            </div>
+          }
           <div class="cs-actions">
             <button mat-flat-button color="primary"
                     data-testid="generate-btn"
