@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="596-fix-jurisprudence-dead-legifrance-links" author="legalcase">
+        <comment>
+            SF-JU-06-FIX2 — Bugfix : liens « Légifrance » morts (révélé au test
+            manuel 2026-06-06). Le bootstrap stockait un lien
+            legifrance.gouv.fr/juri/id/&lt;id&gt; en utilisant l'identifiant
+            JUDILIBRE (hex 24 car., ex. 616676d0a1c75d6f42603ee6) — qui n'est PAS
+            un id Légifrance → page morte (HTTP 403). Le même id est valide sur
+            courdecassation.fr/decision/&lt;id&gt; (HTTP 200 vérifié).
+
+            Cette migration corrige les liens EXISTANTS en remplaçant le domaine
+            et le chemin, UNIQUEMENT pour les liens du format JUDILIBRE (on
+            préserve les vrais liens Légifrance contenant JURITEXT, fournis par
+            solution_url). Le code (JudilibreApiClient) est corrigé en parallèle
+            pour les futurs mappings.
+        </comment>
+
+        <sql splitStatements="true">
+UPDATE tool_jurisprudence_mappings
+SET lien_legifrance = REPLACE(lien_legifrance,
+        'https://www.legifrance.gouv.fr/juri/id/',
+        'https://www.courdecassation.fr/decision/')
+WHERE lien_legifrance LIKE 'https://www.legifrance.gouv.fr/juri/id/%'
+  AND lien_legifrance NOT LIKE '%JURITEXT%';
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+UPDATE tool_jurisprudence_mappings
+SET lien_legifrance = REPLACE(lien_legifrance,
+        'https://www.courdecassation.fr/decision/',
+        'https://www.legifrance.gouv.fr/juri/id/')
+WHERE lien_legifrance LIKE 'https://www.courdecassation.fr/decision/%';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

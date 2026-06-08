@@ -1,5 +1,6 @@
 package fr.ailegalcase.jurisprudencemapping;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
@@ -50,5 +51,33 @@ class JudilibreApiClientTest {
                 LocalDate.of(2026, 4, 1), LocalDate.of(2026, 5, 1));
 
         assertThat(result).isEmpty();
+    }
+
+    // SF-JU-06-FIX2 — le lien de fallback doit pointer vers courdecassation.fr/decision/
+    // (l'id JUDILIBRE n'est pas un id Légifrance → legifrance/juri/id = 403).
+    @Test
+    void parseArret_fallsBackToCourDeCassation_whenNoSolutionUrl() throws Exception {
+        ObjectMapper om = new ObjectMapper();
+        JudilibreApiClient client = new JudilibreApiClient("id", "secret", om);
+        JsonNode node = om.readTree(
+                "{\"id\":\"616676d0a1c75d6f42603ee6\",\"number\":\"18-18.022\",\"jurisdiction\":\"cc\"}");
+
+        JudilibreArret arret = client.parseArret(node);
+
+        assertThat(arret.lienLegifrance())
+                .isEqualTo("https://www.courdecassation.fr/decision/616676d0a1c75d6f42603ee6");
+    }
+
+    @Test
+    void parseArret_keepsSolutionUrl_whenProvided() throws Exception {
+        ObjectMapper om = new ObjectMapper();
+        JudilibreApiClient client = new JudilibreApiClient("id", "secret", om);
+        JsonNode node = om.readTree(
+                "{\"id\":\"abc\",\"solution_url\":\"https://www.legifrance.gouv.fr/juri/id/JURITEXT000045728912\"}");
+
+        JudilibreArret arret = client.parseArret(node);
+
+        assertThat(arret.lienLegifrance())
+                .isEqualTo("https://www.legifrance.gouv.fr/juri/id/JURITEXT000045728912");
     }
 }

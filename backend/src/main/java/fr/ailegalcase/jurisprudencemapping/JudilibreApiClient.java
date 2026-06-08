@@ -279,7 +279,7 @@ public class JudilibreApiClient {
         throw new IllegalStateException("F-JU-01 — JudilibreApiClient /search retries exhausted", last);
     }
 
-    private JudilibreArret parseArret(JsonNode node) {
+    JudilibreArret parseArret(JsonNode node) {
         try {
             String id = node.path("id").asText(null);
             String numero = node.path("number").asText(null);
@@ -298,7 +298,11 @@ public class JudilibreApiClient {
             if (ref == null && date != null && numero != null) {
                 ref = juridiction + (chamberId.isBlank() ? "" : " " + chamberId) + " " + date + ", n° " + numero;
             }
-            String url = node.path("solution_url").asText("https://www.legifrance.gouv.fr/juri/id/" + id);
+            // SF-JU-06-FIX2 — fallback : l'identifiant JUDILIBRE (hex 24) n'est PAS un
+            // id Légifrance (legifrance.gouv.fr/juri/id/<id> → 403). Il est valide sur
+            // courdecassation.fr/decision/<id> (HTTP 200 vérifié). On garde solution_url
+            // s'il est fourni par JUDILIBRE.
+            String url = node.path("solution_url").asText("https://www.courdecassation.fr/decision/" + id);
             return new JudilibreArret(id, ref, juridiction, date, numero, chapeau, url);
         } catch (Exception e) {
             log.warn("F-JU-01 — JudilibreApiClient parseArret fail: {}", e.getMessage());
