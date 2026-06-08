@@ -1,0 +1,377 @@
+/* EmployerLandingComponent — page publique /employeur (F-DRH-01 SF-DRH-01-01)
+ * Encapsulation par défaut (Emulated). Toutes les classes sont préfixées `emp-`
+ * (double sécurité anti-collision avec la landing en ViewEncapsulation.None).
+ * Palette / typo : DESIGN_SYSTEM.md (navy #1A3A5C, or #C9973A, Inter, Merriweather). */
+
+.emp-page {
+  --emp-bg: #f5f6fa;
+  --emp-surface: #ffffff;
+  --emp-navy: #1a3a5c;
+  --emp-navy-soft: #2c5282;
+  --emp-gold: #c9973a;
+  --emp-text: #1c2b3a;
+  --emp-text-muted: #6b7a8d;
+  --emp-border: #e0e4ea;
+  --emp-shadow-card: 0 2px 8px rgba(26, 58, 92, 0.08);
+  --emp-shadow-card-hover: 0 12px 32px rgba(26, 58, 92, 0.14);
+
+  min-height: 100vh;
+  background: var(--emp-bg);
+  color: var(--emp-text);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.emp-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 5%;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--emp-border);
+}
+
+.emp-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--emp-navy);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.emp-logo-mark {
+  font-size: 22px;
+  color: var(--emp-gold);
+}
+
+.emp-logo-text {
+  font-size: 17px;
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.emp-logo-badge {
+  margin-left: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(201, 151, 58, 0.14);
+  color: var(--emp-gold);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.emp-header-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--emp-navy);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    background: var(--emp-navy-soft);
+    transform: translateY(-1px);
+  }
+  &:focus-visible {
+    outline: 3px solid var(--emp-gold);
+    outline-offset: 3px;
+  }
+}
+
+/* Main */
+.emp-main {
+  flex: 1;
+}
+
+/* Shared section title / lead */
+.emp-section-title {
+  font-family: 'Merriweather', serif;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
+  color: var(--emp-navy);
+  margin: 0 0 16px;
+  line-height: 1.2;
+}
+
+.emp-section-lead {
+  font-size: 18px;
+  color: var(--emp-text-muted);
+  margin: 0 0 32px;
+  max-width: 680px;
+}
+
+/* Shared button */
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 32px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  &:focus-visible {
+    outline: 3px solid var(--emp-gold);
+    outline-offset: 3px;
+  }
+}
+
+.emp-btn--primary {
+  background: var(--emp-gold);
+  color: var(--emp-navy);
+  box-shadow: 0 6px 16px rgba(201, 151, 58, 0.35);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(201, 151, 58, 0.45);
+  }
+}
+
+/* 1 — Hero */
+.emp-hero {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 80px 5% 64px;
+  text-align: center;
+}
+
+.emp-eyebrow {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 6px 14px;
+  background: rgba(201, 151, 58, 0.12);
+  border: 1px solid rgba(201, 151, 58, 0.35);
+  border-radius: 999px;
+  color: var(--emp-gold);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.emp-hero-title {
+  font-family: 'Merriweather', serif;
+  font-size: clamp(30px, 5vw, 48px);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--emp-navy);
+  margin: 0 0 24px;
+  line-height: 1.15;
+}
+
+.emp-hero-subtitle {
+  font-size: 20px;
+  color: var(--emp-text-muted);
+  margin: 0 auto 32px;
+  max-width: 680px;
+}
+
+.emp-hero-actions {
+  display: flex;
+  justify-content: center;
+}
+
+/* 2 — Valeur */
+.emp-value {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 5%;
+}
+
+.emp-value-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.emp-value-card {
+  background: var(--emp-surface);
+  border: 1px solid var(--emp-border);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: var(--emp-shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: var(--emp-shadow-card-hover);
+    transform: translateY(-2px);
+  }
+}
+
+.emp-value-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: rgba(26, 58, 92, 0.06);
+  color: var(--emp-gold);
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.emp-value-card-title {
+  font-family: 'Merriweather', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--emp-navy);
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.emp-value-card-text {
+  font-size: 15px;
+  color: var(--emp-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 3 — Confiance */
+.emp-trust {
+  background: var(--emp-surface);
+  border-top: 1px solid var(--emp-border);
+  border-bottom: 1px solid var(--emp-border);
+  padding: 64px 5%;
+  margin: 48px 0;
+}
+
+.emp-trust-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  text-align: center;
+
+  .emp-section-lead {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.emp-trust-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+.emp-trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px solid var(--emp-border);
+  border-radius: 999px;
+  background: var(--emp-bg);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--emp-navy);
+}
+
+.emp-trust-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #27ae60;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 4 — CTA final */
+.emp-cta {
+  max-width: 720px;
+  margin: 0 auto 80px;
+  background: linear-gradient(135deg, var(--emp-navy) 0%, var(--emp-navy-soft) 100%);
+  color: #fff;
+  text-align: center;
+  border-radius: 16px;
+  padding: 48px 32px;
+  box-shadow: 0 20px 48px rgba(26, 58, 92, 0.18);
+}
+
+.emp-cta-title {
+  font-family: 'Merriweather', serif;
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: #fff;
+}
+
+.emp-cta-text {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  margin: 0 0 32px;
+}
+
+.emp-cta-btn {
+  /* hérite de .emp-btn--primary */
+}
+
+/* Footer */
+.emp-footer {
+  background: var(--emp-navy);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 32px 5%;
+  margin-top: auto;
+}
+
+.emp-footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.emp-footer-brand {
+  letter-spacing: 0.4px;
+}
+
+.emp-footer-nav {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+
+  a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+
+    &:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+  }
+}
