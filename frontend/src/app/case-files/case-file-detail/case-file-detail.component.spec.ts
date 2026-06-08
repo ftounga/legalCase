@@ -2392,4 +2392,22 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // F-258 SF-258-01 — réponse à viewToolsRequested de la section conclusions.
+  describe('F-258 — scrollToDecisionTools', () => {
+    it('fait défiler vers #section-outils-decisionnels', () => {
+      const scrollIntoView = jest.fn();
+      const fakeEl = {
+        scrollIntoView,
+        classList: { add: jest.fn(), remove: jest.fn() },
+      } as unknown as HTMLElement;
+      const byId = jest.spyOn(document, 'getElementById').mockReturnValue(fakeEl);
+
+      component.scrollToDecisionTools();
+
+      expect(byId).toHaveBeenCalledWith('section-outils-decisionnels');
+      expect(scrollIntoView).toHaveBeenCalled();
+      byId.mockRestore();
+    });
+  });
+
 });
