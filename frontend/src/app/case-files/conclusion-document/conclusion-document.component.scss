@@ -1,8 +1,14 @@
-// F-259 / SF-259-01 — Rendu « document juridique » des conclusions générées.
+// F-259 / SF-259-02 — Rendu Markdown « document juridique » des conclusions.
+//
 // Palette design system : marine #1A3A5C, or #C9973A, texte #1C2B3A,
-// secondaire #6B7A8D, surface #FFFFFF, divider #E0E4EA. Aucune couleur
-// hors charte, aucun branding LegalCase (c'est le document de l'avocat).
-// Espacements multiples de 4px.
+// secondaire #6B7A8D, surface #FFFFFF, divider #E0E4EA. Aucune couleur hors
+// charte (marine + or + gris uniquement), aucun branding LegalCase (c'est le
+// document de l'avocat). Espacements multiples de 4px.
+//
+// ⚠️ Le HTML est produit par [innerHTML] (marked) → ses éléments échappent à la
+// ViewEncapsulation d'Angular. On les cible via `::ng-deep` mais TOUJOURS
+// SCOPÉ sous `.cd-sheet` pour ne PAS polluer les autres écrans (un style
+// `::ng-deep` non préfixé fuite globalement — cf. incidents passés).
 
 $navy: #1a3a5c;
 $gold: #c9973a;
@@ -20,65 +26,192 @@ $divider: #e0e4ea;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.cd-section {
-  // Aération entre sections ; la 1re section reste au ras du haut de feuille.
-  margin-top: 32px;
+// ── Contenu Markdown rendu : tous les sélecteurs sont scopés sous .cd-sheet
+//    pour rester confinés à ce composant. ───────────────────────────────────
+.cd-sheet ::ng-deep .cd-content {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: $text;
 
-  &:first-child {
+  // ── Titres : Merriweather marine, filets or ─────────────────────────────
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Merriweather', serif;
+    color: $navy;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+  }
+
+  h1 {
+    margin: 0 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid $gold;
+    font-weight: 700;
+    font-size: 26px;
+    text-align: center;
+  }
+
+  h2 {
+    margin: 32px 0 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba($gold, 0.5);
+    font-weight: 600;
+    font-size: 20px;
+  }
+
+  h3 {
+    margin: 24px 0 12px;
+    font-weight: 600;
+    font-size: 17px;
+  }
+
+  h4,
+  h5,
+  h6 {
+    margin: 20px 0 8px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  // La 1re zone de titre/texte reste au ras du haut de feuille.
+  > :first-child {
     margin-top: 0;
   }
-}
 
-// ── Titres de section : Merriweather marine + fin filet or ──────────
-.cd-section-title {
-  margin: 0 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid $gold;
-  font-family: 'Merriweather', serif;
-  font-weight: 600;
-  font-size: 20px;
-  line-height: 1.4;
-  letter-spacing: 0.01em;
-  color: $navy;
-}
-
-// ── Corps : Inter justifié, interligne aéré ─────────────────────────
-.cd-body {
-  margin: 0 0 16px;
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.7;
-  color: $text;
-  text-align: justify;
-  hyphens: auto;
-
-  &:last-child {
-    margin-bottom: 0;
+  // ── Paragraphes : Inter justifié, interligne aéré ───────────────────────
+  p {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.7;
+    color: $text;
+    text-align: justify;
+    hyphens: auto;
   }
-}
 
-// ── Dispositif « PAR CES MOTIFS » : liste numérotée ─────────────────
-.cd-dispositif {
-  margin: 0 0 16px;
-  padding-left: 24px;
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 1.7;
-  color: $text;
-}
+  // ── Emphase : gras marine, italique, souligné ───────────────────────────
+  strong,
+  b {
+    font-weight: 700;
+    color: $navy;
+  }
 
-.cd-dispositif-item {
-  margin-bottom: 8px;
-  text-align: justify;
+  em,
+  i {
+    font-style: italic;
+  }
 
-  &::marker {
+  u {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  // ── Liens : marine, soulignés au survol ─────────────────────────────────
+  a {
+    color: $navy;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: darken($navy, 8%);
+    }
+  }
+
+  // ── Listes : marqueurs / numéros en or, indentation propre ──────────────
+  ul,
+  ol {
+    margin: 0 0 16px;
+    padding-left: 28px;
+    line-height: 1.7;
+  }
+
+  li {
+    margin-bottom: 8px;
+    text-align: justify;
+
+    &::marker {
+      color: $gold;
+      font-weight: 600;
+    }
+  }
+
+  // Listes imbriquées : pas de double marge basse.
+  li > ul,
+  li > ol {
+    margin: 8px 0 0;
+  }
+
+  // ── Citations : filet gauche marine, fond très léger ────────────────────
+  blockquote {
+    margin: 0 0 16px;
+    padding: 8px 20px;
+    border-left: 4px solid $navy;
+    background: rgba($navy, 0.04);
+    color: $text;
+    font-style: italic;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  // ── Filet divider ───────────────────────────────────────────────────────
+  hr {
+    margin: 24px 0;
+    border: none;
+    border-top: 1px solid $divider;
+  }
+
+  // ── Code inline / bloc : neutre, lisible (sobre, sans couleur criarde) ───
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    background: rgba($navy, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: $text;
+  }
+
+  pre {
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    background: rgba($navy, 0.05);
+    border-radius: 6px;
+    overflow-x: auto;
+
+    code {
+      background: none;
+      padding: 0;
+    }
+  }
+
+  // ── Tableaux : bordures gris charte, en-têtes marine ────────────────────
+  table {
+    width: 100%;
+    margin: 0 0 16px;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+
+  th,
+  td {
+    padding: 8px 12px;
+    border: 1px solid $divider;
+    text-align: left;
+  }
+
+  th {
+    background: rgba($navy, 0.05);
     color: $navy;
     font-weight: 600;
   }
 }
 
-// ── Pied de page écran (jamais dans le content exporté) ─────────────
+// ── Pied de page écran (jamais dans le content exporté) ───────────────────
 .cd-footer {
   margin: 32px 0 0;
   padding-top: 16px;
