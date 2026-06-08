@@ -3,7 +3,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AnalysisItem, CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { formatSourceRef } from '../utils/format-source-ref';
-import { isSectionHeading } from '../utils/section-heading';
+import { InlineRun, flattenInline, inlineRunsOf, lexMarkdown } from '../utils/markdown-tokens';
+import { Token, Tokens } from 'marked';
 
 @Injectable({ providedIn: 'root' })
 export class DocxExportService {
@@ -151,30 +152,41 @@ export class DocxExportService {
   /**
    * F-98 / SF-98-50 \u2014 Exporte une version de conclusions au format `.docx`.
    *
-   * Construit un `Document` `docx` \u00e0 partir du `content` texte de la version :
-   * les lignes d'en-t\u00eate de section (enti\u00e8rement en MAJUSCULES, courtes \u2014 type
-   * `POUR`, `CONTRE`, `FAITS ET PROC\u00c9DURE`, `DISCUSSION`, `PAR CES MOTIFS`)
-   * sont rendues en titres ; les autres lignes en paragraphes. Les lignes vides
-   * sont pr\u00e9serv\u00e9es comme paragraphes vides pour conserver l'a\u00e9ration du texte.
+   * F-259 / SF-259-03 : le `content` est en **Markdown** (`#`/`##`/`###`,
+   * `**gras**`, `*italique*`, listes, `>`, `---`, code). On le tokenise via
+   * `marked.lexer` (util partag\u00e9 `markdown-tokens`) et on mappe chaque token
+   * de bloc vers son \u00e9quivalent `docx` (heading 1/2/3, paragraphe \u00e0 runs
+   * gras/italique, listes \u00e0 puces/num\u00e9rot\u00e9es, citation indent\u00e9e, filet,
+   * code mono). Le document est **neutre** (aucun logo / cartouche LegalCase)
+   * pour que l'avocat le reprenne sur son en-t\u00eate de cabinet. Plus aucun
+   * marqueur Markdown (`#`/`**`/`*`/`-`) n'appara\u00eet dans le texte rendu.
    *
    * R\u00e9utilise le pattern F-95 : import dynamique de `docx`, g\u00e9n\u00e9ration d'un
    * blob via `Packer`, t\u00e9l\u00e9chargement d\u00e9clench\u00e9 par un `<a download>`. Un \u00e9chec
    * (import ou packing) affiche une `MatSnackBar` d'erreur, sans t\u00e9l\u00e9chargement.
    *
-   * @param content        texte de la version de conclusions.
+   * @param content        texte (Markdown) de la version de conclusions.
    * @param caseTitle      titre du dossier \u2014 sert au nommage du fichier.
    * @param versionNumber  num\u00e9ro de la version export\u00e9e.
    */
   exportConclusion(content: string, caseTitle: string, versionNumber: number): void {
-    import('docx').then(({ Document, Packer, Paragraph, HeadingLevel }) => {
-      const lines = (content ?? '').split('\n');
-      const children = lines.map((line) =>
-        this.isSectionHeading(line)
-          ? new Paragraph({ text: line.trim(), heading: HeadingLevel.HEADING_1 })
-          : new Paragraph({ text: line }),
-      );
+    import('docx').then((docx) => {
+      const { Document, Packer, LevelFormat, AlignmentType } = docx;
+      const children = this.buildConclusionChildren(content, docx);
 
       const doc = new Document({
+        // Numérotation référencée par les listes ordonnées (1. 2. 3.).
+        numbering: {
+          config: [{
+            reference: 'conclusion-ordered',
+            levels: [{
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: '%1.',
+              alignment: AlignmentType.START,
+            }],
+          }],
+        },
         sections: [{ children }],
       });
 
@@ -211,18 +223,111 @@ export class DocxExportService {
   }
 
   /**
-   * Vrai si la ligne est un en-t\u00eate de section : une fois les espaces et la
-   * ponctuation retir\u00e9s, elle ne contient que des lettres en MAJUSCULES, au
-   * moins une lettre, et reste courte (\u2264 60 caract\u00e8res). Robuste pour la
-   * structure produite par `CaseConclusionPromptBuilder` (`POUR`, `CONTRE`,
-   * `FAITS ET PROC\u00c9DURE`, `DISCUSSION`, `PAR CES MOTIFS`\u2026).
+   * F-259 / SF-259-03 \u2014 Mappe le `content` Markdown d'une version de
+   * conclusions vers les `children` `docx` (un `Paragraph` par bloc, avec un
+   * `TextRun` par run inline). Visible (non priv\u00e9e) pour les tests unitaires.
    *
-   * F-259 / SF-259-01 : d\u00e9l\u00e8gue \u00e0 l'util partag\u00e9 `isSectionHeading`
-   * (`core/utils/section-heading`) pour une source de v\u00e9rit\u00e9 UNIQUE commune
-   * \u00e0 l'export Word et au rendu \u00e9cran (`ConclusionParser`).
+   * `docx` est pass\u00e9 en param\u00e8tre (d\u00e9j\u00e0 import\u00e9 dynamiquement par l'appelant)
+   * pour \u00e9viter un second import et garder la m\u00e9thode testable en isolation.
    */
-  private isSectionHeading(line: string): boolean {
-    return isSectionHeading(line);
+  buildConclusionChildren(content: string, docx: typeof import('docx')): import('docx').Paragraph[] {
+    const tokens = lexMarkdown(content);
+    const children: import('docx').Paragraph[] = [];
+    for (const token of tokens) {
+      children.push(...this.mapBlockToken(token, docx));
+    }
+    return children;
+  }
+
+  /** Mappe un token de bloc Markdown vers un ou plusieurs `Paragraph` docx. */
+  private mapBlockToken(token: Token, docx: typeof import('docx')): import('docx').Paragraph[] {
+    const { Paragraph, HeadingLevel } = docx;
+    switch (token.type) {
+      case 'heading': {
+        const h = token as Tokens.Heading;
+        const level = h.depth <= 1
+          ? HeadingLevel.HEADING_1
+          : h.depth === 2
+            ? HeadingLevel.HEADING_2
+            : HeadingLevel.HEADING_3;
+        return [new Paragraph({ heading: level, children: this.runsToTextRuns(inlineRunsOf(h), docx) })];
+      }
+      case 'paragraph': {
+        const p = token as Tokens.Paragraph;
+        return [new Paragraph({ children: this.runsToTextRuns(inlineRunsOf(p), docx) })];
+      }
+      case 'list': {
+        const list = token as Tokens.List;
+        return list.items.map((item, idx) =>
+          this.mapListItem(item, list.ordered, idx, docx));
+      }
+      case 'blockquote': {
+        const bq = token as Tokens.Blockquote;
+        // On aplatit les blocs internes de la citation en un paragraphe
+        // indent\u00e9 / italique (style citation sobre).
+        const runs = this.runsToTextRuns(flattenInline(bq.tokens), docx, { italics: true });
+        return [new Paragraph({ children: runs, indent: { left: 360 }, spacing: { before: 60, after: 60 } })];
+      }
+      case 'hr':
+        return [new Paragraph({ thematicBreak: true })];
+      case 'code': {
+        const c = token as Tokens.Code;
+        const { TextRun } = docx;
+        return [new Paragraph({
+          children: [new TextRun({ text: c.text, font: 'Courier New' })],
+          spacing: { before: 60, after: 60 },
+        })];
+      }
+      case 'space':
+        return [];
+      default: {
+        // Tout autre bloc (table, html\u2026) : on retombe sur son texte brut
+        // sans marqueur (defensive). Vide \u2192 ignor\u00e9.
+        const anyToken = token as { text?: string };
+        if (typeof anyToken.text === 'string' && anyToken.text.trim().length > 0) {
+          return [new Paragraph({ text: anyToken.text })];
+        }
+        return [];
+      }
+    }
+  }
+
+  /** Mappe un item de liste vers un `Paragraph` \u00e0 puce ou num\u00e9rot\u00e9. */
+  private mapListItem(
+    item: Tokens.ListItem,
+    ordered: boolean,
+    index: number,
+    docx: typeof import('docx'),
+  ): import('docx').Paragraph {
+    const { Paragraph } = docx;
+    const runs = this.runsToTextRuns(inlineRunsOf(item), docx);
+    if (ordered) {
+      return new Paragraph({ children: runs, numbering: { reference: 'conclusion-ordered', level: 0 } });
+    }
+    return new Paragraph({ children: runs, bullet: { level: 0 } });
+  }
+
+  /**
+   * Convertit des runs inline `{ text, bold, italics, code }` en `TextRun`
+   * docx (`strong`\u2192`bold:true`, `em`\u2192`italics:true`, combin\u00e9 si imbriqu\u00e9,
+   * `code`\u2192police mono). `forced` permet d'imposer un style (ex. citation en
+   * italique). Aucun marqueur Markdown ne subsiste dans le texte.
+   */
+  private runsToTextRuns(
+    runs: InlineRun[],
+    docx: typeof import('docx'),
+    forced: { bold?: boolean; italics?: boolean } = {},
+  ): import('docx').TextRun[] {
+    const { TextRun } = docx;
+    if (runs.length === 0) {
+      return [new TextRun({ text: '' })];
+    }
+    return runs.map((run) => new TextRun({
+      text: run.text,
+      bold: run.bold || forced.bold || undefined,
+      italics: run.italics || forced.italics || undefined,
+      font: run.code ? 'Courier New' : undefined,
+    }));
   }
 
   /** Slug ASCII minuscule, accents retir\u00e9s, tronqu\u00e9 \u00e0 40 caract\u00e8res. */
