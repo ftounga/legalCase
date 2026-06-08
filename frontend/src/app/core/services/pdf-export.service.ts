@@ -16,6 +16,8 @@ import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.mod
 import { RisqueAlignment } from '../models/risque-alignment.model';
 import { AiQuestionAlignment } from '../models/ai-question-alignment.model';
 import { JurisprudenceApplicableResponse } from '../models/jurisprudence-applicable.model';
+import { InlineRun, flattenInline, inlineRunsOf, lexMarkdown } from '../utils/markdown-tokens';
+import { Token, Tokens } from 'marked';
 
 const PRIMARY = '#1A3A5C';
 const ACCENT = '#C9973A';
@@ -2184,16 +2186,30 @@ export class PdfExportService {
   }
 
   /**
-   * Document `pdfmake` d'une version de conclusions : chaque ligne du `content`
-   * devient un paragraphe ; les en-têtes de section sont stylés en titre.
+   * F-259 / SF-259-03 — Document `pdfmake` d'une version de conclusions à
+   * partir de son `content` **Markdown**.
+   *
+   * Le contenu est tokenisé via `marked.lexer` (util partagé `markdown-tokens`,
+   * commun à l'export Word) puis mappé vers du `pdfmake` stylé : titres
+   * (gras, taille décroissante h1 > h2 > h3), paragraphes avec runs
+   * `{ text, bold, italics }`, listes `ol`/`ul`, citations indentées, filets
+   * `hr`, code mono. Le document est **neutre** (aucun branding LegalCase) —
+   * l'avocat le reprend sur son en-tête de cabinet. Plus aucun marqueur
+   * Markdown (`#`/`**`/`*`/`-`) n'apparaît dans le texte rendu.
    */
   buildConclusionDocument(content: string): object {
-    const lines = (content ?? '').split('\n');
-    const body = lines.map((line) =>
-      this.isSectionHeading(line)
-        ? { text: line.trim(), style: 'sectionTitle' }
-        : { text: line, style: 'paragraph' },
-    );
+    const tokens = lexMarkdown(content);
+    const body: object[] = [];
+    for (const token of tokens) {
+      const mapped = this.mapConclusionBlock(token);
+      if (mapped) {
+        body.push(mapped);
+      }
+    }
+    // Document non vide minimal pour rester cohérent avec un `content` vide.
+    if (body.length === 0) {
+      body.push({ text: '', style: 'paragraph' });
+    }
 
     return {
       pageSize: 'A4',
@@ -2201,15 +2217,85 @@ export class PdfExportService {
       content: body,
       defaultStyle: {
         font: 'Roboto',
-        fontSize: 10,
+        fontSize: 11,
         color: TEXT,
         lineHeight: 1.4,
       },
       styles: {
-        sectionTitle: { fontSize: 12, bold: true, color: PRIMARY, margin: [0, 12, 0, 6] },
-        paragraph: { margin: [0, 0, 0, 4] },
+        h1: { fontSize: 16, bold: true, color: PRIMARY, margin: [0, 14, 0, 6] },
+        h2: { fontSize: 14, bold: true, color: PRIMARY, margin: [0, 12, 0, 5] },
+        h3: { fontSize: 12, bold: true, color: PRIMARY, margin: [0, 10, 0, 4] },
+        paragraph: { margin: [0, 0, 0, 6] },
+        blockquote: { italics: true, color: TEXT_SECONDARY, margin: [16, 4, 0, 6] },
+        codeBlock: { font: 'JetBrainsMono', fontSize: 9, color: TEXT, margin: [0, 4, 0, 6] },
+        listBlock: { margin: [0, 0, 0, 6] },
       },
     };
+  }
+
+  /**
+   * F-259 / SF-259-03 — Mappe un token de bloc Markdown vers un nœud
+   * `pdfmake` (ou `null` si le token ne produit rien, ex. `space`).
+   */
+  private mapConclusionBlock(token: Token): object | null {
+    switch (token.type) {
+      case 'heading': {
+        const h = token as Tokens.Heading;
+        const style = h.depth <= 1 ? 'h1' : h.depth === 2 ? 'h2' : 'h3';
+        return { text: this.inlineRunsToPdf(inlineRunsOf(h)), style };
+      }
+      case 'paragraph': {
+        const p = token as Tokens.Paragraph;
+        return { text: this.inlineRunsToPdf(inlineRunsOf(p)), style: 'paragraph' };
+      }
+      case 'list': {
+        const list = token as Tokens.List;
+        const items = list.items.map((item) => ({ text: this.inlineRunsToPdf(inlineRunsOf(item)) }));
+        return list.ordered
+          ? { ol: items, style: 'listBlock' }
+          : { ul: items, style: 'listBlock' };
+      }
+      case 'blockquote': {
+        const bq = token as Tokens.Blockquote;
+        return { text: this.inlineRunsToPdf(flattenInline(bq.tokens)), style: 'blockquote' };
+      }
+      case 'hr':
+        return {
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: DIVIDER }],
+          margin: [0, 8, 0, 8],
+        };
+      case 'code': {
+        const c = token as Tokens.Code;
+        return { text: c.text, style: 'codeBlock', preserveLeadingSpaces: true };
+      }
+      case 'space':
+        return null;
+      default: {
+        const anyToken = token as { text?: string };
+        if (typeof anyToken.text === 'string' && anyToken.text.trim().length > 0) {
+          return { text: anyToken.text, style: 'paragraph' };
+        }
+        return null;
+      }
+    }
+  }
+
+  /**
+   * F-259 / SF-259-03 — Convertit des runs inline `{ text, bold, italics, code }`
+   * en fragments `pdfmake` (`{ text, bold, italics, font }`). Aucun marqueur
+   * Markdown ne subsiste. Tableau vide → texte vide (pdfmake exige au moins
+   * une chaîne).
+   */
+  private inlineRunsToPdf(runs: InlineRun[]): object[] {
+    if (runs.length === 0) {
+      return [{ text: '' }];
+    }
+    return runs.map((run) => ({
+      text: run.text,
+      bold: run.bold || undefined,
+      italics: run.italics || undefined,
+      font: run.code ? 'JetBrainsMono' : undefined,
+    }));
   }
 
   /**
@@ -2230,26 +2316,6 @@ export class PdfExportService {
     this.snackBar.open('Erreur lors de la génération du document PDF.', 'Fermer', {
       duration: 4000, panelClass: ['snack-error'],
     });
-  }
-
-  /**
-   * Vrai si la ligne est un en-tête de section : une fois la ponctuation et
-   * les espaces retirés, elle ne contient que des lettres en MAJUSCULES, au
-   * moins une lettre, et reste courte (≤ 60 caractères). Même heuristique que
-   * `DocxExportService.isSectionHeading` (SF-98-50) — robuste pour la
-   * structure produite par `CaseConclusionPromptBuilder` (`POUR`, `CONTRE`,
-   * `FAITS ET PROCÉDURE`, `DISCUSSION`, `PAR CES MOTIFS`…).
-   */
-  private isSectionHeading(line: string): boolean {
-    const trimmed = line.trim();
-    if (trimmed.length === 0 || trimmed.length > 60) {
-      return false;
-    }
-    const letters = trimmed.replace(/[^\p{L}]/gu, '');
-    if (letters.length === 0) {
-      return false;
-    }
-    return letters === letters.toUpperCase() && letters !== letters.toLowerCase();
   }
 
   /** Slug ASCII minuscule, accents retirés, tronqué à 40 caractères. */

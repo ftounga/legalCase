@@ -23,9 +23,9 @@ import { marked } from 'marked';
  * OnPush. Le `data-testid="conclusions-content"` historique est porté par la
  * feuille pour préserver les specs du parent (`conclusions-section`).
  *
- * NB : l'export Word/PDF garde le gap Markdown (heuristique MAJUSCULES) → traité
- * dans une SF dédiée (SF-259-03). L'util `core/utils/section-heading` reste
- * utilisé par cet export et n'est pas touché ici.
+ * NB : SF-259-03 a aligné l'export Word/PDF sur le même Markdown (parsing
+ * `marked.lexer` → `docx`/`pdfmake`), supprimant l'ancienne heuristique
+ * MAJUSCULES (`core/utils/section-heading`, retirée).
  */
 @Component({
   selector: 'app-conclusion-document',

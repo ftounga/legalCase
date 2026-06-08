@@ -130,7 +130,7 @@ describe('DocxExportService', () => {
     (URL as any).revokeObjectURL = jest.fn();
 
     const content =
-      'POUR\nM. Dupont, salarié.\n\nFAITS ET PROCÉDURE\nLe contrat a été rompu.\n\nPAR CES MOTIFS\nPlaise au Conseil…';
+      '# POUR\nM. Dupont, salarié.\n\n## FAITS ET PROCÉDURE\nLe contrat a été rompu.\n\n# PAR CES MOTIFS\nPlaise au Conseil…';
     service.exportConclusion(content, 'Affaire Dupont', 4);
 
     // Laisse l'import dynamique de `docx` puis le Packer se résoudre.
@@ -143,29 +143,122 @@ describe('DocxExportService', () => {
     expect(snackBar.open).not.toHaveBeenCalled();
   });
 
-  // D-54 : isSectionHeading — en-têtes MAJUSCULES vs paragraphes
-  it('D-54: section heading detection — uppercase short lines are headings', () => {
-    const isHeading = (line: string): boolean =>
-      (service as any).isSectionHeading(line);
+  // ───────────────────────────────────────────────────────────────────────
+  // SF-259-03 — Mapping Markdown → docx (fin des marqueurs dans le livrable)
+  // ───────────────────────────────────────────────────────────────────────
+  //
+  // Le modèle interne de `docx` (arbre XML) est privé et peu inspectable. Le
+  // mapper `buildConclusionChildren(content, docx)` reçoit `docx` en
+  // paramètre : on injecte des **fakes** qui capturent les options de chaque
+  // `Paragraph`/`TextRun` pour les inspecter directement.
 
-    // En-têtes de section : entièrement en majuscules, courts.
-    expect(isHeading('POUR')).toBe(true);
-    expect(isHeading('CONTRE')).toBe(true);
-    expect(isHeading('FAITS ET PROCÉDURE')).toBe(true);
-    expect(isHeading('DISCUSSION')).toBe(true);
-    expect(isHeading('PAR CES MOTIFS')).toBe(true);
-    expect(isHeading('  PAR CES MOTIFS  ')).toBe(true);
+  interface FakeRun { text: string; bold?: boolean; italics?: boolean; font?: string }
+  interface FakeParagraph {
+    heading?: unknown; bullet?: unknown; numbering?: unknown;
+    thematicBreak?: boolean; indent?: unknown; runs: FakeRun[]; rawText?: string;
+  }
 
-    // Paragraphes : casse mixte, lignes vides, lignes longues.
-    expect(isHeading('Le salarié a été licencié.')).toBe(false);
-    expect(isHeading('')).toBe(false);
-    expect(isHeading('   ')).toBe(false);
-    expect(isHeading('123 — 456')).toBe(false);
-    expect(
-      isHeading(
-        'CECI EST UNE LIGNE BEAUCOUP TROP LONGUE POUR ETRE UN EN-TETE DE SECTION DE CONCLUSIONS',
-      ),
-    ).toBe(false);
+  const HEADING = { HEADING_1: 'H1', HEADING_2: 'H2', HEADING_3: 'H3' };
+
+  const makeFakeDocx = () => ({
+    Paragraph: class {
+      readonly _p: FakeParagraph;
+      constructor(opts: any) {
+        const runs = (opts.children ?? []).map((c: any) => c as FakeRun);
+        this._p = {
+          heading: opts.heading,
+          bullet: opts.bullet,
+          numbering: opts.numbering,
+          thematicBreak: opts.thematicBreak,
+          indent: opts.indent,
+          runs,
+          rawText: typeof opts.text === 'string' ? opts.text : undefined,
+        };
+      }
+    },
+    TextRun: class {
+      constructor(public readonly opts: FakeRun) {}
+    },
+    HeadingLevel: HEADING,
+  });
+
+  const buildParas = (md: string): FakeParagraph[] => {
+    const fake = makeFakeDocx();
+    const children = (service as any).buildConclusionChildren(md, fake as any);
+    return children.map((c: any) => c._p as FakeParagraph);
+  };
+  const runText = (p: FakeParagraph) => p.runs.map((r) => r.opts ? (r as any).opts.text : r.text).join('');
+  const runsOf = (p: FakeParagraph): FakeRun[] => p.runs.map((r: any) => r.opts ?? r);
+
+  // D-54a : `# Titre` → heading HEADING_1, sans `#` dans le texte
+  it('D-54a: # heading maps to HEADING_1 with no marker in the run text', () => {
+    const paras = buildParas('# Conseil de prud\'hommes\n\nUn paragraphe.');
+    expect(paras[0].heading).toBe('H1');
+    const txt = runText(paras[0]);
+    expect(txt).toContain('Conseil de prud');
+    expect(txt).not.toContain('#');
+  });
+
+  // D-54b : `##` / `###` → HEADING_2 / HEADING_3
+  it('D-54b: ## and ### map to HEADING_2 / HEADING_3', () => {
+    const paras = buildParas('## Faits\n\n### Discussion');
+    expect(paras[0].heading).toBe('H2');
+    expect(paras[1].heading).toBe('H3');
+  });
+
+  // D-54c : `**gras**` → run bold ; `*ital*` → run italics ;
+  //         imbriqué `***x***` → bold+italics ; aucun marqueur résiduel
+  it('D-54c: inline strong/em map to bold/italics runs, nested combined, no markers', () => {
+    const paras = buildParas('Un mot **important** et un *accent*, puis ***les deux***.');
+    const runs = runsOf(paras[0]);
+    const fullText = runs.map((r) => r.text).join('');
+    expect(fullText).not.toMatch(/\*\*|\*/);
+
+    const bold = runs.find((r) => r.text.includes('important'));
+    expect(bold?.bold).toBe(true);
+    const italic = runs.find((r) => r.text.includes('accent'));
+    expect(italic?.italics).toBe(true);
+    const both = runs.find((r) => r.text.includes('les deux'));
+    expect(both?.bold).toBe(true);
+    expect(both?.italics).toBe(true);
+  });
+
+  // D-54d : liste à puces → bullet ; liste ordonnée → numbering ; pas de `-`
+  it('D-54d: unordered list → bullet, ordered list → numbering, no dash marker', () => {
+    const ul = buildParas('- Premier\n- Second');
+    expect(ul[0].bullet).toEqual({ level: 0 });
+    expect(runText(ul[0])).toBe('Premier');
+    expect(runText(ul[0])).not.toContain('-');
+
+    const ol = buildParas('1. Un\n2. Deux');
+    expect(ol[0].numbering).toEqual({ reference: 'conclusion-ordered', level: 0 });
+  });
+
+  // D-54e : blockquote `>` → paragraphe italique indenté ; hr `---` → thematicBreak
+  it('D-54e: blockquote and hr map to citation paragraph and thematic break', () => {
+    const bq = buildParas('> Une citation.');
+    expect(bq[0].indent).toEqual({ left: 360 });
+    expect(runsOf(bq[0])[0].italics).toBe(true);
+
+    const hr = buildParas('Texte\n\n---\n\nSuite');
+    const thematic = hr.find((p) => p.thematicBreak === true);
+    expect(thematic).toBeDefined();
+  });
+
+  // D-54f : texte brut (sans Markdown) → paragraphes, pas de crash, pas de marqueur
+  it('D-54f: plain text becomes paragraphs without residual markers', () => {
+    const paras = buildParas('Ligne une.\n\nLigne deux.');
+    expect(paras.length).toBe(2);
+    const all = paras.map((p) => runText(p)).join(' ');
+    expect(all).toContain('Ligne une.');
+    expect(all).toContain('Ligne deux.');
+    expect(all).not.toMatch(/[#*]/);
+  });
+
+  // D-54g : content vide → aucun children (pas d'export à déclencher)
+  it('D-54g: empty content yields no children', () => {
+    expect(buildParas('')).toEqual([]);
+    expect(buildParas('   ')).toEqual([]);
   });
 
   // D-55 : exportConclusion affiche une snackbar si le packing échoue
