@@ -449,17 +449,17 @@ class JurisprudenceBootstrapServiceTest {
         verify(jobRepo).findById(eq(unknown));
     }
 
-    // --- SF-JU-01-14 — bootstrap idempotent : skip si mapping déjà présent ---
+    // --- SF-JU-01-14 / SF-JU-06-04 — bootstrap idempotent : skip si mapping ACTIF présent ---
 
     @Test
-    void runBootstrap_whenMappingAlreadyExists_skipsWithoutOpeningTransaction() {
+    void runBootstrap_whenActiveMappingExists_skipsWithoutOpeningTransaction() {
         JudilibreArret arret = arret("AAA");
         when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret));
         when(evaluator.evaluate(any(), any()))
                 .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret, new BigDecimal("0.9"), "ok"));
-        when(mappingRepo.existsByToolIdAndBrancheCalculIdAndArretRef(
+        when(mappingRepo.findByToolIdAndBrancheCalculIdAndArretRef(
                 eq("f-dt-30"), eq("branche-1"), eq(arret.ref())))
-                .thenReturn(true);
+                .thenReturn(Optional.of(activeMapping("f-dt-30", "branche-1", arret.ref())));
 
         JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
                 entry("f-dt-30", "branche-1")
@@ -475,7 +475,7 @@ class JurisprudenceBootstrapServiceTest {
     }
 
     @Test
-    void runBootstrap_mixedNewAndExistingEntries_persistsOnlyNew() {
+    void runBootstrap_mixedNewAndActiveEntries_persistsOnlyNew() {
         JudilibreArret arretA = arret("AAA");
         JudilibreArret arretB = arret("BBB");
         when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
@@ -484,12 +484,12 @@ class JurisprudenceBootstrapServiceTest {
         when(evaluator.evaluate(any(), any()))
                 .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arretA, new BigDecimal("0.9"), "ok"))
                 .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arretB, new BigDecimal("0.9"), "ok"));
-        when(mappingRepo.existsByToolIdAndBrancheCalculIdAndArretRef(
+        when(mappingRepo.findByToolIdAndBrancheCalculIdAndArretRef(
                 eq("f-dt-30"), eq("branche-1"), eq(arretA.ref())))
-                .thenReturn(true);
-        when(mappingRepo.existsByToolIdAndBrancheCalculIdAndArretRef(
+                .thenReturn(Optional.of(activeMapping("f-dt-30", "branche-1", arretA.ref())));
+        when(mappingRepo.findByToolIdAndBrancheCalculIdAndArretRef(
                 eq("f-dt-31"), eq("branche-2"), eq(arretB.ref())))
-                .thenReturn(false);
+                .thenReturn(Optional.empty());
 
         JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
                 entry("f-dt-30", "branche-1"),
@@ -503,6 +503,57 @@ class JurisprudenceBootstrapServiceTest {
         assertThat(resp.entriesSkipped()).isEqualTo(1);
     }
 
+    // --- SF-JU-06-04 — réactivation d'un mapping archivé au re-bootstrap ---
+
+    @Test
+    void runBootstrap_archivedMappingReselected_isReactivated() {
+        JudilibreArret arret = arret("AAA");
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret, new BigDecimal("0.90"), "structurant"));
+        ToolJurisprudenceMapping archived = activeMapping("f-dt-30", "branche-1", arret.ref());
+        archived.setArchived(true);
+        archived.setChapeauOfficiel("ancien chapeau médiocre");
+        when(mappingRepo.findByToolIdAndBrancheCalculIdAndArretRef(
+                eq("f-dt-30"), eq("branche-1"), eq(arret.ref())))
+                .thenReturn(Optional.of(archived));
+        when(mappingRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        JurisprudenceBootstrapResponse resp = service.runBootstrap(
+                new JurisprudenceBootstrapRequest(List.of(entry("f-dt-30", "branche-1"))), triggerUser());
+
+        // réactivation : UPDATE sur l'entité existante (archived → false), champs mis à jour
+        verify(txManager, times(1)).getTransaction(any());
+        verify(mappingRepo, times(1)).save(archived);
+        assertThat(archived.isArchived()).isFalse();
+        assertThat(archived.getChapeauOfficiel()).isEqualTo("Chapeau AAA");
+        // audit AUTO_REACTIVATE tracé
+        org.mockito.ArgumentCaptor<JurisprudenceAuditLog> audit =
+                org.mockito.ArgumentCaptor.forClass(JurisprudenceAuditLog.class);
+        verify(auditRepo).save(audit.capture());
+        assertThat(audit.getValue().getAction()).isEqualTo(JurisprudenceAuditAction.AUTO_REACTIVATE);
+        assertThat(resp.mappingsCreated()).isEqualTo(1);
+        assertThat(resp.entriesSkipped()).isZero();
+    }
+
+    @Test
+    void runBootstrap_archivedMappingButLowConfidence_isNotReactivated() {
+        JudilibreArret arret = arret("AAA");
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret));
+        // confiance 0,55 < seuil 0,70 → rejet par garde-fou AVANT l'idempotence
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret, new BigDecimal("0.55"), "marginal"));
+
+        JurisprudenceBootstrapResponse resp = service.runBootstrap(
+                new JurisprudenceBootstrapRequest(List.of(entry("f-dt-30", "branche-1"))), triggerUser());
+
+        // l'arrêt archivé pour mauvaise qualité ne ressuscite pas : findBy jamais consulté, aucun save
+        verify(mappingRepo, never()).findByToolIdAndBrancheCalculIdAndArretRef(any(), any(), any());
+        verify(mappingRepo, never()).save(any());
+        assertThat(resp.mappingsCreated()).isZero();
+        assertThat(resp.entriesSkipped()).isEqualTo(1);
+    }
+
     private JurisprudenceBootstrapEntry entry(String toolId, String brancheCalculId) {
         return new JurisprudenceBootstrapEntry(toolId, brancheCalculId, "mot-clé test",
                 "Cour de cassation", null);
@@ -512,6 +563,16 @@ class JurisprudenceBootstrapServiceTest {
         return new JudilibreArret(id, "Cass. soc. " + id, "Cour de cassation, chambre sociale",
                 LocalDate.of(2025, 1, 8), "23-12.345", "Chapeau " + id,
                 "https://www.legifrance.gouv.fr/juri/id/" + id);
+    }
+
+    /** SF-JU-06-04 — mapping actif existant pour le triplet (toolId, branche, ref). */
+    private ToolJurisprudenceMapping activeMapping(String toolId, String brancheCalculId, String arretRef) {
+        ToolJurisprudenceMapping m = new ToolJurisprudenceMapping();
+        m.setToolId(toolId);
+        m.setBrancheCalculId(brancheCalculId);
+        m.setArretRef(arretRef);
+        m.setArchived(false);
+        return m;
     }
 
     private User triggerUser() {
