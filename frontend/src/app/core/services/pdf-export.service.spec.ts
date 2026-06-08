@@ -1738,21 +1738,60 @@ describe('PdfExportService', () => {
     expect(name).toBe('licenciement-economique-muller-conclusions-v1.pdf');
   });
 
-  // PDF-CONC-04 : buildConclusionDocument — en-têtes en titres, reste en paragraphes
-  it('PDF-CONC-04: buildConclusionDocument styles section headings as titles', () => {
+  // PDF-CONC-04 : buildConclusionDocument — Markdown → headings/paragraphes
+  // stylés, gras/italique en runs, listes, aucun marqueur résiduel.
+  it('PDF-CONC-04: buildConclusionDocument maps Markdown headings/inline/lists', () => {
     const content =
-      'POUR\nM. Dupont, salarié.\n\nFAITS ET PROCÉDURE\nLe contrat a été rompu.\n\nPAR CES MOTIFS\nPlaise au Conseil…';
+      '# POUR\nM. Dupont, salarié, demande **réintégration** et *dommages*.\n\n' +
+      '## FAITS ET PROCÉDURE\nLe contrat a été rompu.\n\n' +
+      '- Pièce 1\n- Pièce 2\n\n' +
+      '# PAR CES MOTIFS\nPlaise au Conseil…';
     const doc = service.buildConclusionDocument(content) as any;
     expect(doc.pageSize).toBe('A4');
     expect(Array.isArray(doc.content)).toBe(true);
 
-    const headings = doc.content.filter((b: any) => b.style === 'sectionTitle');
-    const paragraphs = doc.content.filter((b: any) => b.style === 'paragraph');
-    expect(headings.map((h: any) => h.text)).toEqual([
-      'POUR', 'FAITS ET PROCÉDURE', 'PAR CES MOTIFS',
-    ]);
-    expect(paragraphs.length).toBeGreaterThan(0);
-    expect(JSON.stringify(doc.content)).toContain('M. Dupont, salarié.');
+    const h1 = doc.content.filter((b: any) => b.style === 'h1');
+    const h2 = doc.content.filter((b: any) => b.style === 'h2');
+    expect(h1.length).toBe(2); // POUR + PAR CES MOTIFS
+    expect(h2.length).toBe(1); // FAITS ET PROCÉDURE
+
+    const serialized = JSON.stringify(doc.content);
+    // Aucun marqueur Markdown résiduel dans le rendu.
+    expect(serialized).not.toMatch(/##|\*\*/);
+    expect(serialized).not.toContain('# POUR');
+
+    // Le heading porte le texte nettoyé.
+    const headingText = (h1[0].text as any[]).map((r) => r.text).join('');
+    expect(headingText).toBe('POUR');
+
+    // Un paragraphe contient un run gras (réintégration) et un run italique.
+    const para = doc.content.find((b: any) =>
+      b.style === 'paragraph' && Array.isArray(b.text) &&
+      (b.text as any[]).some((r) => r.text?.includes('réintégration')));
+    expect(para).toBeDefined();
+    const boldRun = (para.text as any[]).find((r) => r.text?.includes('réintégration'));
+    expect(boldRun.bold).toBe(true);
+    const italicRun = (para.text as any[]).find((r) => r.text?.includes('dommages'));
+    expect(italicRun.italics).toBe(true);
+
+    // La liste à puces est rendue en `ul` pdfmake.
+    const list = doc.content.find((b: any) => Array.isArray(b.ul));
+    expect(list).toBeDefined();
+    expect(list.ul.length).toBe(2);
+  });
+
+  // PDF-CONC-04b : liste ordonnée → `ol`, blockquote + hr supportés
+  it('PDF-CONC-04b: ordered list, blockquote and hr are mapped', () => {
+    const doc = service.buildConclusionDocument(
+      '1. Un\n2. Deux\n\n> Une citation\n\n---',
+    ) as any;
+    const ol = doc.content.find((b: any) => Array.isArray(b.ol));
+    expect(ol).toBeDefined();
+    expect(ol.ol.length).toBe(2);
+    const quote = doc.content.find((b: any) => b.style === 'blockquote');
+    expect(quote).toBeDefined();
+    const hr = doc.content.find((b: any) => Array.isArray(b.canvas));
+    expect(hr).toBeDefined();
   });
 
   // PDF-CONC-05 : buildConclusionDocument tolère un contenu vide
@@ -1768,12 +1807,12 @@ describe('PdfExportService', () => {
     pdfCreateSpy.mockClear();
     const buildSpy = jest.spyOn(service, 'buildConclusionDocument');
 
-    service.exportConclusion('POUR\nM. Dupont.', 'Affaire Dupont', 4);
+    service.exportConclusion('# POUR\nM. Dupont.', 'Affaire Dupont', 4);
     // Laisse les imports dynamiques `pdfmake` se résoudre.
     await new Promise((r) => setTimeout(r, 0));
     await new Promise((r) => setTimeout(r, 0));
 
-    expect(buildSpy).toHaveBeenCalledWith('POUR\nM. Dupont.');
+    expect(buildSpy).toHaveBeenCalledWith('# POUR\nM. Dupont.');
     expect(pdfCreateSpy).toHaveBeenCalled();
     expect(pdfDownloadSpy).toHaveBeenCalledWith('affaire-dupont-conclusions-v4.pdf');
     expect(snackBar.open).not.toHaveBeenCalled();
