@@ -278,14 +278,21 @@ public class JurisprudenceBootstrapService {
                 notifyProgress(onProgress, processed, created, skipped);
                 continue;
             }
-            // SF-JU-01-14 — bootstrap idempotent : si l'arrêt choisi par Claude est déjà
-            // mappé pour cette (toolId, brancheCalculId), on n'ouvre pas de transaction
-            // et on compte l'entrée comme skipped. Évite les DataIntegrityViolationException
-            // sur la contrainte uq_tool_jurisprudence_mappings_active (cf. HF-2026-05-27-03).
+            // SF-JU-01-14 / SF-JU-06-04 — idempotence sur le triplet de la contrainte
+            // unique uq_tool_jurisprudence_mappings_active. On charge le mapping existant
+            // (quel que soit son statut archived) pour distinguer trois cas :
+            //   - aucun mapping        → INSERT ;
+            //   - mapping ACTIF        → skip (idempotent, cf. HF-2026-05-27-03) ;
+            //   - mapping ARCHIVÉ      → réactivation par UPDATE (la ré-insertion violerait
+            //     la contrainte unique qui ne filtre pas archived). L'arrêt n'arrive ici
+            //     qu'après avoir repassé les 3 garde-fous F-JU-06 → un arrêt archivé pour
+            //     mauvaise qualité ne ressuscite jamais.
             String chosenRef = evaluation.arretChoisi().ref();
-            if (mappingRepository.existsByToolIdAndBrancheCalculIdAndArretRef(
-                    entry.toolId(), entry.brancheCalculId(), chosenRef)) {
-                log.info("F-JU-01 — Bootstrap mapping déjà présent pour {}:{} (ref={}), skipped",
+            Optional<ToolJurisprudenceMapping> existing =
+                    mappingRepository.findByToolIdAndBrancheCalculIdAndArretRef(
+                            entry.toolId(), entry.brancheCalculId(), chosenRef);
+            if (existing.isPresent() && !existing.get().isArchived()) {
+                log.info("F-JU-01 — Bootstrap mapping actif déjà présent pour {}:{} (ref={}), skipped",
                         entry.toolId(), entry.brancheCalculId(), chosenRef);
                 skipped++;
                 notifyProgress(onProgress, processed, created, skipped);
@@ -295,8 +302,16 @@ public class JurisprudenceBootstrapService {
                 final JurisprudenceBootstrapEntry entryRef = entry;
                 final ClaudeEvaluation evaluationRef = evaluation;
                 final List<JudilibreArret> candidatesRef = candidates;
-                txTemplate.executeWithoutResult(status ->
-                        persistTopCandidates(entryRef, candidatesRef, evaluationRef, triggerUser));
+                if (existing.isPresent()) {
+                    final ToolJurisprudenceMapping archivedMapping = existing.get();
+                    txTemplate.executeWithoutResult(status ->
+                            reactivateMapping(archivedMapping, evaluationRef, triggerUser));
+                    log.info("SF-JU-06-04 — Bootstrap réactivation mapping archivé {}:{} (ref={})",
+                            entry.toolId(), entry.brancheCalculId(), chosenRef);
+                } else {
+                    txTemplate.executeWithoutResult(status ->
+                            persistTopCandidates(entryRef, candidatesRef, evaluationRef, triggerUser));
+                }
                 created++;
             } catch (RuntimeException e) {
                 log.warn("F-JU-01 — Bootstrap persist failed for {}:{}: {}",
@@ -333,13 +348,7 @@ public class JurisprudenceBootstrapService {
         mapping.setToolId(entry.toolId());
         mapping.setBrancheCalculId(entry.brancheCalculId());
         mapping.setArretRef(chosen.ref());
-        mapping.setJuridiction(chosen.juridiction() == null ? "Cour de cassation" : chosen.juridiction());
-        mapping.setDateArret(chosen.dateArret() == null ? LocalDate.now() : chosen.dateArret());
-        mapping.setNumeroPourvoi(chosen.numeroPourvoi() == null ? "n/a" : chosen.numeroPourvoi());
-        mapping.setLienLegifrance(chosen.lienLegifrance() == null ? "" : chosen.lienLegifrance());
-        mapping.setChapeauOfficiel(chosen.chapeauOfficiel() == null ? "" : chosen.chapeauOfficiel());
-        mapping.setLastVerifiedAt(Instant.now());
-        mapping.setConfidenceScore(evaluation.confidenceScore() == null ? BigDecimal.ZERO : evaluation.confidenceScore());
+        applyArretFields(mapping, chosen, evaluation);
         mapping.setArchived(false);
         mappingRepository.save(mapping);
 
@@ -352,6 +361,49 @@ public class JurisprudenceBootstrapService {
         logEntry.setClaudeReason("Bootstrap initial: " + evaluation.raison());
         auditLogRepository.save(logEntry);
         return 1;
+    }
+
+    /**
+     * SF-JU-06-04 — Réactive un mapping précédemment archivé : l'arrêt a été
+     * re-sélectionné par le re-bootstrap et a repassé les 3 garde-fous F-JU-06.
+     * UPDATE en place (l'entité conserve son id et son triplet) : aucune
+     * violation de la contrainte unique {@code uq_tool_jurisprudence_mappings_active}.
+     * Trace une entrée d'audit {@code AUTO_REACTIVATE}.
+     */
+    private void reactivateMapping(ToolJurisprudenceMapping mapping,
+                                   ClaudeEvaluation evaluation,
+                                   User triggerUser) {
+        JudilibreArret chosen = evaluation.arretChoisi();
+        applyArretFields(mapping, chosen, evaluation);
+        mapping.setArchived(false);
+        ToolJurisprudenceMapping saved = mappingRepository.save(mapping);
+
+        JurisprudenceAuditLog logEntry = new JurisprudenceAuditLog();
+        logEntry.setMapping(saved);
+        logEntry.setAction(JurisprudenceAuditAction.AUTO_REACTIVATE);
+        logEntry.setActor(JurisprudenceAuditActor.SUPER_ADMIN);
+        logEntry.setActorUser(triggerUser);
+        logEntry.setClaudeConfidence(evaluation.confidenceScore());
+        logEntry.setClaudeReason("Réactivation au re-bootstrap: " + evaluation.raison());
+        auditLogRepository.save(logEntry);
+    }
+
+    /**
+     * Renseigne les champs métier d'un mapping à partir de l'arrêt choisi et de
+     * l'évaluation Claude. Partagé entre l'INSERT initial ({@code persistTopCandidates})
+     * et la réactivation ({@code reactivateMapping}). Ne touche ni le triplet
+     * d'identité (toolId / brancheCalculId / arretRef) ni le flag {@code archived}.
+     */
+    private void applyArretFields(ToolJurisprudenceMapping mapping,
+                                  JudilibreArret chosen,
+                                  ClaudeEvaluation evaluation) {
+        mapping.setJuridiction(chosen.juridiction() == null ? "Cour de cassation" : chosen.juridiction());
+        mapping.setDateArret(chosen.dateArret() == null ? LocalDate.now() : chosen.dateArret());
+        mapping.setNumeroPourvoi(chosen.numeroPourvoi() == null ? "n/a" : chosen.numeroPourvoi());
+        mapping.setLienLegifrance(chosen.lienLegifrance() == null ? "" : chosen.lienLegifrance());
+        mapping.setChapeauOfficiel(chosen.chapeauOfficiel() == null ? "" : chosen.chapeauOfficiel());
+        mapping.setLastVerifiedAt(Instant.now());
+        mapping.setConfidenceScore(evaluation.confidenceScore() == null ? BigDecimal.ZERO : evaluation.confidenceScore());
     }
 
     private List<JudilibreArret> filterByJuridiction(List<JudilibreArret> candidates, String filtre) {

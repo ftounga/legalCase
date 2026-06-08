@@ -18,6 +18,13 @@ public enum JurisprudenceAuditAction {
     /** Cron a remplacé un arrêt par un autre (confiance > 0.85, revirement détecté). */
     AUTO_REPLACE,
 
+    /**
+     * SF-JU-06-04 — Re-bootstrap a réactivé un mapping précédemment archivé : le
+     * même arrêt a été re-sélectionné et a repassé les 3 garde-fous F-JU-06
+     * (chapeau non vide, confiance ≥ 0,70, 2ᵉ passe de pertinence).
+     */
+    AUTO_REACTIVATE,
+
     /** Cron a archivé un arrêt explicitement censuré ou un mapping orphelin. */
     AUTO_ARCHIVE,
 

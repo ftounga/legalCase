@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -49,6 +50,17 @@ public interface ToolJurisprudenceMappingRepository extends JpaRepository<ToolJu
      * {@code DataIntegrityViolationException}.
      */
     boolean existsByToolIdAndBrancheCalculIdAndArretRef(String toolId, String brancheCalculId, String arretRef);
+
+    /**
+     * SF-JU-06-04 — mapping existant pour le triplet de la contrainte unique
+     * {@code uq_tool_jurisprudence_mappings_active}, <strong>quel que soit son
+     * statut {@code archived}</strong>. Utilisé par {@code JurisprudenceBootstrapService}
+     * pour distinguer : aucun mapping (INSERT), mapping actif (skip idempotent),
+     * mapping archivé (réactivation par UPDATE — la ré-insertion violerait la
+     * contrainte unique qui ne filtre pas {@code archived}).
+     */
+    Optional<ToolJurisprudenceMapping> findByToolIdAndBrancheCalculIdAndArretRef(
+            String toolId, String brancheCalculId, String arretRef);
 
     /**
      * SF-JU-06-02 — tous les mappings actifs (non archivés), pour la
