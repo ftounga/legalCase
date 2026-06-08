@@ -229,7 +229,7 @@
             </button>
           </div>
         } @else {
-          <pre class="cs-content" data-testid="conclusions-content">{{ conclusion()?.content }}</pre>
+          <app-conclusion-document [content]="conclusion()?.content" />
 
           <div class="cs-actions">
             @if (editable()) {

@@ -3,6 +3,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AnalysisItem, CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { formatSourceRef } from '../utils/format-source-ref';
+import { isSectionHeading } from '../utils/section-heading';
 
 @Injectable({ providedIn: 'root' })
 export class DocxExportService {
@@ -215,18 +216,13 @@ export class DocxExportService {
    * moins une lettre, et reste courte (\u2264 60 caract\u00e8res). Robuste pour la
    * structure produite par `CaseConclusionPromptBuilder` (`POUR`, `CONTRE`,
    * `FAITS ET PROC\u00c9DURE`, `DISCUSSION`, `PAR CES MOTIFS`\u2026).
+   *
+   * F-259 / SF-259-01 : d\u00e9l\u00e8gue \u00e0 l'util partag\u00e9 `isSectionHeading`
+   * (`core/utils/section-heading`) pour une source de v\u00e9rit\u00e9 UNIQUE commune
+   * \u00e0 l'export Word et au rendu \u00e9cran (`ConclusionParser`).
    */
   private isSectionHeading(line: string): boolean {
-    const trimmed = line.trim();
-    if (trimmed.length === 0 || trimmed.length > 60) {
-      return false;
-    }
-    // Garde uniquement les lettres (Unicode) pour comparer casse et pr\u00e9sence.
-    const letters = trimmed.replace(/[^\p{L}]/gu, '');
-    if (letters.length === 0) {
-      return false;
-    }
-    return letters === letters.toUpperCase() && letters !== letters.toLowerCase();
+    return isSectionHeading(line);
   }
 
   /** Slug ASCII minuscule, accents retir\u00e9s, tronqu\u00e9 \u00e0 40 caract\u00e8res. */

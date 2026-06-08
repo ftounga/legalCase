@@ -1,0 +1,91 @@
+// F-259 / SF-259-01 — Rendu « document juridique » des conclusions générées.
+// Palette design system : marine #1A3A5C, or #C9973A, texte #1C2B3A,
+// secondaire #6B7A8D, surface #FFFFFF, divider #E0E4EA. Aucune couleur
+// hors charte, aucun branding LegalCase (c'est le document de l'avocat).
+// Espacements multiples de 4px.
+
+$navy: #1a3a5c;
+$gold: #c9973a;
+$text: #1c2b3a;
+$muted: #6b7a8d;
+$divider: #e0e4ea;
+
+.cd-sheet {
+  display: block;
+  margin: 0 0 16px;
+  padding: 32px 40px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid $divider;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.cd-section {
+  // Aération entre sections ; la 1re section reste au ras du haut de feuille.
+  margin-top: 32px;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+// ── Titres de section : Merriweather marine + fin filet or ──────────
+.cd-section-title {
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid $gold;
+  font-family: 'Merriweather', serif;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: $navy;
+}
+
+// ── Corps : Inter justifié, interligne aéré ─────────────────────────
+.cd-body {
+  margin: 0 0 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.7;
+  color: $text;
+  text-align: justify;
+  hyphens: auto;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// ── Dispositif « PAR CES MOTIFS » : liste numérotée ─────────────────
+.cd-dispositif {
+  margin: 0 0 16px;
+  padding-left: 24px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: $text;
+}
+
+.cd-dispositif-item {
+  margin-bottom: 8px;
+  text-align: justify;
+
+  &::marker {
+    color: $navy;
+    font-weight: 600;
+  }
+}
+
+// ── Pied de page écran (jamais dans le content exporté) ─────────────
+.cd-footer {
+  margin: 32px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid $divider;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-style: italic;
+  color: $muted;
+  text-align: right;
+}

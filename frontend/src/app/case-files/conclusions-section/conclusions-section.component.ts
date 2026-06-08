@@ -20,6 +20,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
+import { ConclusionDocumentComponent } from '../conclusion-document/conclusion-document.component';
 import { ConclusionsService } from '../../core/services/conclusions.service';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
@@ -82,6 +83,7 @@ const LIFECYCLE_ORDER: readonly ConclusionLifecycleStatus[] = [
     MatProgressSpinnerModule,
     MatSelectModule,
     RouterLink,
+    ConclusionDocumentComponent,
   ],
   templateUrl: './conclusions-section.component.html',
   styleUrl: './conclusions-section.component.scss',
