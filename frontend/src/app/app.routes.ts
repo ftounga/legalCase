@@ -210,6 +210,12 @@ export const routes: Routes = [
     loadComponent: () => import('./demos/demos-page.component').then(m => m.DemosPageComponent)
   },
   {
+    // F-DRH-01 SF-DRH-01-01 — page publique « LegalCase Employeur » (no-auth, lazy).
+    path: 'employeur',
+    loadComponent: () => import('./employer-landing/employer-landing.component')
+      .then(m => m.EmployerLandingComponent)
+  },
+  {
     path: 'blog',
     loadComponent: () => import('./blog/blog-list-page/blog-list-page.component')
       .then(m => m.BlogListPageComponent)

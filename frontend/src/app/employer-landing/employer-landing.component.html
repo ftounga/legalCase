@@ -1,0 +1,107 @@
+<div class="emp-page">
+  <header class="emp-header">
+    <a routerLink="/" class="emp-logo" aria-label="Retour à la page d'accueil LegalCase">
+      <span class="emp-logo-mark" aria-hidden="true">⚖</span>
+      <span class="emp-logo-text">AI <strong>LegalCase</strong></span>
+      <span class="emp-logo-badge">Employeur</span>
+    </a>
+
+    <a
+      [href]="calendlyUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="emp-header-cta">
+      Réserver une démo
+    </a>
+  </header>
+
+  <main class="emp-main">
+    <!-- 1 — HERO -->
+    <section class="emp-hero" aria-label="Présentation">
+      <p class="emp-eyebrow">LegalCase Employeur</p>
+      <h1 class="emp-hero-title">
+        Chiffrez l'exposition prud'homale d'un licenciement — avant de décider.
+      </h1>
+      <p class="emp-hero-subtitle">
+        À partir des pièces de votre dossier, LegalCase qualifie le litige, repère les
+        fragilités de procédure et estime votre exposition. Vous décidez en maîtrise du
+        risque et en conformité — pas à l'aveugle.
+      </p>
+      <div class="emp-hero-actions">
+        <a
+          [href]="calendlyUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="emp-btn emp-btn--primary">
+          Réserver une démo
+        </a>
+      </div>
+    </section>
+
+    <!-- 2 — VALEUR (le réel) -->
+    <section class="emp-value" aria-label="Ce que LegalCase fait pour vous">
+      <h2 class="emp-section-title">Ce que LegalCase fait à partir de vos pièces</h2>
+      <p class="emp-section-lead">
+        Pas de saisie de variables à la main : vous déposez les pièces du dossier,
+        LegalCase fait le reste.
+      </p>
+      <ul class="emp-value-grid" role="list">
+        @for (item of valueItems; track item.title) {
+          <li class="emp-value-card">
+            <span class="emp-value-icon" aria-hidden="true">{{ item.icon }}</span>
+            <h3 class="emp-value-card-title">{{ item.title }}</h3>
+            <p class="emp-value-card-text">{{ item.text }}</p>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <!-- 3 — CONFIANCE / CONFORMITÉ -->
+    <section class="emp-trust" aria-label="Confiance et conformité">
+      <div class="emp-trust-inner">
+        <h2 class="emp-section-title">Maîtrise du risque &amp; conformité</h2>
+        <p class="emp-section-lead">
+          LegalCase est un outil de sécurisation : anticiper le risque social et fiabiliser
+          vos procédures. Vos données restent les vôtres.
+        </p>
+        <ul class="emp-trust-grid" role="list">
+          @for (trust of trustItems; track trust) {
+            <li class="emp-trust-item">
+              <span class="emp-trust-check" aria-hidden="true">✓</span>
+              {{ trust }}
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+
+    <!-- 4 — CTA FINAL -->
+    <section class="emp-cta" aria-label="Réserver une démonstration">
+      <h2 class="emp-cta-title">Voyez LegalCase sur l'un de vos dossiers</h2>
+      <p class="emp-cta-text">
+        30 minutes pour comprendre comment chiffrer votre exposition et sécuriser vos
+        décisions RH.
+      </p>
+      <a
+        [href]="calendlyUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="emp-btn emp-btn--primary emp-cta-btn">
+        Réserver une démo
+      </a>
+    </section>
+  </main>
+
+  <footer class="emp-footer">
+    <div class="emp-footer-inner">
+      <span class="emp-footer-brand">AI LegalCase © {{ currentYear }}</span>
+      <nav class="emp-footer-nav" aria-label="Liens de bas de page">
+        <a routerLink="/">Accueil</a>
+        <a routerLink="/demos">Démonstrations</a>
+        <a routerLink="/mentions-legales">Mentions légales</a>
+        <a routerLink="/privacy">Confidentialité</a>
+        <a routerLink="/cgu">CGU</a>
+      </nav>
+    </div>
+  </footer>
+</div>
