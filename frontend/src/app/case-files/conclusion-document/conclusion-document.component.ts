@@ -5,35 +5,28 @@ import {
   computed,
   signal,
 } from '@angular/core';
-import {
-  ConclusionSection,
-  isDispositifSection,
-  parseConclusion,
-  toDispositifItems,
-  toParagraphs,
-} from './conclusion-parser';
+import { marked } from 'marked';
 
 /**
- * F-259 / SF-259-01 — Rendu « document juridique » des conclusions générées.
+ * F-259 / SF-259-02 — Rendu Markdown « document juridique » des conclusions.
  *
- * Remplace, en mode LECTURE uniquement, le `<pre>` de texte brut (« look
- * markdown/Claude ») par un document structuré : titres de section en
- * Merriweather marine soulignés d'un filet or, corps Inter justifié sur une
- * « feuille » blanche, dispositif « PAR CES MOTIFS » en liste numérotée.
+ * Le contenu généré par l'IA est en **Markdown** (`#`/`##`/`###` titres,
+ * `**gras**`, `*italique*`, listes `-`/`1.`, `>` citations, `---` filets). En
+ * mode LECTURE, on le parse avec `marked` → HTML, rendu via `[innerHTML]`
+ * **sanitizé par Angular** (sécurité par défaut du binding : tout `<script>`
+ * / handler inline est neutralisé) sur une « feuille » blanche. Le style riche
+ * (titres Merriweather marine + filet or, gras marine, italique, souligné,
+ * listes accent or, citations, filets) vient exclusivement du SCSS du composant
+ * scopé sous `.cd-sheet` via `::ng-deep`, jamais du contenu.
  *
- * Parsing par l'heuristique MAJUSCULES partagée avec l'export Word
- * (`core/utils/section-heading`) → convergence écran / Word. Aucun appel
- * réseau, aucun effet de bord : composant de présentation pur, OnPush.
+ * Aucun appel réseau, aucun effet de bord : composant de présentation pur,
+ * OnPush. Le `data-testid="conclusions-content"` historique est porté par la
+ * feuille pour préserver les specs du parent (`conclusions-section`).
  *
- * Le `data-testid="conclusions-content"` historique est porté par la feuille
- * pour préserver les specs du parent (`conclusions-section`).
+ * NB : l'export Word/PDF garde le gap Markdown (heuristique MAJUSCULES) → traité
+ * dans une SF dédiée (SF-259-03). L'util `core/utils/section-heading` reste
+ * utilisé par cet export et n'est pas touché ici.
  */
-interface RenderSection {
-  readonly title: string | null;
-  readonly paragraphs: string[];
-  readonly dispositifItems: string[] | null;
-}
-
 @Component({
   selector: 'app-conclusion-document',
   standalone: true,
@@ -45,7 +38,7 @@ interface RenderSection {
 export class ConclusionDocumentComponent {
   private readonly _content = signal<string | null | undefined>(null);
 
-  /** Texte brut des conclusions à rendre (mode lecture). */
+  /** Contenu Markdown des conclusions à rendre (mode lecture). */
   @Input()
   set content(value: string | null | undefined) {
     this._content.set(value);
@@ -54,27 +47,23 @@ export class ConclusionDocumentComponent {
     return this._content();
   }
 
-  /** Sections prêtes au rendu (vide ⇒ rien n'est rendu, état vide parent). */
-  readonly sections = computed<RenderSection[]>(() =>
-    parseConclusion(this._content()).map((section) => this.toRender(section)),
-  );
-
-  /** Vrai s'il y a quelque chose à rendre (au moins une section). */
-  readonly hasContent = computed<boolean>(() => this.sections().length > 0);
-
-  private toRender(section: ConclusionSection): RenderSection {
-    if (isDispositifSection(section)) {
-      const items = toDispositifItems(section.lines);
-      // Si le dispositif n'a pas d'items exploitables, on retombe en
-      // paragraphes normaux plutôt que de rendre une liste vide.
-      if (items.length > 0) {
-        return { title: section.title, paragraphs: [], dispositifItems: items };
-      }
+  /**
+   * HTML issu du parsing Markdown (`marked`, mode synchrone). Rendu via
+   * `[innerHTML]` → Angular sanitize la sortie (suppression des `<script>`,
+   * handlers inline, etc.). Vide ⇒ rien n'est rendu (état vide géré par le
+   * parent).
+   */
+  readonly html = computed<string>(() => {
+    const content = this._content();
+    if (content == null || content.trim().length === 0) {
+      return '';
     }
-    return {
-      title: section.title,
-      paragraphs: toParagraphs(section.lines),
-      dispositifItems: null,
-    };
-  }
+    // `marked.parse` est synchrone par défaut (pas d'extension async ici) ;
+    // on borne le type au cas string.
+    const parsed = marked.parse(content, { async: false }) as string;
+    return parsed.trim();
+  });
+
+  /** Vrai s'il y a quelque chose à rendre. */
+  readonly hasContent = computed<boolean>(() => this.html().length > 0);
 }

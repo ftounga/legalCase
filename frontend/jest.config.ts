@@ -15,6 +15,14 @@ const config: Config = {
     ],
   },
   moduleFileExtensions: ['ts', 'html', 'js', 'json', 'mjs'],
+  // `marked` est publié en ESM pur via un `.js` (package.json "type": "module").
+  // Jest tourne en CommonJS : il faut autoriser sa transformation. On reprend le
+  // pattern par défaut de jest-preset-angular (qui débloque déjà les `.mjs` et
+  // les locales Angular) en y ajoutant `marked`, sinon ce pattern écraserait
+  // celui du preset et casserait le chargement des modules Angular ESM.
+  transformIgnorePatterns: [
+    'node_modules/(?!(.*\\.mjs$|@angular/common/locales/.*\\.js$|marked/))',
+  ],
 };
 
 export default config;
