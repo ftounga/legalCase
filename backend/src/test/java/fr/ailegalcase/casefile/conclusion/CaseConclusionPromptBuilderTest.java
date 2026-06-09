@@ -265,4 +265,58 @@ class CaseConclusionPromptBuilderTest {
         assertThat(message).contains("=== JURISPRUDENCE À L'APPUI ===");
         assertThat(message).contains("Aucune référence de jurisprudence fournie.");
     }
+
+    // --- SF-98-55 — garde de qualité rédactionnelle + nettoyage du jargon interne ---
+
+    @Test
+    void buildSystemPrompt_includesRedactionQualityGuard_onEveryCell() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        // anti-jargon
+        assertThat(system).contains("Aucun jargon interne");
+        assertThat(system).contains("F-DT-08");        // cité comme exemple à NE PAS reproduire
+        assertThat(system).contains("matière première");
+        // syllogisme + visa
+        assertThat(system).contains("VISANT l'article");
+        // dispositif complet
+        assertThat(system).contains("article 700");
+        assertThat(system).contains("1343-2");
+    }
+
+    @Test
+    void buildUserMessage_toolJurisprudence_usesHumanLabelNotRawToolId() {
+        var citation = new fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationResponse(
+                java.util.UUID.randomUUID(),
+                "Cass. soc. 13 oct. 2021, n° 18-18.022",
+                "Cour de cassation",
+                java.time.LocalDate.of(2021, 10, 13),
+                "18-18.022",
+                "https://www.courdecassation.fr/decision/18-18022",
+                "Les dispositions conventionnelles s'imposent à l'employeur.",
+                null, null);
+        var byTool = new fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool(
+                "f-dt-08-licenciement-validite", "default", List.of(citation));
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier jargon", "Conseil de prud'hommes", "Bureau de jugement (fond)",
+                "Demandeur (salarié)", "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(byTool));
+
+        String message = builder.buildUserMessage(input);
+
+        // le libellé lisible est présent, jamais le code brut
+        assertThat(message).contains("Sujet : Licenciement validite");
+        assertThat(message).doesNotContain("f-dt-08-licenciement-validite");
+        // la citation elle-même reste fournie
+        assertThat(message).contains("Cass. soc. 13 oct. 2021, n° 18-18.022");
+    }
+
+    @Test
+    void humanizeToolId_stripsPrefixAndCapitalises() {
+        assertThat(CaseConclusionPromptBuilder.humanizeToolId("f-dt-08-licenciement-validite"))
+                .isEqualTo("Licenciement validite");
+        assertThat(CaseConclusionPromptBuilder.humanizeToolId("f-im-52-vpf-jeune-majeur"))
+                .isEqualTo("Vpf jeune majeur");
+        assertThat(CaseConclusionPromptBuilder.humanizeToolId(null)).isEmpty();
+        assertThat(CaseConclusionPromptBuilder.humanizeToolId("  ")).isEmpty();
+    }
 }
