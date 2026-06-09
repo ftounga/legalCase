@@ -139,7 +139,8 @@ public class CaseConclusionService {
             failure = e;
         }
 
-        self.finalize(caseConclusionId, result, failure, prepared.styleApplied());
+        self.finalize(caseConclusionId, result, failure, prepared.styleApplied(),
+                prepared.pieces());
     }
 
     /**
@@ -169,6 +170,12 @@ public class CaseConclusionService {
         String domain = caseFile.getLegalDomain();
         String country = conclusion.getWorkspace().getCountry();
 
+        // SF-98-57 : la liste des pièces numérotées sert à la fois au prompt (renvois
+        // « Pièce n° X ») et à l'assemblage déterministe du bordereau en finalisation.
+        // Chargée UNE seule fois pour garantir l'identité de source (cohérence garantie).
+        List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> numberedPieces =
+                loadNumberedPieces(caseFileId);
+
         CaseConclusionPromptBuilder.ConclusionPromptInput input =
                 new CaseConclusionPromptBuilder.ConclusionPromptInput(
                         caseFile.getTitle(),
@@ -179,7 +186,7 @@ public class CaseConclusionService {
                         labelSafe(() -> ProcedureStageCatalog.positionLabel(
                                 domain, country, conclusion.getPositionCode())),
                         loadLatestAnalysisResult(caseFileId),
-                        loadNumberedPieces(caseFileId),
+                        numberedPieces,
                         loadDecisionToolTiles(caseFileId),
                         loadRetainedStrategies(caseFileId),
                         loadJurisprudenceCitations(caseFileId),
@@ -191,7 +198,8 @@ public class CaseConclusionService {
                 conclusion.getStageCode(), conclusion.getPositionCode());
         String systemPrompt = promptBuilder.buildSystemPrompt(key, styleSignatures);
         String userMessage = promptBuilder.buildUserMessage(input);
-        return new PreparedConclusion(systemPrompt, userMessage, !styleSignatures.isEmpty(), caseFileId);
+        return new PreparedConclusion(systemPrompt, userMessage, !styleSignatures.isEmpty(),
+                caseFileId, numberedPieces);
     }
 
     /**
@@ -230,10 +238,13 @@ public class CaseConclusionService {
      *
      * @param styleApplied SF-98-47 — vrai si la génération a adopté au moins une
      *                     signature de style active du workspace
+     * @param pieces       SF-98-57 — pièces numérotées du dossier (même liste que celle
+     *                     injectée au prompt) pour assembler le bordereau en annexe
      */
     @Transactional
     public void finalize(UUID caseConclusionId, AnthropicResult result, Exception failure,
-                         boolean styleApplied) {
+                         boolean styleApplied,
+                         List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> pieces) {
         CaseConclusion conclusion = caseConclusionRepository.findById(caseConclusionId).orElse(null);
         if (conclusion == null) {
             log.warn("Conclusion {} introuvable à la finalisation — résultat perdu", caseConclusionId);
@@ -251,7 +262,11 @@ public class CaseConclusionService {
         }
 
         conclusion.setStatus(CaseConclusionStatus.DONE);
-        conclusion.setContent(result.content());
+        // SF-98-57 : annexe « Bordereau de pièces communiquées » assemblée de façon
+        // déterministe (hors-LLM) à partir des pièces déjà injectées au prompt → zéro
+        // pièce hallucinée et numéros cohérents avec les renvois « Pièce n° X » du corps.
+        // Liste vide/null → chaîne vide → aucune section ajoutée.
+        conclusion.setContent(result.content() + BordereauPiecesBuilder.buildBordereau(pieces));
         conclusion.setModelUsed(result.modelUsed());
         conclusion.setPromptTokens(result.promptTokens());
         conclusion.setCompletionTokens(result.completionTokens());
@@ -415,8 +430,11 @@ public class CaseConclusionService {
      *                     d'adaptation au style appris du cabinet
      * @param caseFileId   F-257 — identifiant du dossier rattaché, propagé dans le
      *                     {@link AiCallContext} pour traçabilité {@code usage_events}
+     * @param pieces       SF-98-57 — pièces numérotées chargées une seule fois, partagées
+     *                     entre le prompt et l'assemblage du bordereau (source unique)
      */
     record PreparedConclusion(String systemPrompt, String userMessage, boolean styleApplied,
-                              UUID caseFileId) {
+                              UUID caseFileId,
+                              List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> pieces) {
     }
 }

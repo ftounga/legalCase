@@ -75,6 +75,43 @@ public enum DocumentPieceType {
             ACTE_MARIAGE, ACTE_NAISSANCE_ENFANT, JUGEMENT_DIVORCE, LIVRET_FAMILLE,
             JUSTIFICATIF_REVENUS, ACTE_NAISSANCE);
 
+    /**
+     * SF-98-57 : libellé français court et lisible du type, pour l'assemblage du
+     * bordereau de pièces dans les conclusions (anti-jargon SF-98-55 — jamais le
+     * token d'enum brut). Aligné sur {@code documentPieceTypeLabel} du frontend.
+     */
+    public String frenchLabel() {
+        return switch (this) {
+            case PHOTO -> "Photo";
+            case LETTRE -> "Lettre";
+            case EMAIL -> "Email";
+            case SMS -> "SMS";
+            case ATTESTATION -> "Attestation";
+            case PIECE_IDENTITE -> "Pièce d'identité";
+            case CERTIFICAT_MEDICAL -> "Certificat médical";
+            case AUTRE -> "Pièce";
+            case CONTRAT -> "Contrat";
+            case BULLETIN_PAIE -> "Bulletin de paie";
+            case TITRE_DE_SEJOUR -> "Titre de séjour";
+            case PASSEPORT -> "Passeport";
+            case VISA -> "Visa";
+            case ACTE_NAISSANCE -> "Acte de naissance";
+            case AVIS_IMPOSITION -> "Avis d'imposition";
+            case QUITTANCE_LOYER -> "Quittance de loyer";
+            case PROMESSE_EMBAUCHE -> "Promesse d'embauche";
+            case RECEPISSE_PREFECTURE -> "Récépissé préfecture";
+            case DECISION_OQTF -> "Décision OQTF";
+            case RECOURS_CONTENTIEUX -> "Recours contentieux";
+            case ATTESTATION_HEBERGEMENT -> "Attestation d'hébergement";
+            case ACTE_MARIAGE -> "Acte de mariage";
+            case ACTE_NAISSANCE_ENFANT -> "Acte de naissance enfant";
+            case JUGEMENT_DIVORCE -> "Jugement de divorce";
+            case LIVRET_FAMILLE -> "Livret de famille";
+            case JUSTIFICATIF_REVENUS -> "Justificatif de revenus";
+            case BAIL_LOCATION -> "Bail de location";
+        };
+    }
+
     public static DocumentPieceType fromStringOrDefault(String raw) {
         if (raw == null) return AUTRE;
         try {
