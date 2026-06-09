@@ -214,6 +214,117 @@ class CaseConclusionServiceTest {
                 any(AiCallContext.class), any(), contains("Pièce n° 7 — CDI Dupont"), anyInt());
     }
 
+    // ── SF-98-57 — bordereau de pièces communiquées ──────────────────────────
+
+    @Test
+    void generate_withPieces_appendsBordereauAtEndOfContent() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any()))
+                .thenReturn(List.of(
+                        documentPiece(2, "Lettre de licenciement",
+                                fr.ailegalcase.document.DocumentPieceType.LETTRE),
+                        documentPiece(1, "CDI Dupont",
+                                fr.ailegalcase.document.DocumentPieceType.CONTRAT)));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — débouter", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        // le corps LLM précède l'annexe, puis le bordereau clôt l'acte (trié par numéro)
+        assertThat(conclusion.getContent())
+                .startsWith("PAR CES MOTIFS — débouter")
+                .endsWith("1. CDI Dupont (Contrat)\n2. Lettre de licenciement");
+        assertThat(conclusion.getContent()).contains("## BORDEREAU DE PIÈCES COMMUNIQUÉES");
+    }
+
+    @Test
+    void generate_noPiece_doesNotAppendBordereau() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion); // 0 pièce stubée
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        assertThat(conclusion.getContent())
+                .isEqualTo("PAR CES MOTIFS — texte")
+                .doesNotContain("BORDEREAU");
+    }
+
+    @Test
+    void generate_bordereauNumbersMatchPromptPieceNumbers() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any()))
+                .thenReturn(List.of(documentPiece(7, "CDI Dupont",
+                        fr.ailegalcase.document.DocumentPieceType.CONTRAT)));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        // même source (loadNumberedPieces) → « Pièce n° 7 » au prompt == « 7. … » au bordereau
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(), contains("Pièce n° 7 — CDI Dupont"), anyInt());
+        assertThat(conclusion.getContent()).contains("7. CDI Dupont (Contrat)");
+    }
+
+    @Test
+    void generate_bordereau_antiJargon_noRawEnumTokenWhenLabelPresent() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any()))
+                .thenReturn(List.of(documentPiece(1, "Avenant 2023",
+                        fr.ailegalcase.document.DocumentPieceType.CONTRAT)));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        // section bordereau : libellé lisible, jamais le token d'enum brut
+        String bordereau = conclusion.getContent().substring(
+                conclusion.getContent().indexOf("## BORDEREAU"));
+        assertThat(bordereau).contains("Avenant 2023 (Contrat)").doesNotContain("CONTRAT");
+    }
+
+    @Test
+    void generate_failed_doesNotAppendBordereau() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any()))
+                .thenReturn(List.of(documentPiece(1, "CDI Dupont",
+                        fr.ailegalcase.document.DocumentPieceType.CONTRAT)));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenThrow(new RuntimeException("Anthropic 529 overloaded"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.FAILED);
+        assertThat(conclusion.getContent()).isNull();
+    }
+
     @Test
     void generate_noActiveStyleSignature_marksStyleNotApplied() {
         UUID conclusionId = UUID.randomUUID();
@@ -261,6 +372,15 @@ class CaseConclusionServiceTest {
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
         when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
+    }
+
+    private fr.ailegalcase.document.DocumentPiece documentPiece(
+            int pieceNumber, String label, fr.ailegalcase.document.DocumentPieceType type) {
+        fr.ailegalcase.document.DocumentPiece piece = new fr.ailegalcase.document.DocumentPiece();
+        piece.setPieceNumber(pieceNumber);
+        piece.setLabel(label);
+        piece.setType(type);
+        return piece;
     }
 
     private StyleCorpusDocument styleDocument(String signature) {
