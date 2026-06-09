@@ -7,7 +7,9 @@ import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.document.Document;
-import fr.ailegalcase.document.DocumentRepository;
+import fr.ailegalcase.document.DocumentPiece;
+import fr.ailegalcase.document.DocumentPieceRepository;
+import fr.ailegalcase.document.DocumentPieceType;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
@@ -34,13 +36,13 @@ class PrudhomeFicheServiceTest {
     private final WorkspaceMemberRepository workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
     private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
     private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
-    private final DocumentRepository documentRepository = mock(DocumentRepository.class);
+    private final DocumentPieceRepository documentPieceRepository = mock(DocumentPieceRepository.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OidcUser oidcUser = mock(OidcUser.class);
 
     private final PrudhomeFicheService service = new PrudhomeFicheService(
             ficheRepository, caseFileRepository, workspaceMemberRepository,
-            currentUserResolver, caseAnalysisRepository, documentRepository, objectMapper);
+            currentUserResolver, caseAnalysisRepository, documentPieceRepository, objectMapper);
 
     // --- GET ---
 
@@ -54,8 +56,11 @@ class PrudhomeFicheServiceTest {
 
         PrudhomeFiche fiche = fiche(caseFileId, caseFile);
         when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.of(fiche));
-        Document doc = document(caseFile, "contrat.pdf");
-        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of(doc));
+        // F-260 : numérotation lue depuis le piece_number persistant. Pièce sans label
+        // → libellé = nom de fichier du document source ("contrat.pdf").
+        DocumentPiece piece = piece(caseFile, "contrat.pdf", null, 1);
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(caseFileId))
+                .thenReturn(List.of(piece));
 
         PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
 
@@ -77,14 +82,17 @@ class PrudhomeFicheServiceTest {
         when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.empty());
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
                 .thenReturn(Optional.empty());
-        Document doc = document(caseFile, "bulletin.pdf");
-        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of(doc));
+        DocumentPiece piece = piece(caseFile, "bulletin.pdf", "Bulletin de paie", 1);
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(caseFileId))
+                .thenReturn(List.of(piece));
 
         PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
 
         assertThat(response.id()).isNull();
         assertThat(response.demandes()).isEmpty();
         assertThat(response.piecesList()).hasSize(1);
+        // F-260 : libellé = label de la pièce quand présent.
+        assertThat(response.piecesList().get(0).nom()).isEqualTo("Bulletin de paie");
     }
 
     // U-DT04-03 : dossier inexistant → 404
@@ -126,7 +134,7 @@ class PrudhomeFicheServiceTest {
         setupAccess(workspace, caseFile, caseFileId);
 
         when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.empty());
-        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
 
         PrudhomeFiche saved = fiche(caseFileId, caseFile);
         when(ficheRepository.save(any(PrudhomeFiche.class))).thenReturn(saved);
@@ -148,7 +156,7 @@ class PrudhomeFicheServiceTest {
 
         PrudhomeFiche existing = fiche(caseFileId, caseFile);
         when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.of(existing));
-        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         when(ficheRepository.save(any(PrudhomeFiche.class))).thenReturn(existing);
 
         PrudhomeFicheRequest request = request("Lemaire", "SNCF");
@@ -313,7 +321,7 @@ class PrudhomeFicheServiceTest {
 
         PrudhomeFiche existing = fiche(caseFileId, caseFile);
         when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.of(existing));
-        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
 
         PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
 
@@ -359,7 +367,7 @@ class PrudhomeFicheServiceTest {
         CaseFile caseFile = caseFile(caseFileId, workspace);
         setupAccess(workspace, caseFile, caseFileId);
         when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.empty());
-        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         return caseFileId;
     }
 
@@ -418,6 +426,17 @@ class PrudhomeFicheServiceTest {
         doc.setCaseFile(caseFile);
         doc.setOriginalFilename(filename);
         return doc;
+    }
+
+    /** F-260 : pièce numérotée par piece_number, rattachée à un document du dossier. */
+    private DocumentPiece piece(CaseFile caseFile, String filename, String label, int pieceNumber) {
+        DocumentPiece p = new DocumentPiece();
+        p.setId(UUID.randomUUID());
+        p.setDocument(document(caseFile, filename));
+        p.setType(DocumentPieceType.AUTRE);
+        p.setLabel(label);
+        p.setPieceNumber(pieceNumber);
+        return p;
     }
 
     private PrudhomeFicheRequest request(String nomDemandeur, String nomDefendeur) {

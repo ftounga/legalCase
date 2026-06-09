@@ -6,8 +6,7 @@ import fr.ailegalcase.analysis.AnalysisType;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.auth.User;
-import fr.ailegalcase.document.Document;
-import fr.ailegalcase.document.DocumentRepository;
+import fr.ailegalcase.document.DocumentPieceRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
@@ -31,13 +30,13 @@ class TribunalTravailFicheServiceTest {
     private final WorkspaceMemberRepository workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
     private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
     private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
-    private final DocumentRepository documentRepository = mock(DocumentRepository.class);
+    private final DocumentPieceRepository documentPieceRepository = mock(DocumentPieceRepository.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OidcUser oidcUser = mock(OidcUser.class);
 
     private final TribunalTravailFicheService service = new TribunalTravailFicheService(
             ficheRepository, caseFileRepository, workspaceMemberRepository,
-            currentUserResolver, caseAnalysisRepository, documentRepository, objectMapper);
+            currentUserResolver, caseAnalysisRepository, documentPieceRepository, objectMapper);
 
     // U-DT06-05-01 : identité complète (salarié + employeur) → requerant/defendeur pré-remplis
     @Test
@@ -205,7 +204,7 @@ class TribunalTravailFicheServiceTest {
 
         TribunalTravailFiche existing = fiche(caseFileId, caseFile);
         when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.of(existing));
-        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
 
         TribunalTravailFicheResponse response = service.get(caseFileId, oidcUser, null);
 
@@ -248,7 +247,7 @@ class TribunalTravailFicheServiceTest {
         CaseFile caseFile = caseFile(caseFileId, workspace);
         setupAccess(workspace, caseFile, caseFileId);
         when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.empty());
-        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         return caseFileId;
     }
 

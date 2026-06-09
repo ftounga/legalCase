@@ -20,7 +20,13 @@ public record DocumentPieceSummary(
         int pageEnd,
         int orderIndex,
         String visualDescription,
-        String visionStatus
+        String visionStatus,
+        /**
+         * F-260 / SF-260-01 : numéro de pièce persistant et stable du dossier
+         * (« Pièce n° X »). Null pour les pièces antérieures à F-260 non encore
+         * backfillées. Lu par le frontend (colonne « N° » de la table documents).
+         */
+        Integer pieceNumber
 ) {
     public static DocumentPieceSummary from(DocumentPiece p) {
         return new DocumentPieceSummary(
@@ -31,7 +37,8 @@ public record DocumentPieceSummary(
                 p.getPageEnd(),
                 p.getOrderIndex(),
                 p.getVisualDescription(),
-                p.getVisionStatus() != null ? p.getVisionStatus().name() : VisionStatus.NOT_APPLICABLE.name()
+                p.getVisionStatus() != null ? p.getVisionStatus().name() : VisionStatus.NOT_APPLICABLE.name(),
+                p.getPieceNumber()
         );
     }
 }

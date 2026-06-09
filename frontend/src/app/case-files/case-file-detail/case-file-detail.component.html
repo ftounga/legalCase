@@ -295,7 +295,45 @@
           </div>
         } @else {
           <mat-card class="docs-card">
+            <!-- F-260 SF-260-01 : l'ordre des pièces pilote leur numérotation citée dans les actes. -->
+            <p class="pieces-order-hint">
+              <mat-icon class="pieces-order-hint-icon">info</mat-icon>
+              L'ordre des pièces détermine leur numérotation dans les conclusions et la fiche prud'homale.
+            </p>
             <table mat-table [dataSource]="documents()" class="docs-table" [@listStagger]="documents().length">
+              <!-- F-260 SF-260-01 : flèches de réordonnancement (haut / bas) par ligne. -->
+              <ng-container matColumnDef="order">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let doc" class="order-cell">
+                  <div class="order-arrows">
+                    <button mat-icon-button class="order-arrow"
+                            aria-label="Monter la pièce"
+                            matTooltip="Monter — renumérote les pièces dans les actes"
+                            matTooltipPosition="above"
+                            [disabled]="!canReorderDocuments() || !canMoveUp(doc) || reordering()"
+                            (click)="moveDocument(doc, 'up')">
+                      <mat-icon>arrow_upward</mat-icon>
+                    </button>
+                    <button mat-icon-button class="order-arrow"
+                            aria-label="Descendre la pièce"
+                            matTooltip="Descendre — renumérote les pièces dans les actes"
+                            matTooltipPosition="above"
+                            [disabled]="!canReorderDocuments() || !canMoveDown(doc) || reordering()"
+                            (click)="moveDocument(doc, 'down')">
+                      <mat-icon>arrow_downward</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- F-260 SF-260-01 : numéro de pièce persistant (police mono). -->
+              <ng-container matColumnDef="pieceNumber">
+                <th mat-header-cell *matHeaderCellDef>N°</th>
+                <td mat-cell *matCellDef="let doc">
+                  <span class="piece-number">{{ pieceNumberLabel(doc) }}</span>
+                </td>
+              </ng-container>
+
               <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef>Nom</th>
                 <td mat-cell *matCellDef="let doc">

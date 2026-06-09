@@ -11,7 +11,6 @@ import fr.ailegalcase.analysis.StrategicOptionRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileDashboardService;
 import fr.ailegalcase.document.DocumentPieceRepository;
-import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.stylelearning.StyleCorpusDocument;
 import fr.ailegalcase.stylelearning.StyleCorpusDocumentStatus;
 import fr.ailegalcase.stylelearning.StyleCorpusRepository;
@@ -40,7 +39,6 @@ class CaseConclusionServiceTest {
     private final CaseConclusionRepository caseConclusionRepository = mock(CaseConclusionRepository.class);
     private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
     private final StrategicOptionRepository strategicOptionRepository = mock(StrategicOptionRepository.class);
-    private final DocumentRepository documentRepository = mock(DocumentRepository.class);
     private final DocumentPieceRepository documentPieceRepository = mock(DocumentPieceRepository.class);
     private final CaseFileDashboardService caseFileDashboardService = mock(CaseFileDashboardService.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
@@ -60,7 +58,7 @@ class CaseConclusionServiceTest {
 
     private final CaseConclusionService service = new CaseConclusionService(
             caseConclusionRepository, caseAnalysisRepository, strategicOptionRepository,
-            documentRepository, documentPieceRepository, caseFileDashboardService,
+            documentPieceRepository, caseFileDashboardService,
             promptBuilder, anthropicService, styleCorpusRepository, jurisprudenceCitationRepository,
             jurisprudenceCheckRepository, toolJurisprudenceContext);
 
@@ -78,7 +76,7 @@ class CaseConclusionServiceTest {
         when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
-        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte généré", "claude-sonnet-4-6",
@@ -124,7 +122,7 @@ class CaseConclusionServiceTest {
         when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
-        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenThrow(new RuntimeException("Anthropic 529 overloaded"));
@@ -144,7 +142,7 @@ class CaseConclusionServiceTest {
         when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
-        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("  ", "claude-sonnet-4-6", 10, 0, "end_turn"));
@@ -188,6 +186,32 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.isStyleApplied()).isTrue();
         verify(anthropicService).analyzeWithSystemCache(
                 any(AiCallContext.class), contains("Adopte le style rédactionnel suivant"), any(), anyInt());
+    }
+
+    // F-260 / SF-260-01 : loadNumberedPieces lit le piece_number PERSISTANT.
+    // Une pièce de numéro 7 doit apparaître « Pièce n° 7 » dans le prompt (pas
+    // renumérotée 1 à la volée). Source unique partagée avec les fiches.
+    @Test
+    void generate_usesPersistentPieceNumberInPrompt() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        fr.ailegalcase.document.DocumentPiece piece = new fr.ailegalcase.document.DocumentPiece();
+        piece.setType(fr.ailegalcase.document.DocumentPieceType.CONTRAT);
+        piece.setLabel("CDI Dupont");
+        piece.setPieceNumber(7);
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any()))
+                .thenReturn(List.of(piece));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(), contains("Pièce n° 7 — CDI Dupont"), anyInt());
     }
 
     @Test
@@ -235,7 +259,7 @@ class CaseConclusionServiceTest {
         when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
-        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
     }
 

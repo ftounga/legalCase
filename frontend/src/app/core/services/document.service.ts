@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpEvent, HttpHeaders, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Document } from '../models/document.model';
+import { Document, DocumentPieceSummary } from '../models/document.model';
 import { DocumentPreview } from '../models/document-preview.model';
 
 /** SF-231-02 : options additionnelles pour l'upload (durée vidéo en secondes). */
@@ -81,6 +81,18 @@ export class DocumentService {
     return this.http.post<void>(
       `${this.apiUrl(caseFileId)}/${documentId}/extraction/reset`,
       {}
+    );
+  }
+
+  /**
+   * F-260 SF-260-01 : réordonne les pièces du dossier et réassigne les numéros
+   * 1..N dans l'ordre fourni. `orderedPieceIds` DOIT contenir exactement tous
+   * les pieceIds du dossier (sinon 400). Renvoie la liste des pièces à jour.
+   */
+  reorderPieces(caseFileId: string, orderedPieceIds: string[]): Observable<DocumentPieceSummary[]> {
+    return this.http.put<DocumentPieceSummary[]>(
+      `/api/v1/case-files/${caseFileId}/pieces/order`,
+      { orderedPieceIds }
     );
   }
 }

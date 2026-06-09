@@ -254,6 +254,12 @@ public class DocumentPieceDetectionService {
     }
 
     private void persistAll(Document document, List<ParsedPiece> parsed) {
+        // F-260 / SF-260-01 : numéro de pièce persistant = max(dossier) + 1, attribué
+        // séquentiellement aux nouvelles pièces (append en fin, sans toucher l'existant).
+        // Idempotence : le delete-before-insert amont a déjà retiré les anciennes pièces
+        // de ce document, donc leurs numéros ne sont plus comptés dans le max.
+        UUID caseFileId = resolveCaseFileId(document);
+        int nextNumber = nextPieceNumber(caseFileId);
         for (ParsedPiece p : parsed) {
             DocumentPiece entity = new DocumentPiece();
             entity.setDocument(document);
@@ -262,8 +268,30 @@ public class DocumentPieceDetectionService {
             entity.setPageStart(p.pageStart);
             entity.setPageEnd(p.pageEnd);
             entity.setOrderIndex(p.orderIndex);
+            if (nextNumber > 0) {
+                entity.setPieceNumber(nextNumber++);
+            }
             pieceRepository.save(entity);
         }
+    }
+
+    /** caseFile id du document, ou {@code null} si non résoluble (fail-open). */
+    private static UUID resolveCaseFileId(Document document) {
+        try {
+            if (document.getCaseFile() != null) {
+                return document.getCaseFile().getId();
+            }
+        } catch (Exception ignored) {
+            // fail-open : pas de numéro persistant si le dossier n'est pas résoluble.
+        }
+        return null;
+    }
+
+    /** Premier numéro libre du dossier (max+1, base 1), ou 0 si dossier non résolu. */
+    private int nextPieceNumber(UUID caseFileId) {
+        if (caseFileId == null) return 0;
+        Integer max = pieceRepository.findMaxPieceNumberByCaseFileId(caseFileId);
+        return (max == null ? 0 : max) + 1;
     }
 
     private static List<ParsedPiece> fallback() {

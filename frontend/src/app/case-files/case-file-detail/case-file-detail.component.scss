@@ -425,6 +425,55 @@
   white-space: nowrap;
 }
 
+/* F-260 SF-260-01 — numérotation & ordre des pièces */
+.pieces-order-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin: 0 0 var(--spacing-sm);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.pieces-order-hint-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-secondary);
+}
+
+.piece-number {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.order-cell {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.order-arrows {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.order-arrow {
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+  }
+}
+
 /* Panier de fichiers en attente */
 .pending-files {
   margin-bottom: var(--spacing-lg);

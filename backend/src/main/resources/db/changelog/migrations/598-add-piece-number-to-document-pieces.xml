@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="598-add-piece-number-to-document-pieces" author="legalcase">
+        <comment>
+            F-260 / SF-260-01 — numéro de pièce PERSISTANT et stable par dossier.
+            Remplace la numérotation volatile recalculée à la volée (createdAt DESC)
+            par une colonne `piece_number` lue par les conclusions (F-98) ET les
+            fiches (prud'homale / tribunal du travail) — invariant « source unique ».
+            Colonne nullable : les nouvelles pièces sont numérotées par le code
+            (max+1). Backfill déterministe de l'existant : ROW_NUMBER par dossier
+            ordonné documents.created_at ASC, document_pieces.order_index ASC
+            (tiebreak id pour le déterminisme), exprimé en sous-requête corrélée
+            portable H2 + PostgreSQL.
+        </comment>
+
+        <addColumn tableName="document_pieces">
+            <column name="piece_number" type="int"/>
+        </addColumn>
+
+        <!--
+            Backfill : compte (≤) les pièces du même dossier qui précèdent la pièce
+            courante dans l'ordre chronologique → numéro 1..N continu par dossier.
+            La pièce se compte elle-même (dp2.id <= dp.id) ⇒ numérotation 1-indexée.
+        -->
+        <sql>
+            UPDATE document_pieces dp
+               SET piece_number = (
+                   SELECT COUNT(*)
+                     FROM document_pieces dp2
+                     JOIN documents d2 ON dp2.document_id = d2.id
+                     JOIN documents d  ON dp.document_id  = d.id
+                    WHERE d2.case_file_id = d.case_file_id
+                      AND (
+                            d2.created_at &lt; d.created_at
+                         OR (d2.created_at = d.created_at AND dp2.order_index &lt; dp.order_index)
+                         OR (d2.created_at = d.created_at AND dp2.order_index = dp.order_index AND dp2.id &lt;= dp.id)
+                      )
+               );
+        </sql>
+
+        <rollback>
+            <dropColumn tableName="document_pieces" columnName="piece_number"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

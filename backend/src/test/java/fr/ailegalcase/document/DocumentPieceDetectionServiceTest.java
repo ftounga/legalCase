@@ -170,11 +170,57 @@ class DocumentPieceDetectionServiceTest {
                 .analyzeFast(any(AiCallContext.class), anyString(), anyString(), anyInt());
     }
 
+    // F-260 / SF-260-01 : nouvelles pièces numérotées max(dossier)+1, séquentielles.
+    @Test
+    void detect_assignsPersistentPieceNumbersFromMaxPlusOne() {
+        UUID caseFileId = mockExtractionWithCaseFileId();
+        // dossier contient déjà des pièces numérotées jusqu'à 4 → nouvelles = 5, 6
+        when(pieceRepository.findMaxPieceNumberByCaseFileId(caseFileId)).thenReturn(4);
+        String haikuResponse = """
+                [
+                  {"type":"CONTRAT","label":"CDI","pageStart":1,"pageEnd":2,"orderIndex":0},
+                  {"type":"ATTESTATION","label":"Attestation","pageStart":3,"pageEnd":3,"orderIndex":1}
+                ]
+                """;
+        when(anthropicService.analyze(any(AiCallContext.class), anyString(), anyString(), anyInt()))
+                .thenReturn(new AnthropicResult(haikuResponse, "sonnet", 100, 50));
+
+        service.detect(EXTRACTION_ID, "texte");
+
+        ArgumentCaptor<DocumentPiece> captor = ArgumentCaptor.forClass(DocumentPiece.class);
+        verify(pieceRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertThat(captor.getAllValues()).extracting(DocumentPiece::getPieceNumber)
+                .containsExactly(5, 6);
+    }
+
+    // F-260 : dossier sans pièce numérotée → la première pièce reçoit le numéro 1.
+    @Test
+    void detect_firstPieceInCaseFile_startsAtOne() {
+        UUID caseFileId = mockExtractionWithCaseFileId();
+        when(pieceRepository.findMaxPieceNumberByCaseFileId(caseFileId)).thenReturn(null);
+        when(anthropicService.analyze(any(AiCallContext.class), anyString(), anyString(), anyInt()))
+                .thenReturn(new AnthropicResult(
+                        "[{\"type\":\"CONTRAT\",\"label\":\"CDI\",\"pageStart\":1,\"pageEnd\":1,\"orderIndex\":0}]",
+                        "sonnet", 100, 50));
+
+        service.detect(EXTRACTION_ID, "texte");
+
+        ArgumentCaptor<DocumentPiece> captor = ArgumentCaptor.forClass(DocumentPiece.class);
+        verify(pieceRepository).save(captor.capture());
+        assertThat(captor.getValue().getPieceNumber()).isEqualTo(1);
+    }
+
     private void mockExtraction() {
+        mockExtractionWithCaseFileId();
+    }
+
+    /** @return id du dossier associé à l'extraction mockée (pour stubber max+1). */
+    private UUID mockExtractionWithCaseFileId() {
         Workspace ws = new Workspace();
         ws.setId(UUID.randomUUID());
         CaseFile cf = new CaseFile();
-        cf.setId(UUID.randomUUID());
+        UUID caseFileId = UUID.randomUUID();
+        cf.setId(caseFileId);
         cf.setWorkspace(ws);
         Document doc = new Document();
         doc.setId(DOC_ID);
@@ -183,6 +229,7 @@ class DocumentPieceDetectionServiceTest {
         extraction.setId(EXTRACTION_ID);
         extraction.setDocument(doc);
         when(extractionRepository.findById(EXTRACTION_ID)).thenReturn(Optional.of(extraction));
+        return caseFileId;
     }
 
     // SF-145-09 U-10 : applicableFor(DROIT_DU_TRAVAIL) = commons + types travail
