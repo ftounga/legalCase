@@ -25,8 +25,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -139,7 +142,137 @@ class JurisprudenceCheckControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.checks.length()").value(2))
                 .andExpect(jsonPath("$.checks[?(@.statut == 'SUSPECT')]").exists())
-                .andExpect(jsonPath("$.checks[?(@.statut == 'VERIFIED')]").exists());
+                .andExpect(jsonPath("$.checks[?(@.statut == 'VERIFIED')]").exists())
+                // SF-98-56 — le DTO expose désormais markedAdverse (false par défaut).
+                .andExpect(jsonPath("$.checks[0].markedAdverse").value(false));
+    }
+
+    // ── SF-98-56 — PATCH marquage adverse ────────────────────────────────────
+
+    // I-05 : PATCH markedAdverse:true sur un SUSPECT → 200, persistance vérifiée
+    @Test
+    void markAdverse_suspectTrue_returns200AndPersists() throws Exception {
+        JurisprudenceCheck check = saveCheck("conclusions_adverses.pdf",
+                "Cass. soc. 25 sept. 2013, n° 12-17.516",
+                JurisprudenceCheckStatus.SUSPECT, "Position alleguee incoherente.",
+                "L'adversaire pretend que cet arret fonde la nullite.");
+
+        mockMvc.perform(patch(
+                        "/api/v1/case-files/{caseFileId}/jurisprudence-checks/{checkId}/adverse-marking",
+                        caseFile.getId(), check.getId())
+                        .with(authentication(auth))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"markedAdverse\": true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.markedAdverse").value(true))
+                .andExpect(jsonPath("$.statut").value("SUSPECT"));
+
+        assertThat(jurisprudenceCheckRepository.findById(check.getId()).orElseThrow().isMarkedAdverse())
+                .isTrue();
+    }
+
+    // I-06 : PATCH markedAdverse:false sur un NOT_FOUND → 200, démarquage
+    @Test
+    void markAdverse_notFoundFalse_returns200AndUnmarks() throws Exception {
+        JurisprudenceCheck check = saveCheck("conclusions_adverses.pdf",
+                "Cass. soc. 1 jan. 2099, n° 99-99.999",
+                JurisprudenceCheckStatus.NOT_FOUND, "Reference introuvable.", null);
+        check.setMarkedAdverse(true);
+        jurisprudenceCheckRepository.save(check);
+
+        mockMvc.perform(patch(
+                        "/api/v1/case-files/{caseFileId}/jurisprudence-checks/{checkId}/adverse-marking",
+                        caseFile.getId(), check.getId())
+                        .with(authentication(auth))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"markedAdverse\": false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.markedAdverse").value(false));
+
+        assertThat(jurisprudenceCheckRepository.findById(check.getId()).orElseThrow().isMarkedAdverse())
+                .isFalse();
+    }
+
+    // I-07 : PATCH body sans markedAdverse → 400
+    @Test
+    void markAdverse_missingField_returns400() throws Exception {
+        JurisprudenceCheck check = saveCheck("conclusions_adverses.pdf",
+                "Cass. soc. 25 sept. 2013, n° 12-17.516",
+                JurisprudenceCheckStatus.SUSPECT, "Position alleguee incoherente.", null);
+
+        mockMvc.perform(patch(
+                        "/api/v1/case-files/{caseFileId}/jurisprudence-checks/{checkId}/adverse-marking",
+                        caseFile.getId(), check.getId())
+                        .with(authentication(auth))
+                        .contentType(APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-08 : PATCH sur un statut non réfutable (VERIFIED) → 422
+    @Test
+    void markAdverse_nonRefutableStatus_returns422() throws Exception {
+        JurisprudenceCheck check = saveCheck("conclusions_adverses.pdf",
+                "CE 30 juin 2017, n° 398445",
+                JurisprudenceCheckStatus.VERIFIED, "Existence et position confirmees.", null);
+
+        mockMvc.perform(patch(
+                        "/api/v1/case-files/{caseFileId}/jurisprudence-checks/{checkId}/adverse-marking",
+                        caseFile.getId(), check.getId())
+                        .with(authentication(auth))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"markedAdverse\": true}"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    // I-09 : PATCH sur un check d'un autre workspace → 404 (isolation, pas de fuite)
+    @Test
+    void markAdverse_otherWorkspace_returns404() throws Exception {
+        JurisprudenceCheck check = saveCheck("conclusions_adverses.pdf",
+                "Cass. soc. 25 sept. 2013, n° 12-17.516",
+                JurisprudenceCheckStatus.SUSPECT, "Position alleguee incoherente.", null);
+
+        User otherUser = new User();
+        otherUser.setEmail("other-mark@example.com");
+        otherUser.setStatus("ACTIVE");
+        userRepository.save(otherUser);
+
+        AuthAccount otherAccount = new AuthAccount();
+        otherAccount.setUser(otherUser);
+        otherAccount.setProvider("GOOGLE");
+        otherAccount.setProviderUserId("google-other-mark-sub");
+        authAccountRepository.save(otherAccount);
+
+        Workspace otherWorkspace = new Workspace();
+        otherWorkspace.setName("other-mark@example.com");
+        otherWorkspace.setSlug("other-mark-slug-" + System.currentTimeMillis());
+        otherWorkspace.setOwner(otherUser);
+        otherWorkspace.setPlanCode("STARTER");
+        otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        workspaceRepository.save(otherWorkspace);
+
+        WorkspaceMember otherMember = new WorkspaceMember();
+        otherMember.setWorkspace(otherWorkspace);
+        otherMember.setUser(otherUser);
+        otherMember.setMemberRole("OWNER");
+        otherMember.setPrimary(true);
+        workspaceMemberRepository.save(otherMember);
+
+        OAuth2AuthenticationToken otherAuth =
+                buildGoogleAuth("google-other-mark-sub", "other-mark@example.com");
+
+        mockMvc.perform(patch(
+                        "/api/v1/case-files/{caseFileId}/jurisprudence-checks/{checkId}/adverse-marking",
+                        caseFile.getId(), check.getId())
+                        .with(authentication(otherAuth))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"markedAdverse\": true}"))
+                .andExpect(status().isNotFound());
+
+        // Le marquage n'a pas eu lieu (camouflage : aucune mutation cross-workspace).
+        assertThat(jurisprudenceCheckRepository.findById(check.getId()).orElseThrow().isMarkedAdverse())
+                .isFalse();
     }
 
     // I-03 : GET sans auth → 401
@@ -187,8 +320,40 @@ class JurisprudenceCheckControllerIT {
                 .andExpect(status().isNotFound());
     }
 
-    private void saveCheck(String documentName, String reference, JurisprudenceCheckStatus statut,
-                           String explication, String positionAlleguee) {
+    // I-10 : le repository ne renvoie que les checks marqués ET éligibles (SUSPECT/NOT_FOUND)
+    @Test
+    void repository_findMarkedRefutable_returnsOnlyEligibleMarked() {
+        JurisprudenceCheck suspectMarked = saveCheck("a.pdf", "ref-suspect-marked",
+                JurisprudenceCheckStatus.SUSPECT, "x", null);
+        suspectMarked.setMarkedAdverse(true);
+        jurisprudenceCheckRepository.save(suspectMarked);
+
+        JurisprudenceCheck notFoundMarked = saveCheck("a.pdf", "ref-notfound-marked",
+                JurisprudenceCheckStatus.NOT_FOUND, "x", null);
+        notFoundMarked.setMarkedAdverse(true);
+        jurisprudenceCheckRepository.save(notFoundMarked);
+
+        // marqué mais statut non réfutable → exclu (ne devrait pas exister via l'API, défense en profondeur)
+        JurisprudenceCheck verifiedMarked = saveCheck("a.pdf", "ref-verified-marked",
+                JurisprudenceCheckStatus.VERIFIED, "x", null);
+        verifiedMarked.setMarkedAdverse(true);
+        jurisprudenceCheckRepository.save(verifiedMarked);
+
+        // éligible mais non marqué → exclu
+        saveCheck("a.pdf", "ref-suspect-unmarked", JurisprudenceCheckStatus.SUSPECT, "x", null);
+
+        List<JurisprudenceCheck> result = jurisprudenceCheckRepository
+                .findByCaseFileIdAndStatutInAndMarkedAdverseTrue(
+                        caseFile.getId(),
+                        List.of(JurisprudenceCheckStatus.SUSPECT, JurisprudenceCheckStatus.NOT_FOUND));
+
+        assertThat(result).extracting(JurisprudenceCheck::getReference)
+                .containsExactlyInAnyOrder("ref-suspect-marked", "ref-notfound-marked");
+    }
+
+    private JurisprudenceCheck saveCheck(String documentName, String reference,
+                                         JurisprudenceCheckStatus statut,
+                                         String explication, String positionAlleguee) {
         JurisprudenceCheck check = new JurisprudenceCheck();
         check.setCaseFile(caseFile);
         check.setCaseAnalysis(analysis);
@@ -200,7 +365,7 @@ class JurisprudenceCheckControllerIT {
         check.setPositionAlleguee(positionAlleguee);
         check.setClaudeConfidence("HIGH");
         check.setWebSearchUsed(false);
-        jurisprudenceCheckRepository.save(check);
+        return jurisprudenceCheckRepository.save(check);
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

@@ -310,6 +310,82 @@ class CaseConclusionPromptBuilderTest {
         assertThat(message).contains("Cass. soc. 13 oct. 2021, n° 18-18.022");
     }
 
+    // --- SF-98-56 — jurisprudence adverse à réfuter ---
+
+    @Test
+    void buildSystemPrompt_jurisprudenceGuardCitesAdverseSectionAndRefutation() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        // 3e source autorisée + consigne de réfutation.
+        assertThat(system).contains("JURISPRUDENCE ADVERSE À RÉFUTER");
+        assertThat(system).contains("réfut");
+        assertThat(system).contains("avec autorité");
+        // non-régression : la garde mentionne toujours les 2 sources d'appui historiques.
+        assertThat(system).contains("JURISPRUDENCE À L'APPUI");
+        assertThat(system).contains("JURISPRUDENCE APPLICABLE PAR OUTIL");
+        // non-régression SF-98-55 : garde rédactionnelle toujours présente.
+        assertThat(system).contains("Aucun jargon interne");
+    }
+
+    @Test
+    void buildUserMessage_withAdverseToRefute_addsRefutationSection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier Dupont c/ SARL Martin",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(
+                        new ConclusionPromptInput.AdverseCitationToRefute(
+                                "Cass. soc. 1 jan. 2099, n° 99-99.999",
+                                "Référence introuvable y compris après recherche.",
+                                "L'adversaire prétend que cet arrêt fonde la nullité."),
+                        new ConclusionPromptInput.AdverseCitationToRefute(
+                                "Cass. soc. 3 mai 2018, n° 16-26.796",
+                                "L'arrêt existe mais ne dit pas ce que l'adversaire prétend.",
+                                null)));
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== JURISPRUDENCE ADVERSE À RÉFUTER ===");
+        assertThat(message).contains("démontre, pour chacune, pourquoi l'adversaire se trompe");
+        assertThat(message).contains("Cass. soc. 1 jan. 2099, n° 99-99.999");
+        assertThat(message).contains("Référence introuvable y compris après recherche.");
+        assertThat(message).contains("Position prêtée par l'adversaire : L'adversaire prétend que cet arrêt fonde la nullité.");
+        assertThat(message).contains("Cass. soc. 3 mai 2018, n° 16-26.796");
+    }
+
+    @Test
+    void buildUserMessage_withoutAdverseToRefute_omitsRefutationSection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier sans adverse",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("JURISPRUDENCE ADVERSE À RÉFUTER");
+    }
+
+    @Test
+    void buildUserMessage_emptyAdverseToRefute_omitsRefutationSection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier liste vide",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("JURISPRUDENCE ADVERSE À RÉFUTER");
+    }
+
     @Test
     void humanizeToolId_stripsPrefixAndCapitalises() {
         assertThat(CaseConclusionPromptBuilder.humanizeToolId("f-dt-08-licenciement-validite"))

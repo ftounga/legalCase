@@ -23,6 +23,8 @@ public record JurisprudenceCheckResponse(List<Check> checks) {
      * @param sourceUrl        lien source (Légifrance / Juridat), ou {@code null}
      * @param claudeConfidence HIGH / MEDIUM / LOW, ou {@code null}
      * @param webSearchUsed    true si le fallback web search a été tenté
+     * @param markedAdverse    F-98 / SF-98-56 — true si l'avocat a marqué la
+     *                         citation comme adverse à réfuter
      */
     public record Check(
             UUID id,
@@ -33,22 +35,29 @@ public record JurisprudenceCheckResponse(List<Check> checks) {
             String positionAlleguee,
             String sourceUrl,
             String claudeConfidence,
-            boolean webSearchUsed) {
+            boolean webSearchUsed,
+            boolean markedAdverse) {
     }
 
     static JurisprudenceCheckResponse from(List<JurisprudenceCheck> entities) {
         List<Check> mapped = entities.stream()
-                .map(c -> new Check(
-                        c.getId(),
-                        c.getDocumentName(),
-                        c.getReference(),
-                        c.getStatut() != null ? c.getStatut().name() : JurisprudenceCheckStatus.UNCERTAIN.name(),
-                        c.getExplication(),
-                        c.getPositionAlleguee(),
-                        c.getSourceUrl(),
-                        c.getClaudeConfidence(),
-                        c.isWebSearchUsed()))
+                .map(JurisprudenceCheckResponse::toCheck)
                 .toList();
         return new JurisprudenceCheckResponse(mapped);
+    }
+
+    /** Mappe une entité unique en {@link Check} (réutilisé par le PATCH de marquage). */
+    static Check toCheck(JurisprudenceCheck c) {
+        return new Check(
+                c.getId(),
+                c.getDocumentName(),
+                c.getReference(),
+                c.getStatut() != null ? c.getStatut().name() : JurisprudenceCheckStatus.UNCERTAIN.name(),
+                c.getExplication(),
+                c.getPositionAlleguee(),
+                c.getSourceUrl(),
+                c.getClaudeConfidence(),
+                c.isWebSearchUsed(),
+                c.isMarkedAdverse());
     }
 }

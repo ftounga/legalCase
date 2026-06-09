@@ -76,4 +76,56 @@ public class JurisprudenceCheckQueryService {
 
         return JurisprudenceCheckResponse.from(checks);
     }
+
+    /** Statuts d'un check sur lesquels le marquage « adverse à réfuter » est autorisé. */
+    private static final List<JurisprudenceCheckStatus> MARKABLE_STATUSES =
+            List.of(JurisprudenceCheckStatus.SUSPECT, JurisprudenceCheckStatus.NOT_FOUND);
+
+    /**
+     * F-98 / SF-98-56 — marque (ou démarque) une citation comme « adverse à réfuter ».
+     *
+     * <p>Isolation workspace stricte (pattern miroir de {@link #getForCaseFile}) : un check
+     * hors du dossier / du workspace de l'utilisateur renvoie 404 (camouflage d'existence).
+     * Garde de statut : le marquage n'est autorisé que sur les statuts réfutables
+     * ({@code SUSPECT} / {@code NOT_FOUND}) — sinon 422.</p>
+     *
+     * @param markedAdverse nouvelle valeur du marquage
+     * @return le {@link JurisprudenceCheckResponse.Check} à jour
+     * @throws ResponseStatusException 404 si le dossier/check est introuvable ou hors
+     *                                 workspace ; 422 si le statut n'est pas réfutable
+     */
+    @Transactional
+    public JurisprudenceCheckResponse.Check markAdverse(UUID caseFileId,
+                                                        UUID checkId,
+                                                        boolean markedAdverse,
+                                                        OidcUser oidcUser,
+                                                        Principal principal) {
+        User user = currentUserResolver.resolve(
+                oidcUser, OAuthProviderResolver.resolve(principal), principal);
+        Workspace workspace = workspaceMemberRepository.findByUserAndPrimaryTrue(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getWorkspace();
+
+        CaseFile caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
+        if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");
+        }
+
+        JurisprudenceCheck check = jurisprudenceCheckRepository.findById(checkId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jurisprudence check not found"));
+        // Isolation : le check doit appartenir au dossier (et donc au workspace) ciblé.
+        if (check.getCaseFile() == null || !check.getCaseFile().getId().equals(caseFileId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Jurisprudence check not found");
+        }
+
+        if (!MARKABLE_STATUSES.contains(check.getStatut())) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Seules les citations suspectes ou introuvables peuvent être marquées comme adverses à réfuter.");
+        }
+
+        check.setMarkedAdverse(markedAdverse);
+        jurisprudenceCheckRepository.save(check);
+        return JurisprudenceCheckResponse.toCheck(check);
+    }
 }

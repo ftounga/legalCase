@@ -202,3 +202,54 @@
     height: 15px;
   }
 }
+
+// F-98 SF-98-56 — action de marquage « adverse à réfuter » (info navy/or,
+// PAS une alerte critique : le rouge reste réservé au badge « Suspecte »).
+.jc-adverse {
+  margin-top: 8px;
+
+  &__toggle {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2B5494;
+    line-height: 1.4;
+
+    .jc-adverse__icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    // État actif : marquage posé (or/navy, jamais rouge).
+    &--on {
+      color: #8A6D1F;
+      background: #FBF6E7;
+      border-color: #D8C168;
+    }
+  }
+}
+
+// F-98 SF-98-56 — mention de continuité sous la liste des citations.
+.jc-continuity {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  background: #F5F6FA;
+  border-left: 4px solid #2B5494;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.4;
+
+  &__icon {
+    color: #2B5494;
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}

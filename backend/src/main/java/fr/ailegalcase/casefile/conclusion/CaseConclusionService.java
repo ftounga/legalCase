@@ -7,6 +7,9 @@ import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.JobType;
+import fr.ailegalcase.analysis.JurisprudenceCheck;
+import fr.ailegalcase.analysis.JurisprudenceCheckRepository;
+import fr.ailegalcase.analysis.JurisprudenceCheckStatus;
 import fr.ailegalcase.analysis.StrategicOption;
 import fr.ailegalcase.analysis.StrategicOptionRepository;
 import fr.ailegalcase.analysis.StrategicOptionStatus;
@@ -69,6 +72,7 @@ public class CaseConclusionService {
     private final AnthropicService anthropicService;
     private final StyleCorpusRepository styleCorpusRepository;
     private final JurisprudenceCitationRepository jurisprudenceCitationRepository;
+    private final JurisprudenceCheckRepository jurisprudenceCheckRepository;
     private final fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext;
 
     /** Auto-référence pour franchir le proxy transactionnel depuis le listener. */
@@ -86,6 +90,7 @@ public class CaseConclusionService {
                                  AnthropicService anthropicService,
                                  StyleCorpusRepository styleCorpusRepository,
                                  JurisprudenceCitationRepository jurisprudenceCitationRepository,
+                                 JurisprudenceCheckRepository jurisprudenceCheckRepository,
                                  fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext) {
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
@@ -97,6 +102,7 @@ public class CaseConclusionService {
         this.anthropicService = anthropicService;
         this.styleCorpusRepository = styleCorpusRepository;
         this.jurisprudenceCitationRepository = jurisprudenceCitationRepository;
+        this.jurisprudenceCheckRepository = jurisprudenceCheckRepository;
         this.toolJurisprudenceContext = toolJurisprudenceContext;
     }
 
@@ -182,7 +188,8 @@ public class CaseConclusionService {
                         loadDecisionToolTiles(caseFileId),
                         loadRetainedStrategies(caseFileId),
                         loadJurisprudenceCitations(caseFileId),
-                        toolJurisprudenceContext.collectForCaseFile(caseFileId));
+                        toolJurisprudenceContext.collectForCaseFile(caseFileId),
+                        loadAdverseJurisprudenceChecks(caseFileId));
 
         List<String> styleSignatures = loadActiveStyleSignatures(conclusion.getWorkspace().getId());
         CombinationKey key = new CombinationKey(domain, country, conclusion.getJurisdictionCode(),
@@ -352,6 +359,38 @@ public class CaseConclusionService {
         } catch (RuntimeException ex) {
             log.warn("Lecture des citations de jurisprudence indisponible pour caseFile {} — "
                     + "génération sans section jurisprudence : {}", caseFileId, ex.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * F-98 / SF-98-56 — citations de jurisprudence adverse à réfuter : checks du dossier
+     * marqués par l'avocat ET de statut réfutable ({@code SUSPECT} / {@code NOT_FOUND}).
+     * Mappés vers l'intrant {@link CaseConclusionPromptBuilder.ConclusionPromptInput.AdverseCitationToRefute}
+     * qui n'expose ni nom de fichier ni statut technique (anti-jargon SF-98-55).
+     *
+     * <p><strong>Fail-open</strong> : si la lecture échoue, la génération se poursuit sans
+     * section de réfutation — l'exception n'est jamais propagée, seulement journalisée.</p>
+     */
+    private List<CaseConclusionPromptBuilder.ConclusionPromptInput.AdverseCitationToRefute>
+            loadAdverseJurisprudenceChecks(UUID caseFileId) {
+        try {
+            List<CaseConclusionPromptBuilder.ConclusionPromptInput.AdverseCitationToRefute>
+                    adverse = new ArrayList<>();
+            for (JurisprudenceCheck check : jurisprudenceCheckRepository
+                    .findByCaseFileIdAndStatutInAndMarkedAdverseTrue(
+                            caseFileId,
+                            List.of(JurisprudenceCheckStatus.SUSPECT, JurisprudenceCheckStatus.NOT_FOUND))) {
+                adverse.add(
+                        new CaseConclusionPromptBuilder.ConclusionPromptInput.AdverseCitationToRefute(
+                                check.getReference(),
+                                check.getExplication(),
+                                check.getPositionAlleguee()));
+            }
+            return adverse;
+        } catch (RuntimeException ex) {
+            log.warn("Lecture des citations adverses à réfuter indisponible pour caseFile {} — "
+                    + "génération sans section de réfutation : {}", caseFileId, ex.getMessage());
             return List.of();
         }
     }
