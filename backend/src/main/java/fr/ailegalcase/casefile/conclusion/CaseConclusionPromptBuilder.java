@@ -50,6 +50,33 @@ public class CaseConclusionPromptBuilder {
                     + "de ces sections contient des références, appuie-toi exclusivement sur "
                     + "celles-ci ; sinon, n'invente aucun arrêt ni décision.";
 
+    /**
+     * F-98 / SF-98-55 — garde de qualité rédactionnelle commune à toutes les cellules
+     * (mécanisme symétrique de {@link #JURISPRUDENCE_GUARD}). Elle transforme en
+     * garanties de trame ce que le modèle ne faisait que « par chance » : interdiction
+     * du jargon interne dans l'acte, syllogisme avec visa des articles, dispositif
+     * complet. Les verdicts d'outils et la jurisprudence fournis sont une matière
+     * première INTERNE — jamais un contenu à recopier tel quel.
+     */
+    static final String REDACTION_QUALITY_GUARD =
+            "Garde de qualité rédactionnelle (impérative) :\n"
+                    + "1. Aucun jargon interne. Les « verdicts des outils décisionnels » et la "
+                    + "« jurisprudence applicable par outil » te sont fournis comme matière première "
+                    + "INTERNE. Ne mentionne JAMAIS dans le texte un outil de LegalCase, son intitulé "
+                    + "d'outil, son code (ex. « F-DT-08 ») ni un score brut (ex. « 2 critères sur 7 », "
+                    + "« niveau de risque ÉLEVÉ », « INVALIDE »). Traduis-les en moyens et arguments de "
+                    + "droit, comme le ferait un avocat.\n"
+                    + "2. Syllogisme. Pour chaque moyen : énonce la règle de droit en VISANT l'article "
+                    + "applicable (ex. « art. L. 1235-3 du Code du travail »), applique-la aux faits, "
+                    + "rattache-la aux pièces (Pièce n° X), puis tire la conséquence juridique.\n"
+                    + "3. Dispositif complet. Dans le « PAR CES MOTIFS », reprends les chefs chiffrés "
+                    + "fournis et, lorsque le stade et la juridiction le justifient, n'omets pas les "
+                    + "postes systématiques : article 700 du Code de procédure civile, dépens, "
+                    + "exécution provisoire, intérêts au taux légal et leur capitalisation "
+                    + "(art. 1343-2 du Code civil), et astreinte sur la remise des documents.\n"
+                    + "4. Faits et procédure : expose une chronologie claire et rappelle le cadre "
+                    + "procédural pertinent. Reste sobre et strictement juridique.";
+
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
 
@@ -83,6 +110,8 @@ public class CaseConclusionPromptBuilder {
         // F-242 — garde anti-hallucination jurisprudence, appliquée à toutes les cellules.
         StringBuilder sb = new StringBuilder(basePrompt);
         sb.append('\n').append(JURISPRUDENCE_GUARD).append('\n');
+        // SF-98-55 — garde de qualité rédactionnelle commune (anti-jargon, syllogisme, dispositif).
+        sb.append('\n').append(REDACTION_QUALITY_GUARD).append('\n');
         List<String> usable = sanitizeSignatures(styleSignatures);
         if (!usable.isEmpty()) {
             sb.append(STYLE_INSTRUCTION_HEADER).append('\n');
@@ -188,10 +217,9 @@ public class CaseConclusionPromptBuilder {
             if (entry == null || entry.citations() == null || entry.citations().isEmpty()) {
                 continue;
             }
-            sb.append("\nOutil : ").append(nullSafe(entry.toolId()));
-            if (entry.brancheCalculId() != null && !entry.brancheCalculId().isBlank()) {
-                sb.append(" — branche : ").append(entry.brancheCalculId());
-            }
+            // SF-98-55 — libellé lisible, jamais le code brut (ex. « f-dt-08-… ») : défense
+            // en profondeur contre la reprise du jargon interne dans l'acte produit.
+            sb.append("\nSujet : ").append(humanizeToolId(entry.toolId()));
             sb.append('\n');
             for (var citation : entry.citations()) {
                 sb.append("  - ").append(nullSafe(citation.arretRef()));
@@ -290,6 +318,28 @@ public class CaseConclusionPromptBuilder {
 
     private static String nullSafe(String value) {
         return value == null ? "" : value;
+    }
+
+    /**
+     * SF-98-55 — transforme un {@code toolId} interne en libellé lisible pour le prompt,
+     * afin de ne jamais exposer le code brut (ex. {@code f-dt-08-licenciement-validite}
+     * → « Licenciement validité »). Retire un éventuel préfixe pays/domaine
+     * {@code f-xx-NN-}, remplace les tirets par des espaces et met une capitale initiale.
+     * Robuste au {@code null}/vide (→ chaîne vide).
+     */
+    static String humanizeToolId(String toolId) {
+        if (toolId == null || toolId.isBlank()) {
+            return "";
+        }
+        String cleaned = toolId.trim()
+                .replaceFirst("(?i)^f-[a-z]+-\\d+-", "")
+                .replace('-', ' ')
+                .replace('_', ' ')
+                .trim();
+        if (cleaned.isEmpty()) {
+            return "";
+        }
+        return Character.toUpperCase(cleaned.charAt(0)) + cleaned.substring(1);
     }
 
     /**
