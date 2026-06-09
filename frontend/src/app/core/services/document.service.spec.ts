@@ -62,4 +62,22 @@ describe('DocumentService', () => {
     expect(service.downloadUrl('cf1', 'doc1'))
       .toBe('/api/v1/case-files/cf1/documents/doc1/download');
   });
+
+  // F-260 SF-260-01 : réordonnancement des pièces.
+  it('reorderPieces — PUT /api/v1/case-files/cf1/pieces/order avec orderedPieceIds', () => {
+    const ordered = ['p2', 'p1', 'p3'];
+    const updated = [
+      { id: 'p2', type: 'AUTRE', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, pieceNumber: 1 },
+      { id: 'p1', type: 'AUTRE', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, pieceNumber: 2 },
+      { id: 'p3', type: 'AUTRE', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, pieceNumber: 3 },
+    ];
+    service.reorderPieces('cf1', ordered).subscribe(res => {
+      expect(res.length).toBe(3);
+      expect(res[0].pieceNumber).toBe(1);
+    });
+    const req = http.expectOne('/api/v1/case-files/cf1/pieces/order');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ orderedPieceIds: ordered });
+    req.flush(updated);
+  });
 });

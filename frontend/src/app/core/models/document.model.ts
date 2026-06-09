@@ -34,6 +34,13 @@ export interface DocumentPieceSummary {
   pageStart: number;
   pageEnd: number;
   orderIndex: number;
+  /**
+   * F-260 SF-260-01 : numéro de pièce persistant et stable (1..N par dossier),
+   * lu par les conclusions (F-98) ET la fiche prud'homale (source unique).
+   * `null` uniquement pour de très vieilles pièces non backfillées → fallback
+   * d'index côté UI.
+   */
+  pieceNumber?: number | null;
   /** SF-148-01 : description visuelle produite par LegalCase Vision (null si non enrichi). */
   visualDescription?: string | null;
   /** SF-148-03 : statut de l'enrichissement visuel (NOT_APPLICABLE / PENDING / DONE / FAILED). */

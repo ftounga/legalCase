@@ -19,10 +19,8 @@ import fr.ailegalcase.casefile.DashboardTile;
 import fr.ailegalcase.casefile.ProcedureStageCatalog;
 import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitation;
 import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository;
-import fr.ailegalcase.document.Document;
 import fr.ailegalcase.document.DocumentPiece;
 import fr.ailegalcase.document.DocumentPieceRepository;
-import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.stylelearning.StyleCorpusDocument;
 import fr.ailegalcase.stylelearning.StyleCorpusDocumentStatus;
 import fr.ailegalcase.stylelearning.StyleCorpusRepository;
@@ -65,7 +63,6 @@ public class CaseConclusionService {
     private final CaseConclusionRepository caseConclusionRepository;
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final StrategicOptionRepository strategicOptionRepository;
-    private final DocumentRepository documentRepository;
     private final DocumentPieceRepository documentPieceRepository;
     private final CaseFileDashboardService caseFileDashboardService;
     private final CaseConclusionPromptBuilder promptBuilder;
@@ -83,7 +80,6 @@ public class CaseConclusionService {
     public CaseConclusionService(CaseConclusionRepository caseConclusionRepository,
                                  CaseAnalysisRepository caseAnalysisRepository,
                                  StrategicOptionRepository strategicOptionRepository,
-                                 DocumentRepository documentRepository,
                                  DocumentPieceRepository documentPieceRepository,
                                  CaseFileDashboardService caseFileDashboardService,
                                  CaseConclusionPromptBuilder promptBuilder,
@@ -95,7 +91,6 @@ public class CaseConclusionService {
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.strategicOptionRepository = strategicOptionRepository;
-        this.documentRepository = documentRepository;
         this.documentPieceRepository = documentPieceRepository;
         this.caseFileDashboardService = caseFileDashboardService;
         this.promptBuilder = promptBuilder;
@@ -282,16 +277,19 @@ public class CaseConclusionService {
      */
     private List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> loadNumberedPieces(
             UUID caseFileId) {
+        // F-260 / SF-260-01 : lit le numéro de pièce PERSISTANT (piece_number) au lieu
+        // de le recalculer à la volée (createdAt DESC → number++). Source unique
+        // partagée avec les fiches (prud'homale / tribunal du travail). Fallback sur
+        // l'ordre persistant (orderIndex) pour les pièces antérieures au backfill.
         List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> pieces = new ArrayList<>();
-        int number = 1;
-        for (Document document : documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId)) {
-            for (DocumentPiece piece : documentPieceRepository
-                    .findByDocument_IdOrderByOrderIndexAsc(document.getId())) {
-                pieces.add(new CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece(
-                        number++,
-                        piece.getLabel(),
-                        piece.getType() != null ? piece.getType().name() : null));
-            }
+        int fallback = 1;
+        for (DocumentPiece piece : documentPieceRepository.findByCaseFileIdOrderByPieceNumber(caseFileId)) {
+            int number = piece.getPieceNumber() != null ? piece.getPieceNumber() : fallback;
+            pieces.add(new CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece(
+                    number,
+                    piece.getLabel(),
+                    piece.getType() != null ? piece.getType().name() : null));
+            fallback++;
         }
         return pieces;
     }

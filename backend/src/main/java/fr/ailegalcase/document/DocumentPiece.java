@@ -41,6 +41,18 @@ public class DocumentPiece {
     @Column(name = "order_index", nullable = false)
     private int orderIndex;
 
+    /**
+     * F-260 / SF-260-01 : numéro de pièce <b>persistant</b> et stable au sein du
+     * dossier (« Pièce n° X »). Attribué à la création = max(piece_number du
+     * dossier) + 1 ; jamais réutilisé après suppression (trou conservé). Seul un
+     * réordonnancement explicite (PUT …/pieces/order) renumérote 1..N. Source
+     * unique lue par les conclusions (F-98) et les fiches (prud'homale /
+     * tribunal du travail). Nullable pour les pièces antérieures à F-260 non
+     * encore backfillées (la migration 598 backfille l'existant).
+     */
+    @Column(name = "piece_number")
+    private Integer pieceNumber;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

@@ -9,8 +9,8 @@ import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.CaseAnalysisResponse;
 import fr.ailegalcase.auth.User;
-import fr.ailegalcase.document.Document;
-import fr.ailegalcase.document.DocumentRepository;
+import fr.ailegalcase.document.DocumentPiece;
+import fr.ailegalcase.document.DocumentPieceRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -36,7 +36,7 @@ public class TribunalTravailFicheService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final CaseAnalysisRepository caseAnalysisRepository;
-    private final DocumentRepository documentRepository;
+    private final DocumentPieceRepository documentPieceRepository;
     private final ObjectMapper objectMapper;
 
     public TribunalTravailFicheService(TribunalTravailFicheRepository ficheRepository,
@@ -44,14 +44,14 @@ public class TribunalTravailFicheService {
                                         WorkspaceMemberRepository workspaceMemberRepository,
                                         CurrentUserResolver currentUserResolver,
                                         CaseAnalysisRepository caseAnalysisRepository,
-                                        DocumentRepository documentRepository,
+                                        DocumentPieceRepository documentPieceRepository,
                                         ObjectMapper objectMapper) {
         this.ficheRepository = ficheRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
         this.caseAnalysisRepository = caseAnalysisRepository;
-        this.documentRepository = documentRepository;
+        this.documentPieceRepository = documentPieceRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -116,13 +116,33 @@ public class TribunalTravailFicheService {
         return caseFile;
     }
 
+    /**
+     * F-260 / SF-260-01 : liste des pièces du dossier numérotée par le
+     * {@code piece_number} PERSISTANT (source unique partagée avec les conclusions
+     * F-98 et la fiche prud'homale — même numéro pour une pièce donnée).
+     * Granularité pièce ; libellé = label de la pièce à défaut nom de fichier.
+     * Fallback ordre 1..N pour les pièces antérieures au backfill.
+     */
     private List<TribunalTravailFicheResponse.PieceEntry> buildPiecesList(CaseFile caseFile) {
-        List<Document> docs = documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile);
+        List<DocumentPiece> orderedPieces =
+                documentPieceRepository.findByCaseFileIdOrderByPieceNumber(caseFile.getId());
         List<TribunalTravailFicheResponse.PieceEntry> pieces = new ArrayList<>();
-        for (int i = 0; i < docs.size(); i++) {
-            pieces.add(new TribunalTravailFicheResponse.PieceEntry(i + 1, docs.get(i).getOriginalFilename()));
+        int fallback = 1;
+        for (DocumentPiece piece : orderedPieces) {
+            int numero = piece.getPieceNumber() != null ? piece.getPieceNumber() : fallback;
+            pieces.add(new TribunalTravailFicheResponse.PieceEntry(numero, pieceDisplayName(piece)));
+            fallback++;
         }
         return pieces;
+    }
+
+    /** Libellé de la pièce, à défaut le nom de fichier du document source. */
+    private static String pieceDisplayName(DocumentPiece piece) {
+        String label = piece.getLabel();
+        if (label != null && !label.isBlank()) {
+            return label;
+        }
+        return piece.getDocument().getOriginalFilename();
     }
 
     private TribunalTravailFicheResponse buildPrefilledResponse(CaseFile caseFile) {

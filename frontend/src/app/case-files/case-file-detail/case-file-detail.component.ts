@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, inject, ChangeDetectorRef } from '@angular/core';
 import { Subscription, forkJoin, of, retry } from 'rxjs';
 import { catchError, filter, map, tap } from 'rxjs/operators';
 import { HttpEventType, HttpResponse } from '@angular/common/http';
@@ -316,7 +316,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   readonly canDelete = computed(() => this.currentMemberRole() === 'OWNER');
 
-  readonly docColumns = ['name', 'type', 'size', 'date', 'preview', 'actions'];
+  // F-260 SF-260-01 : colonnes 'order' (flèches haut/bas) et 'pieceNumber' (n° de pièce) ajoutées.
+  readonly docColumns = ['order', 'pieceNumber', 'name', 'type', 'size', 'date', 'preview', 'actions'];
+  // F-260 SF-260-01 : true pendant l'appel PUT .../pieces/order (désactive les flèches).
+  readonly reordering = signal(false);
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));
 
   // documents uploaded after the last synthesis — not covered by the current synthesis
@@ -568,6 +571,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private ocrRetryService: OcrRetryService,
     protected quotaErrorState: QuotaErrorStateService,
     private typeLitigeOverrideService: TypeLitigeOverrideService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   // SF-171-02 : signal des codes 402 qui doivent désactiver les boutons d'analyse.
@@ -1752,6 +1756,124 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       });
     });
   }
+
+  // ───────────────────────── F-260 SF-260-01 — numérotation & ordre des pièces ─────────────────────────
+
+  /**
+   * Numéro(s) de pièce à afficher pour un document dans la colonne « N° ».
+   * - mono-pièce → le numéro seul (ex. « 3 »)
+   * - composite contigu → la plage (ex. « 3–5 »)
+   * - composite non contigu → la liste (ex. « 3, 6 »)
+   * - aucune pièce → « — »
+   * Fallback : si `pieceNumber` est null (vieilles pièces non backfillées), on
+   * calcule un index global déterministe en parcourant les documents dans
+   * l'ordre d'affichage puis leurs pièces (orderIndex).
+   */
+  pieceNumberLabel(doc: Document): string {
+    const pieces = doc.pieces ?? [];
+    if (pieces.length === 0) return '—';
+    const numbers = pieces
+      .map(p => this.resolvePieceNumber(p.id))
+      .filter((n): n is number => n != null)
+      .sort((a, b) => a - b);
+    if (numbers.length === 0) return '—';
+    if (numbers.length === 1) return String(numbers[0]);
+    const contiguous = numbers.every((n, i) => i === 0 || n === numbers[i - 1] + 1);
+    if (contiguous) return `${numbers[0]}–${numbers[numbers.length - 1]}`;
+    return numbers.join(', ');
+  }
+
+  /**
+   * Résout le numéro persistant d'une pièce, ou, à défaut (null), son index
+   * global d'affichage (1-based) calculé sur l'ordre courant des documents.
+   */
+  private resolvePieceNumber(pieceId: string): number | null {
+    let fallbackIndex = 0;
+    for (const d of this.documents()) {
+      const ordered = [...(d.pieces ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
+      for (const p of ordered) {
+        fallbackIndex += 1;
+        if (p.id === pieceId) {
+          return p.pieceNumber != null ? p.pieceNumber : fallbackIndex;
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Réordonnancement autorisé hors analyse en cours et si au moins une pièce existe. */
+  canReorderDocuments(): boolean {
+    if (this.fullAnalysisRunning() || this.enrichedAnalysisRunning() || this.docAnalysisRunning()) return false;
+    return this.documents().some(d => (d.pieces?.length ?? 0) > 0);
+  }
+
+  /** True si le document peut monter (n'est pas le 1er document). */
+  canMoveUp(doc: Document): boolean {
+    const docs = this.documents();
+    return docs.length > 1 && docs[0]?.id !== doc.id;
+  }
+
+  /** True si le document peut descendre (n'est pas le dernier document). */
+  canMoveDown(doc: Document): boolean {
+    const docs = this.documents();
+    return docs.length > 1 && docs[docs.length - 1]?.id !== doc.id;
+  }
+
+  /**
+   * Déplace un document d'une position (haut/bas) dans la table, calcule la
+   * nouvelle liste ordonnée de TOUS les pieceIds du dossier (documents dans le
+   * nouvel ordre, puis pièces dans l'ordre `orderIndex`), persiste via
+   * `reorderPieces`, puis rafraîchit les documents (les numéros changent).
+   */
+  moveDocument(doc: Document, direction: 'up' | 'down'): void {
+    if (this.reordering()) return;
+    const caseFileId = this.caseFile()?.id;
+    if (!caseFileId) return;
+
+    const docs = [...this.documents()];
+    const index = docs.findIndex(d => d.id === doc.id);
+    if (index < 0) return;
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= docs.length) return;
+
+    [docs[index], docs[target]] = [docs[target], docs[index]];
+
+    const orderedPieceIds = this.flattenPieceIds(docs);
+    if (orderedPieceIds.length === 0) return;
+
+    this.reordering.set(true);
+    this.documentService.reorderPieces(caseFileId, orderedPieceIds).subscribe({
+      next: () => {
+        // Les numéros sont réassignés côté serveur ; on recharge pour refléter
+        // les pieceNumber à jour (et l'ordre persisté des documents).
+        this.reordering.set(false);
+        this.loadDocuments(caseFileId);
+        this.snackBar.open('Ordre des pièces mis à jour', 'Fermer', {
+          duration: 3000, panelClass: ['snack-success']
+        });
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.reordering.set(false);
+        this.snackBar.open('Erreur lors du réordonnancement des pièces.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  /** Aplatit les pieceIds des documents (dans l'ordre fourni) en respectant l'orderIndex interne. */
+  private flattenPieceIds(docs: Document[]): string[] {
+    const ids: string[] = [];
+    for (const d of docs) {
+      const ordered = [...(d.pieces ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
+      for (const p of ordered) ids.push(p.id);
+    }
+    return ids;
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────────────────────────
 
   downloadUrl(doc: Document): string {
     return this.documentService.downloadUrl(this.caseFile()!.id, doc.id);

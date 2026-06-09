@@ -425,6 +425,17 @@ public class ExtractionService {
         piece.setPageStart(1);
         piece.setPageEnd(1);
         piece.setOrderIndex(0);
+        // F-260 / SF-260-01 : numéro de pièce persistant = max(dossier) + 1.
+        UUID caseFileId = null;
+        try {
+            if (docRef.getCaseFile() != null) caseFileId = docRef.getCaseFile().getId();
+        } catch (Exception ignored) {
+            // fail-open : pas de numéro si le dossier n'est pas résoluble.
+        }
+        if (caseFileId != null) {
+            Integer max = documentPieceRepository.findMaxPieceNumberByCaseFileId(caseFileId);
+            piece.setPieceNumber((max == null ? 0 : max) + 1);
+        }
         piece.setVisualDescription(description);
         piece.setVisionEnrichedAt(Instant.now());
         piece.setVisionModel(visionModel);

@@ -83,7 +83,7 @@ describe('CaseFileDetailComponent', () => {
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById', 'exportZip', 'getDecisionToolsVisibility']);
     (caseFileServiceSpy as any).getDecisionToolsVisibility.mockReturnValue(of({ alwaysOn: [], contextual: [], catalog: [] }));
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
-    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'uploadWithProgress', 'downloadUrl', 'delete']);
+    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'uploadWithProgress', 'downloadUrl', 'delete', 'reorderPieces']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
     caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis', 'getPartial', 'getVersions']);
     (caseAnalysisServiceSpy as any).getVersions.mockReturnValue(of([]));
@@ -2407,6 +2407,84 @@ describe('CaseFileDetailComponent', () => {
       expect(byId).toHaveBeenCalledWith('section-outils-decisionnels');
       expect(scrollIntoView).toHaveBeenCalled();
       byId.mockRestore();
+    });
+  });
+
+  // ───────────────── F-260 SF-260-01 — numérotation & ordre des pièces ─────────────────
+  describe('F-260 — numérotation persistante & réordonnancement des pièces', () => {
+    const docA = {
+      id: 'docA', caseFileId: 'cf1', originalFilename: 'a.pdf',
+      contentType: 'application/pdf', fileSize: 100, createdAt: '2026-06-01T10:00:00Z',
+      pieces: [{ id: 'pA1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, pieceNumber: 1 }],
+    };
+    const docB = {
+      id: 'docB', caseFileId: 'cf1', originalFilename: 'b.pdf',
+      contentType: 'application/pdf', fileSize: 100, createdAt: '2026-06-02T10:00:00Z',
+      pieces: [
+        { id: 'pB1', type: 'LETTRE', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, pieceNumber: 2 },
+        { id: 'pB2', type: 'EMAIL', label: null, pageStart: 2, pageEnd: 2, orderIndex: 1, pieceNumber: 3 },
+      ],
+    };
+
+    beforeEach(() => {
+      documentServiceSpy.list.mockReturnValue(of([docA, docB] as any));
+      component.documents.set([docA, docB] as any);
+      (component as any).caseFile.set({ id: 'cf1' });
+    });
+
+    it('pieceNumberLabel — mono-pièce affiche le numéro seul', () => {
+      expect(component.pieceNumberLabel(docA as any)).toBe('1');
+    });
+
+    it('pieceNumberLabel — composite contigu affiche la plage', () => {
+      expect(component.pieceNumberLabel(docB as any)).toBe('2–3');
+    });
+
+    it('pieceNumberLabel — pieceNumber null retombe sur un index global', () => {
+      const orphan = { ...docA, pieces: [{ ...docA.pieces[0], pieceNumber: null }] };
+      component.documents.set([orphan, docB] as any);
+      // 1re pièce du 1er document → index 1.
+      expect(component.pieceNumberLabel(orphan as any)).toBe('1');
+    });
+
+    it('moveDocument(down) — appelle reorderPieces avec tous les pieceIds dans le nouvel ordre', () => {
+      documentServiceSpy.reorderPieces.mockReturnValue(of([] as any));
+      // docA descend → ordre documents [docB, docA] → pieceIds [pB1, pB2, pA1].
+      component.moveDocument(docA as any, 'down');
+      expect(documentServiceSpy.reorderPieces).toHaveBeenCalledWith('cf1', ['pB1', 'pB2', 'pA1']);
+    });
+
+    it('moveDocument(up) — réordonne en remontant le document', () => {
+      documentServiceSpy.reorderPieces.mockReturnValue(of([] as any));
+      // docB monte → ordre documents [docB, docA] → pieceIds [pB1, pB2, pA1].
+      component.moveDocument(docB as any, 'up');
+      expect(documentServiceSpy.reorderPieces).toHaveBeenCalledWith('cf1', ['pB1', 'pB2', 'pA1']);
+    });
+
+    it('moveDocument — succès → recharge les documents (list rappelé)', () => {
+      documentServiceSpy.reorderPieces.mockReturnValue(of([] as any));
+      documentServiceSpy.list.mockClear();
+      component.moveDocument(docA as any, 'down');
+      expect(documentServiceSpy.list).toHaveBeenCalledWith('cf1');
+      expect(component.reordering()).toBe(false);
+    });
+
+    it('moveDocument — erreur → snackbar d\'erreur et reordering remis à false', () => {
+      documentServiceSpy.reorderPieces.mockReturnValue(throwError(() => new Error('500')));
+      component.moveDocument(docA as any, 'down');
+      expect(snackBarSpy.open).toHaveBeenCalledWith(
+        'Erreur lors du réordonnancement des pièces.',
+        'Fermer',
+        expect.objectContaining({ panelClass: ['snack-error'] })
+      );
+      expect(component.reordering()).toBe(false);
+    });
+
+    it('canMoveUp / canMoveDown — bornes de la liste', () => {
+      expect(component.canMoveUp(docA as any)).toBe(false);
+      expect(component.canMoveDown(docA as any)).toBe(true);
+      expect(component.canMoveUp(docB as any)).toBe(true);
+      expect(component.canMoveDown(docB as any)).toBe(false);
     });
   });
 
