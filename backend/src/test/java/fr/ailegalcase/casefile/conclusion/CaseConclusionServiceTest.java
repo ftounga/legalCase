@@ -48,6 +48,8 @@ class CaseConclusionServiceTest {
     private final fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository
             jurisprudenceCitationRepository =
             mock(fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository.class);
+    private final fr.ailegalcase.analysis.JurisprudenceCheckRepository jurisprudenceCheckRepository =
+            mock(fr.ailegalcase.analysis.JurisprudenceCheckRepository.class);
     private final fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext
             toolJurisprudenceContext =
             mock(fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext.class);
@@ -60,7 +62,7 @@ class CaseConclusionServiceTest {
             caseConclusionRepository, caseAnalysisRepository, strategicOptionRepository,
             documentRepository, documentPieceRepository, caseFileDashboardService,
             promptBuilder, anthropicService, styleCorpusRepository, jurisprudenceCitationRepository,
-            toolJurisprudenceContext);
+            jurisprudenceCheckRepository, toolJurisprudenceContext);
 
     @BeforeEach
     void wireSelf() {

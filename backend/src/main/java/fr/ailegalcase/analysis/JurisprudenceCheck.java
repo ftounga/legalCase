@@ -71,6 +71,14 @@ public class JurisprudenceCheck {
     @Column(name = "web_search_used", nullable = false)
     private boolean webSearchUsed = false;
 
+    /**
+     * F-98 / SF-98-56 — true si l'avocat a marqué cette citation comme issue de
+     * l'adversaire et à réfuter dans le projet de conclusions. Posé uniquement par
+     * action explicite de l'avocat, jamais par l'IA ; naît toujours {@code false}.
+     */
+    @Column(name = "marked_adverse", nullable = false)
+    private boolean markedAdverse = false;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

@@ -2,6 +2,7 @@ package fr.ailegalcase.analysis;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,4 +15,12 @@ public interface JurisprudenceCheckRepository extends JpaRepository<Jurisprudenc
     List<JurisprudenceCheck> findByCaseAnalysisIdOrderByDocumentNameAscReferenceAsc(UUID caseAnalysisId);
 
     List<JurisprudenceCheck> findByCaseFileId(UUID caseFileId);
+
+    /**
+     * F-98 / SF-98-56 — checks d'un dossier marqués « adverse à réfuter » par l'avocat
+     * ET dont le statut est réfutable ({@code SUSPECT} / {@code NOT_FOUND}). Seuls ces
+     * checks alimentent la section de réfutation du prompt de génération des conclusions.
+     */
+    List<JurisprudenceCheck> findByCaseFileIdAndStatutInAndMarkedAdverseTrue(
+            UUID caseFileId, Collection<JurisprudenceCheckStatus> statuts);
 }

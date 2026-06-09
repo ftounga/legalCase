@@ -70,10 +70,44 @@
                   Consulter la source
                 </a>
               }
+
+              <!-- F-98 SF-98-56 — marquage « adverse à réfuter », inline sur
+                   les seules citations SUSPECT / NOT_FOUND. Action navy/or
+                   (info), pas une alerte critique. -->
+              @if (caseFileId && canMarkAdverse(check)) {
+                <div class="jc-adverse">
+                  <button type="button"
+                          mat-stroked-button
+                          class="jc-adverse__toggle"
+                          [class.jc-adverse__toggle--on]="check.markedAdverse"
+                          [attr.aria-pressed]="check.markedAdverse"
+                          [disabled]="markingId() === check.id"
+                          [attr.data-testid]="'mark-adverse-' + check.id"
+                          (click)="toggleAdverse(check)">
+                    <mat-icon class="jc-adverse__icon">
+                      {{ check.markedAdverse ? 'check_box' : 'check_box_outline_blank' }}
+                    </mat-icon>
+                    Marquer comme adverse à réfuter
+                  </button>
+                </div>
+              }
             </li>
           }
         </ul>
       </div>
+    }
+
+    <!-- F-98 SF-98-56 — mention de continuité : indique que le marquage
+         alimentera la réfutation dans le projet de conclusions. Affichée
+         uniquement s'il existe ≥ 1 citation marquable. -->
+    @if (hasMarkableCitations()) {
+      <p class="jc-continuity" data-testid="adverse-continuity-note">
+        <mat-icon class="jc-continuity__icon">info</mat-icon>
+        <span>
+          Les citations marquées comme adverses alimenteront la réfutation
+          dans le projet de conclusions.
+        </span>
+      </p>
     }
   </mat-expansion-panel>
 }

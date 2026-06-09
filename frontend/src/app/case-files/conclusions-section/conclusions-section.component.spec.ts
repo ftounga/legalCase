@@ -34,6 +34,8 @@ describe('ConclusionsSectionComponent', () => {
   // F-258 SF-258-01 — endpoints du décompte « outils non calculés ».
   const VISIBILITY_URL = `/api/v1/case-files/${CASE_ID}/decision-tools-visibility`;
   const DASHBOARD_URL = `/api/v1/case-files/${CASE_ID}/dashboard`;
+  // F-98 SF-98-56 — endpoint du décompte « citations adverses marquées ».
+  const CHECKS_URL = `/api/v1/case-files/${CASE_ID}/jurisprudence-checks`;
   const versionUrl = (id: string) => `${VERSIONS_URL}/${id}`;
   const lifecycleUrl = (id: string) => `${versionUrl(id)}/lifecycle`;
   const contentUrl = (id: string) => `${versionUrl(id)}/content`;
@@ -138,6 +140,9 @@ describe('ConclusionsSectionComponent', () => {
    * calculés » (visibilité + dashboard) déclenchés en parallèle au montage.
    * Par défaut visibilité et tiles sont vides ⇒ N=0 ⇒ aucun encart, ce qui
    * n'affecte pas les tests antérieurs.
+   *
+   * F-98 SF-98-56 — sert aussi le GET des jurisprudence-checks (décompte des
+   * citations adverses marquées). Par défaut aucun check ⇒ N=0 ⇒ aucune mention.
    */
   function flushInitialLoad(
     conclusion: ConclusionResponse = response(),
@@ -148,6 +153,7 @@ describe('ConclusionsSectionComponent', () => {
       catalog: [],
     },
     tileToolIds: string[] = [],
+    checks: unknown[] = [],
   ): void {
     httpMock.expectOne(VISIBILITY_URL).flush(visibility);
     httpMock.expectOne(DASHBOARD_URL).flush({
@@ -162,6 +168,7 @@ describe('ConclusionsSectionComponent', () => {
         primaryValue: '—',
       })),
     });
+    httpMock.expectOne(CHECKS_URL).flush({ checks });
     httpMock.expectOne(GET_URL).flush(conclusion);
     httpMock.expectOne(VERSIONS_URL).flush(versions);
   }
@@ -175,6 +182,8 @@ describe('ConclusionsSectionComponent', () => {
     // F-258 — les deux GET du décompte partent aussi au montage.
     httpMock.expectOne(VISIBILITY_URL).flush({ alwaysOn: [], contextual: [], catalog: [] });
     httpMock.expectOne(DASHBOARD_URL).flush({ caseFileId: CASE_ID, tiles: [] });
+    // F-98 SF-98-56 — le GET des jurisprudence-checks part aussi au montage.
+    httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
     const req = httpMock.expectOne(GET_URL);
     expect(req.request.method).toBe('GET');
     req.flush(response());
@@ -433,6 +442,8 @@ describe('ConclusionsSectionComponent', () => {
     tick(3000);
     httpMock.expectOne(GET_URL).flush(doneResponse());
     httpMock.expectOne(VERSIONS_URL).flush(versionList());
+    // SF-98-56 — la génération aboutie rafraîchit le décompte adverse.
+    httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
     expect(component.status()).toBe('DONE');
 
     // Plus aucun appel après DONE.
@@ -500,6 +511,8 @@ describe('ConclusionsSectionComponent', () => {
     tick(3000);
     httpMock.expectOne(GET_URL).flush(doneResponse());
     httpMock.expectOne(VERSIONS_URL).flush(versionList());
+    // SF-98-56 — la génération aboutie rafraîchit le décompte adverse.
+    httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
     expect(component.status()).toBe('DONE');
 
     component.ngOnDestroy();
@@ -679,6 +692,8 @@ describe('ConclusionsSectionComponent', () => {
     // F-258 — le décompte part au montage (sans effet ici, N=0).
     httpMock.expectOne(VISIBILITY_URL).flush({ alwaysOn: [], contextual: [], catalog: [] });
     httpMock.expectOne(DASHBOARD_URL).flush({ caseFileId: CASE_ID, tiles: [] });
+    // F-98 SF-98-56 — le décompte des citations adverses part aussi au montage.
+    httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
     httpMock
       .expectOne(GET_URL)
       .flush({}, { status: 500, statusText: 'Server Error' });
@@ -1054,12 +1069,86 @@ describe('ConclusionsSectionComponent', () => {
       httpMock
         .expectOne(DASHBOARD_URL)
         .flush('boom', { status: 500, statusText: 'Server Error' });
+      // F-98 SF-98-56 — le décompte des citations adverses part aussi au montage.
+      httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
       httpMock.expectOne(GET_URL).flush(response());
       httpMock.expectOne(VERSIONS_URL).flush([]);
       fixture.detectChanges();
 
       expect(component.missingToolsCount()).toBe(0);
       expect(fixture.nativeElement.querySelector(WARNING)).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // F-98 SF-98-56 — mention « N citations adverses marquées prises en compte »
+  // ---------------------------------------------------------------------------
+
+  describe('SF-98-56 — mention citations adverses marquées', () => {
+    const ADVERSE_NOTE = '[data-testid="adverse-marked-note"]';
+
+    function checkStub(over: Record<string, unknown>): Record<string, unknown> {
+      return {
+        id: over['id'] ?? 'c-' + Math.random(),
+        documentName: 'conclusions_adverses.pdf',
+        reference: 'Cass. soc. n° 99-99.999',
+        statut: over['statut'] ?? 'SUSPECT',
+        explication: null,
+        positionAlleguee: null,
+        sourceUrl: null,
+        claudeConfidence: null,
+        webSearchUsed: false,
+        markedAdverse: over['markedAdverse'] ?? false,
+      };
+    }
+
+    it('DONE + N>0 → mention factuelle affichée avec le bon nombre', () => {
+      fixture.detectChanges();
+      flushInitialLoad(
+        doneResponse(),
+        versionList(),
+        { alwaysOn: [], contextual: [], catalog: [] },
+        [],
+        [
+          checkStub({ id: '1', statut: 'SUSPECT', markedAdverse: true }),
+          checkStub({ id: '2', statut: 'NOT_FOUND', markedAdverse: true }),
+          // marquée mais statut non éligible → exclue.
+          checkStub({ id: '3', statut: 'VERIFIED', markedAdverse: true }),
+          // éligible mais non marquée → exclue.
+          checkStub({ id: '4', statut: 'SUSPECT', markedAdverse: false }),
+        ],
+      );
+      fixture.detectChanges();
+
+      expect(component.adverseMarkedCount()).toBe(2);
+      const note = fixture.nativeElement.querySelector(ADVERSE_NOTE);
+      expect(note).not.toBeNull();
+      expect(note.textContent).toContain('2 citations adverses marquées prises');
+    });
+
+    it('DONE + N=0 → aucune mention (pas de rubrique vide)', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList(), undefined, [], []);
+      fixture.detectChanges();
+
+      expect(component.adverseMarkedCount()).toBe(0);
+      expect(fixture.nativeElement.querySelector(ADVERSE_NOTE)).toBeNull();
+    });
+
+    it('singulier : N=1 → « citation adverse marquée prise »', () => {
+      fixture.detectChanges();
+      flushInitialLoad(
+        doneResponse(),
+        versionList(),
+        undefined,
+        [],
+        [checkStub({ id: '1', statut: 'SUSPECT', markedAdverse: true })],
+      );
+      fixture.detectChanges();
+
+      const note = fixture.nativeElement.querySelector(ADVERSE_NOTE);
+      expect(note).not.toBeNull();
+      expect(note.textContent).toContain('1 citation adverse marquée prise');
     });
   });
 });

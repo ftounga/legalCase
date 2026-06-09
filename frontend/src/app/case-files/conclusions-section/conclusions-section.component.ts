@@ -24,6 +24,7 @@ import { ConclusionDocumentComponent } from '../conclusion-document/conclusion-d
 import { ConclusionsService } from '../../core/services/conclusions.service';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
+import { JurisprudenceCheckService } from '../../core/services/jurisprudence-check.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import {
@@ -153,6 +154,14 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    */
   readonly missingToolsCount = signal(0);
 
+  /**
+   * F-98 / SF-98-56 — Nombre de citations adverses marquées **et** réfutables
+   * (statut SUSPECT / NOT_FOUND ET `markedAdverse = true`) du dossier. Calculé
+   * au montage à partir des jurisprudence-checks. `0` ⇒ aucune mention affichée
+   * (pas de rubrique vide). En cas d'échec du GET, on retombe à `0`.
+   */
+  readonly adverseMarkedCount = signal(0);
+
   /** Libellés des états de cycle de vie, exposés au template. */
   readonly lifecycleLabels = LIFECYCLE_LABELS;
   /** Ordre des états de cycle de vie, exposé au template. */
@@ -161,6 +170,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   private readonly conclusionsService = inject(ConclusionsService);
   private readonly caseFileService = inject(CaseFileService);
   private readonly caseDashboardService = inject(CaseDashboardService);
+  private readonly jurisprudenceCheckService = inject(JurisprudenceCheckService);
   private readonly docxExportService = inject(DocxExportService);
   private readonly pdfExportService = inject(PdfExportService);
   private readonly snackBar = inject(MatSnackBar);
@@ -233,6 +243,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.refreshMissingTools();
+    this.refreshAdverseMarkedCount();
     this.conclusionsService.getConclusion(this.caseFileId).subscribe({
       next: (res) => {
         this.conclusion.set(res);
@@ -578,6 +589,33 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * F-98 / SF-98-56 — Recalcule le nombre de citations adverses marquées et
+   * réfutables (statut SUSPECT/NOT_FOUND ET `markedAdverse = true`) du dossier.
+   *
+   * <p>Ce nombre alimente la mention factuelle affichée après une génération
+   * réussie. En cas d'échec du GET, on retombe à `0` (aucune mention) : on
+   * n'invente pas de N.</p>
+   */
+  private refreshAdverseMarkedCount(): void {
+    this.jurisprudenceCheckService.getChecks(this.caseFileId).subscribe({
+      next: (res) => {
+        const count = (res.checks ?? []).filter(
+          (c) =>
+            c.markedAdverse === true &&
+            (c.statut === 'SUSPECT' || c.statut === 'NOT_FOUND'),
+        ).length;
+        this.adverseMarkedCount.set(count);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Dégradation silencieuse : sans données fiables, pas de mention.
+        this.adverseMarkedCount.set(0);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   /** Recharge l'historique des versions (best-effort, sans bloquer l'UI). */
   private refreshVersions(): void {
     this.conclusionsService.listVersions(this.caseFileId).subscribe({
@@ -623,6 +661,9 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
           this.selectedVersionId.set(res.id);
           this.stopPolling();
           this.refreshVersions();
+          // SF-98-56 — la génération vient d'aboutir : rafraîchit le nombre de
+          // citations adverses marquées prises en compte (mention factuelle).
+          this.refreshAdverseMarkedCount();
         }
         this.cdr.markForCheck();
       },

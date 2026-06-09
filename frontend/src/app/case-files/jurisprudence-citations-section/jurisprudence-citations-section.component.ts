@@ -1,11 +1,22 @@
-import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  Input,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   JurisprudenceCheck,
   JurisprudenceCheckStatut,
 } from '../../core/models/jurisprudence-check.model';
+import { JurisprudenceCheckService } from '../../core/services/jurisprudence-check.service';
 
 /** Métadonnées d'affichage d'un statut de vérification. */
 interface StatutMeta {
@@ -42,7 +53,12 @@ interface DocumentGroup {
 @Component({
   selector: 'app-jurisprudence-citations-section',
   standalone: true,
-  imports: [MatIconModule, MatExpansionModule, MatTooltipModule],
+  imports: [
+    MatIconModule,
+    MatExpansionModule,
+    MatTooltipModule,
+    MatButtonModule,
+  ],
   templateUrl: './jurisprudence-citations-section.component.html',
   styleUrl: './jurisprudence-citations-section.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +69,20 @@ export class JurisprudenceCitationsSectionComponent {
   @Input() set checks(value: JurisprudenceCheck[] | null | undefined) {
     this.checksSignal.set(value ?? []);
   }
+
+  /**
+   * F-98 SF-98-56 — dossier auquel appartiennent les citations. Requis pour
+   * persister le marquage « adverse à réfuter ». En son absence, l'action de
+   * marquage n'est pas proposée (dégradation propre).
+   */
+  @Input() caseFileId: string | null = null;
+
+  /** Id du check dont le marquage est en cours de persistance (PATCH). */
+  readonly markingId = signal<string | null>(null);
+
+  private readonly jurisprudenceCheckService = inject(JurisprudenceCheckService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   /** Références groupées par document, ordre stable. */
   readonly groups = computed<DocumentGroup[]>(() => {
@@ -111,6 +141,63 @@ export class JurisprudenceCitationsSectionComponent {
   /** SF-179-04 — un check SUSPECT déclenche une alerte de cohérence. */
   isAlert(check: JurisprudenceCheck): boolean {
     return check.statut === 'SUSPECT';
+  }
+
+  /**
+   * F-98 SF-98-56 — true si la citation peut être marquée « adverse à réfuter ».
+   * Seuls les statuts SUSPECT / NOT_FOUND sont réfutables (VERIFIED = arrêt
+   * valable, UNCERTAIN = silence > erreur).
+   */
+  canMarkAdverse(check: JurisprudenceCheck): boolean {
+    return check.statut === 'SUSPECT' || check.statut === 'NOT_FOUND';
+  }
+
+  /**
+   * F-98 SF-98-56 — true s'il existe au moins une citation marquable
+   * (SUSPECT / NOT_FOUND) dans le panneau. Pilote la mention de continuité.
+   */
+  readonly hasMarkableCitations = computed(() =>
+    this.checksSignal().some((c) => this.canMarkAdverse(c)),
+  );
+
+  /**
+   * F-98 SF-98-56 — bascule le marquage « adverse à réfuter » d'une citation.
+   *
+   * <p>Persiste via le service (PATCH), met à jour l'état local du check dans
+   * le `next` puis `markForCheck()` (OnPush). En cas d'échec, l'état local
+   * n'est pas modifié et une snackbar d'erreur est affichée.</p>
+   */
+  toggleAdverse(check: JurisprudenceCheck): void {
+    const caseFileId = this.caseFileId;
+    if (!caseFileId || !this.canMarkAdverse(check) || this.markingId() !== null) {
+      return;
+    }
+    const target = !check.markedAdverse;
+    this.markingId.set(check.id);
+    this.jurisprudenceCheckService
+      .markAdverse(caseFileId, check.id, target)
+      .subscribe({
+        next: (updated) => {
+          this.markingId.set(null);
+          this.checksSignal.update((list) =>
+            list.map((c) =>
+              c.id === check.id
+                ? { ...c, markedAdverse: updated.markedAdverse }
+                : c,
+            ),
+          );
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.markingId.set(null);
+          this.snackBar.open(
+            'Impossible de modifier le marquage de cette citation.',
+            'Fermer',
+            { duration: 4000, panelClass: ['snack-error'] },
+          );
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   /**

@@ -126,6 +126,20 @@
           </span>
         </div>
 
+        <!-- F-98 SF-98-56 — mention factuelle : nombre de citations adverses
+             marquées prises en compte dans la réfutation. Affichée seulement
+             si N > 0 (aucune rubrique vide). -->
+        @if (adverseMarkedCount() > 0) {
+          <p class="cs-adverse-note" data-testid="adverse-marked-note">
+            <mat-icon class="cs-adverse-note-icon">gavel</mat-icon>
+            <span>
+              {{ adverseMarkedCount() }}
+              {{ adverseMarkedCount() > 1 ? 'citations adverses marquées prises' : 'citation adverse marquée prise' }}
+              en compte.
+            </span>
+          </p>
+        }
+
         <!-- ── Bandeau « conclusions à régénérer » (SF-98-53) ──── -->
         @if (stale()) {
           <div class="cs-stale-banner" data-testid="stale-banner">

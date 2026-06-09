@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="597-add-marked-adverse-to-jurisprudence-checks" author="legalcase">
+        <comment>
+            F-98 / SF-98-56 — marquage « adverse à réfuter » d'une jurisprudence
+            citée suspecte/introuvable (F-179). Le booléen est posé par action
+            explicite de l'avocat ; toute citation naît non marquée. Les citations
+            marquées ET de statut SUSPECT/NOT_FOUND alimentent la section de
+            réfutation du prompt de génération des conclusions (F-98).
+        </comment>
+
+        <addColumn tableName="jurisprudence_checks">
+            <column name="marked_adverse" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="jurisprudence_checks" columnName="marked_adverse"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

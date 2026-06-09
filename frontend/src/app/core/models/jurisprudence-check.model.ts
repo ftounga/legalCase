@@ -29,6 +29,12 @@ export interface JurisprudenceCheck {
   claudeConfidence: string | null;
   /** true si le fallback web search a été tenté. */
   webSearchUsed: boolean;
+  /**
+   * F-98 SF-98-56 — true si l'avocat a marqué cette citation comme issue de
+   * l'adversaire et à réfuter dans les conclusions. Marquable uniquement sur
+   * les statuts SUSPECT / NOT_FOUND.
+   */
+  markedAdverse: boolean;
 }
 
 /** Réponse de `GET /api/v1/case-files/{id}/jurisprudence-checks`. */

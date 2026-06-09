@@ -43,12 +43,19 @@ public class CaseConclusionPromptBuilder {
      */
     static final String JURISPRUDENCE_GUARD =
             "Garde jurisprudence : ne cite aucune référence de jurisprudence (arrêt, "
-                    + "décision, numéro de pourvoi) qui ne figure pas dans l'une des deux "
+                    + "décision, numéro de pourvoi) qui ne figure pas dans l'une des trois "
                     + "sections « JURISPRUDENCE À L'APPUI » (F-242, références saisies par "
-                    + "l'avocat) ou « JURISPRUDENCE APPLICABLE PAR OUTIL » (F-JU-02, arrêts "
-                    + "curatés par LegalCase pour les outils décisionnels utilisés). Si l'une "
-                    + "de ces sections contient des références, appuie-toi exclusivement sur "
-                    + "celles-ci ; sinon, n'invente aucun arrêt ni décision.";
+                    + "l'avocat), « JURISPRUDENCE APPLICABLE PAR OUTIL » (F-JU-02, arrêts "
+                    + "curatés par LegalCase pour les outils décisionnels utilisés) ou "
+                    + "« JURISPRUDENCE ADVERSE À RÉFUTER » (F-98, citations invoquées par la "
+                    + "partie adverse). Si l'une de ces sections contient des références, "
+                    + "appuie-toi exclusivement sur celles-ci ; sinon, n'invente aucun arrêt "
+                    + "ni décision. Cas particulier de la section « JURISPRUDENCE ADVERSE À "
+                    + "RÉFUTER » : ces arrêts ne doivent JAMAIS être cités « avec autorité » "
+                    + "comme s'ils soutenaient ta thèse — ils ne servent QU'À être réfutés "
+                    + "(arrêt introuvable, portée dénaturée). N'expose jamais le statut "
+                    + "technique d'une citation (« suspecte », « non trouvée ») ni un nom de "
+                    + "fichier dans l'acte.";
 
     /**
      * F-98 / SF-98-55 — garde de qualité rédactionnelle commune à toutes les cellules
@@ -197,8 +204,44 @@ public class CaseConclusionPromptBuilder {
 
         appendJurisprudenceCitations(sb, input.jurisprudenceCitations());
         appendToolJurisprudenceCitations(sb, input.toolJurisprudenceByTool());
+        appendAdverseJurisprudenceToRefute(sb, input.adverseToRefute());
 
         return sb.toString();
+    }
+
+    /**
+     * F-98 / SF-98-56 — section des citations de jurisprudence invoquées par la partie
+     * adverse et jugées douteuses (F-179, statut SUSPECT/NOT_FOUND), que l'avocat a
+     * marquées comme « adverses à réfuter ». La section est <strong>absente</strong> si
+     * la liste est vide (pas de rubrique vide / « néant »).
+     *
+     * <p>Anti-jargon (non-régression SF-98-55) : on n'expose ni nom de fichier ni statut
+     * technique — seulement la référence, l'explication (réalité de l'arrêt) et la
+     * position que l'adversaire prête à l'arrêt.</p>
+     */
+    private void appendAdverseJurisprudenceToRefute(
+            StringBuilder sb,
+            List<ConclusionPromptInput.AdverseCitationToRefute> adverse) {
+        if (adverse == null || adverse.isEmpty()) {
+            return;
+        }
+        sb.append("\n=== JURISPRUDENCE ADVERSE À RÉFUTER ===\n");
+        sb.append("Citations de jurisprudence invoquées par la partie adverse et jugées "
+                + "douteuses : démontre, pour chacune, pourquoi l'adversaire se trompe "
+                + "(arrêt introuvable / portée dénaturée), sans l'admettre comme fondé.\n");
+        for (ConclusionPromptInput.AdverseCitationToRefute c : adverse) {
+            if (c == null) {
+                continue;
+            }
+            sb.append("- ").append(nullSafe(c.reference()));
+            if (c.explication() != null && !c.explication().isBlank()) {
+                sb.append(" — ").append(c.explication().strip());
+            }
+            if (c.positionAlleguee() != null && !c.positionAlleguee().isBlank()) {
+                sb.append(" — Position prêtée par l'adversaire : ").append(c.positionAlleguee().strip());
+            }
+            sb.append('\n');
+        }
     }
 
     /**
@@ -355,6 +398,9 @@ public class CaseConclusionPromptBuilder {
      * @param retainedStrategies      pistes stratégiques au statut {@code RETAINED}
      * @param jurisprudenceCitations  F-242 — citations de jurisprudence d'appui saisies
      *                                par l'avocat (ordre stable par point juridique)
+     * @param toolJurisprudenceByTool F-JU-02 — arrêts curatés par outil décisionnel
+     * @param adverseToRefute         F-98 / SF-98-56 — citations adverses marquées à
+     *                                réfuter (ne porte ni nom de fichier ni statut technique)
      */
     public record ConclusionPromptInput(
             String caseTitle,
@@ -366,7 +412,8 @@ public class CaseConclusionPromptBuilder {
             List<DashboardTile> toolTiles,
             List<RetainedStrategy> retainedStrategies,
             List<JurisprudenceCitationForPrompt> jurisprudenceCitations,
-            List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool) {
+            List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool,
+            List<AdverseCitationToRefute> adverseToRefute) {
 
         /** F-JU-02 / SF-JU-02-01 — constructeur back-compat (pré-F-JU-02). */
         public ConclusionPromptInput(
@@ -375,7 +422,20 @@ public class CaseConclusionPromptBuilder {
                 List<RetainedStrategy> retainedStrategies,
                 List<JurisprudenceCitationForPrompt> jurisprudenceCitations) {
             this(caseTitle, jurisdictionLabel, stageLabel, positionLabel, analysisResultJson,
-                    pieces, toolTiles, retainedStrategies, jurisprudenceCitations, java.util.List.of());
+                    pieces, toolTiles, retainedStrategies, jurisprudenceCitations,
+                    java.util.List.of(), java.util.List.of());
+        }
+
+        /** F-98 / SF-98-56 — constructeur back-compat (pré-SF-98-56, avec outils F-JU-02). */
+        public ConclusionPromptInput(
+                String caseTitle, String jurisdictionLabel, String stageLabel, String positionLabel,
+                String analysisResultJson, List<NumberedPiece> pieces, List<DashboardTile> toolTiles,
+                List<RetainedStrategy> retainedStrategies,
+                List<JurisprudenceCitationForPrompt> jurisprudenceCitations,
+                List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool) {
+            this(caseTitle, jurisdictionLabel, stageLabel, positionLabel, analysisResultJson,
+                    pieces, toolTiles, retainedStrategies, jurisprudenceCitations,
+                    toolJurisprudenceByTool, java.util.List.of());
         }
 
         /** Pièce numérotée du dossier. */
@@ -400,6 +460,23 @@ public class CaseConclusionPromptBuilder {
                 String pointJuridiqueTexte,
                 String reference,
                 String portee) {
+        }
+
+        /**
+         * F-98 / SF-98-56 — citation de jurisprudence adverse marquée à réfuter.
+         *
+         * <p>N'expose <strong>ni</strong> nom de fichier <strong>ni</strong> statut
+         * technique (anti-jargon SF-98-55) : seules la référence, l'explication (réalité
+         * de l'arrêt) et la position que l'adversaire prête à l'arrêt sont transmises.</p>
+         *
+         * @param reference        libellé de la référence invoquée par l'adversaire
+         * @param explication      explication du verdict (réalité de l'arrêt), ou {@code null}
+         * @param positionAlleguee position que l'adversaire prête à l'arrêt, ou {@code null}
+         */
+        public record AdverseCitationToRefute(
+                String reference,
+                String explication,
+                String positionAlleguee) {
         }
     }
 }
