@@ -1,5 +1,9 @@
 # CLAUDE.md — Instructions projet AI LegalCase
 
+## Captures d'écran (convention)
+
+Quand l'utilisateur fait référence à une **capture** / **screenshot** / **image** sans donner de chemin complet, la chercher **par défaut dans le dossier `screenshoot/` à la racine du repo** (`/home/francky/dev/legalCase/screenshoot/`). Lister ce dossier et prendre la capture la plus récente si le nom n'est pas précisé, ou le fichier dont le nom correspond au sujet évoqué (ex. « le screenshot Stripe » → `screenshoot/stripe.png`). Ne pas redemander le chemin.
+
 ## Documents à lire en priorité
 
 Lire ces documents avant toute réponse impliquant du code, une spec ou une décision technique.

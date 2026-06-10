@@ -42,3 +42,13 @@ docs/marketing/demo-dossier-vision/resultat/_workdir/
 
 # LibreOffice/OpenOffice lock files
 .~lock.*#
+
+# Clé API Apollo (prospection) — ne jamais committer
+tools/prospection-apollo/.apollo_key
+tools/prospection-apollo/.lemlist_key
+tools/prospection-apollo/*-leads*.csv
+tools/prospection-apollo/avocat-pool*.csv
+tools/prospection-apollo/lemlist-import-*.csv
+tools/prospection-apollo/suivi-avocats.csv
+tools/prospection-apollo/avocat-emails-pilote.md
+tools/prospection-apollo/batches/
