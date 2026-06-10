@@ -2,11 +2,13 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
   OnDestroy,
   OnInit,
   Output,
+  ViewChild,
   computed,
   inject,
   signal,
@@ -21,6 +23,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { ConclusionDocumentComponent } from '../conclusion-document/conclusion-document.component';
+import {
+  MarkdownAction,
+  MarkdownToolbarComponent,
+} from '../../shared/markdown-toolbar/markdown-toolbar.component';
 import { ConclusionsService } from '../../core/services/conclusions.service';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
@@ -85,6 +91,7 @@ const LIFECYCLE_ORDER: readonly ConclusionLifecycleStatus[] = [
     MatSelectModule,
     RouterLink,
     ConclusionDocumentComponent,
+    MarkdownToolbarComponent,
   ],
   templateUrl: './conclusions-section.component.html',
   styleUrl: './conclusions-section.component.scss',
@@ -145,6 +152,22 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly draftContent = signal('');
   /** SF-98-49 — Enregistrement du texte édité en cours (PATCH). */
   readonly savingContent = signal(false);
+
+  /**
+   * SF-264-01 — Vue active du mode édition sur écran étroit : `edit`
+   * (éditeur + barre d'outils) ou `preview` (aperçu « acte » formaté). Sur
+   * large écran les deux colonnes sont affichées côte à côte (CSS) et ce
+   * signal est sans effet visuel. Réinitialisé à `edit` à chaque entrée en
+   * édition.
+   */
+  readonly editorView = signal<'edit' | 'preview'>('edit');
+
+  /**
+   * SF-264-01 — Référence au `<textarea>` d'édition markdown. Utilisée par la
+   * barre d'outils pour insérer les marqueurs à la position du curseur / sur la
+   * sélection. Absente tant que le mode édition n'est pas rendu.
+   */
+  @ViewChild('editor') editorRef?: ElementRef<HTMLTextAreaElement>;
 
   /**
    * F-258 / SF-258-01 — Nombre d'outils décisionnels **proposés** (pré-remplis)
@@ -490,7 +513,132 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       return;
     }
     this.draftContent.set(this.conclusion()?.content ?? '');
+    this.editorView.set('edit');
     this.editing.set(true);
+  }
+
+  /** SF-264-01 — Bascule la vue éditeur/aperçu sur écran étroit. */
+  setEditorView(view: 'edit' | 'preview'): void {
+    this.editorView.set(view);
+  }
+
+  /**
+   * SF-264-01 — Applique une action de la barre d'outils markdown sur le
+   * `<textarea>` d'édition, à la position du curseur ou sur la sélection.
+   *
+   * - `bold` / `italic` : **enveloppent** la sélection (`**…**` / `*…*`). Sans
+   *   sélection, insèrent les marqueurs vides et replacent le curseur entre eux.
+   * - `h2` / `h3` / `list` / `quote` : **préfixent** chaque ligne de la
+   *   sélection (ou la ligne courante) par le marqueur (`## `, `### `, `- `,
+   *   `> `).
+   *
+   * Le `content` reste du markdown pur (round-trip garanti). On met à jour le
+   * signal `draftContent` puis on restaure le focus et la sélection sur le
+   * textarea pour enchaîner les saisies.
+   */
+  applyMarkdown(action: MarkdownAction): void {
+    if (this.savingContent()) {
+      return;
+    }
+    const textarea = this.editorRef?.nativeElement;
+    const value = this.draftContent();
+    // Position de sélection : on retombe sur la fin du texte si le textarea
+    // n'est pas disponible (ex. vue aperçu active sur étroit).
+    const start = textarea?.selectionStart ?? value.length;
+    const end = textarea?.selectionEnd ?? value.length;
+
+    const result =
+      action === 'bold' || action === 'italic'
+        ? this.wrapSelection(value, start, end, action === 'bold' ? '**' : '*')
+        : this.prefixLines(value, start, end, this.linePrefix(action));
+
+    this.draftContent.set(result.value);
+
+    // Restaure le focus et la sélection après le re-rendu (textarea recréé via
+    // le binding `[value]`). Pas de mutation hors zone Angular ⇒ markForCheck
+    // implicite par le signal ; on force juste le focus/curseur.
+    queueMicrotask(() => {
+      const el = this.editorRef?.nativeElement;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(result.selectionStart, result.selectionEnd);
+      }
+    });
+  }
+
+  /** Préfixe de ligne associé à une action de bloc. */
+  private linePrefix(action: MarkdownAction): string {
+    switch (action) {
+      case 'h2':
+        return '## ';
+      case 'h3':
+        return '### ';
+      case 'list':
+        return '- ';
+      case 'quote':
+        return '> ';
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Enveloppe la sélection `[start, end[` de `value` par `marker` de part et
+   * d'autre. Sans sélection, insère `marker``marker` et place le curseur au
+   * milieu. Retourne le nouveau texte et la sélection à restaurer.
+   */
+  private wrapSelection(
+    value: string,
+    start: number,
+    end: number,
+    marker: string,
+  ): { value: string; selectionStart: number; selectionEnd: number } {
+    const before = value.slice(0, start);
+    const selected = value.slice(start, end);
+    const after = value.slice(end);
+    const composed = `${before}${marker}${selected}${marker}${after}`;
+    if (selected.length === 0) {
+      const caret = start + marker.length;
+      return { value: composed, selectionStart: caret, selectionEnd: caret };
+    }
+    return {
+      value: composed,
+      selectionStart: start + marker.length,
+      selectionEnd: end + marker.length,
+    };
+  }
+
+  /**
+   * Préfixe par `prefix` chaque ligne touchée par la sélection `[start, end[`
+   * (ou la ligne courante si la sélection est vide). Retourne le nouveau texte
+   * et la sélection couvrant les lignes modifiées.
+   */
+  private prefixLines(
+    value: string,
+    start: number,
+    end: number,
+    prefix: string,
+  ): { value: string; selectionStart: number; selectionEnd: number } {
+    // Étend la sélection au début de la première ligne et à la fin de la
+    // dernière ligne touchées.
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    let lineEnd = value.indexOf('\n', end);
+    if (lineEnd === -1) {
+      lineEnd = value.length;
+    }
+    const before = value.slice(0, lineStart);
+    const block = value.slice(lineStart, lineEnd);
+    const after = value.slice(lineEnd);
+    const prefixed = block
+      .split('\n')
+      .map((line) => `${prefix}${line}`)
+      .join('\n');
+    const composed = `${before}${prefixed}${after}`;
+    return {
+      value: composed,
+      selectionStart: lineStart,
+      selectionEnd: lineStart + prefixed.length,
+    };
   }
 
   /**

@@ -580,10 +580,15 @@ describe('ConclusionsSectionComponent', () => {
     expect(editor).not.toBeNull();
     expect(editor.value).toBe('POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…');
     expect(component.editing()).toBe(true);
-    // En édition, le bloc lecture seule disparaît.
+    // SF-264-01 — en édition, le bloc lecture seule disparaît mais l'aperçu live
+    // (rendu via le même ConclusionDocumentComponent) reste rendu : on vérifie
+    // que c'est bien dans la colonne d'aperçu, pas le bloc lecture.
     expect(
-      fixture.nativeElement.querySelector('[data-testid="conclusions-content"]'),
-    ).toBeNull();
+      fixture.nativeElement.querySelector('[data-testid="editor-pane"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="preview-pane"]'),
+    ).not.toBeNull();
   });
 
   it('« Enregistrer » → PATCH /content puis retour en lecture + rafraîchissement', () => {
@@ -1149,6 +1154,157 @@ describe('ConclusionsSectionComponent', () => {
       const note = fixture.nativeElement.querySelector(ADVERSE_NOTE);
       expect(note).not.toBeNull();
       expect(note.textContent).toContain('1 citation adverse marquée prise');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // F-264 SF-264-01 — Éditeur markdown enrichi + aperçu live
+  // ---------------------------------------------------------------------------
+
+  describe('SF-264-01 — barre d\'outils markdown + aperçu live', () => {
+    /** Entre en mode édition avec un contenu connu et un select positionné. */
+    function enterEditingWith(content: string, start = 0, end = 0): void {
+      fixture.detectChanges();
+      flushInitialLoad(
+        doneResponse({ lifecycleStatus: 'DRAFT', content }),
+        versionList(),
+      );
+      fixture.detectChanges();
+      component.startEditing();
+      fixture.detectChanges();
+      const editor: HTMLTextAreaElement = fixture.nativeElement.querySelector(
+        '[data-testid="conclusions-editor"]',
+      );
+      editor.setSelectionRange(start, end);
+    }
+
+    it('mode édition → barre d\'outils, éditeur et aperçu rendus', () => {
+      enterEditingWith('Texte initial');
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="markdown-toolbar"]'),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="editor-pane"]'),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="preview-pane"]'),
+      ).not.toBeNull();
+    });
+
+    it('Gras → enveloppe la sélection de **…**', () => {
+      // « Bonjour » : sélection sur « jour » (index 3..7).
+      enterEditingWith('Bonjour', 3, 7);
+      component.applyMarkdown('bold');
+      expect(component.draftContent()).toBe('Bon**jour**');
+    });
+
+    it('Italique → enveloppe la sélection de *…*', () => {
+      enterEditingWith('Bonjour', 0, 7);
+      component.applyMarkdown('italic');
+      expect(component.draftContent()).toBe('*Bonjour*');
+    });
+
+    it('Gras sans sélection → insère **** au curseur', () => {
+      enterEditingWith('AB', 1, 1);
+      component.applyMarkdown('bold');
+      expect(component.draftContent()).toBe('A****B');
+    });
+
+    it('Titre H2 → préfixe la ligne courante de « ## »', () => {
+      enterEditingWith('Mon titre', 2, 2);
+      component.applyMarkdown('h2');
+      expect(component.draftContent()).toBe('## Mon titre');
+    });
+
+    it('Sous-titre H3 → préfixe la ligne courante de « ### »', () => {
+      enterEditingWith('Section', 0, 0);
+      component.applyMarkdown('h3');
+      expect(component.draftContent()).toBe('### Section');
+    });
+
+    it('Liste → préfixe chaque ligne sélectionnée de « - »', () => {
+      // 2 lignes ; sélection couvrant les deux.
+      enterEditingWith('un\ndeux', 0, 6);
+      component.applyMarkdown('list');
+      expect(component.draftContent()).toBe('- un\n- deux');
+    });
+
+    it('Citation → préfixe la ligne de « > »', () => {
+      enterEditingWith('Une citation', 4, 4);
+      component.applyMarkdown('quote');
+      expect(component.draftContent()).toBe('> Une citation');
+    });
+
+    it('barre d\'outils (clic réel) → modifie le brouillon', () => {
+      enterEditingWith('Titre', 0, 0);
+      const btn: HTMLButtonElement = fixture.nativeElement.querySelector(
+        '[data-testid="md-h2"]',
+      );
+      btn.click();
+      expect(component.draftContent()).toBe('## Titre');
+    });
+
+    it('aperçu reflète le brouillon courant', () => {
+      enterEditingWith('Départ');
+      component.onDraftInput('## Nouveau titre');
+      fixture.detectChanges();
+      const preview = fixture.nativeElement.querySelector(
+        '[data-testid="preview-pane"]',
+      );
+      // Le ConclusionDocumentComponent rend le markdown → un <h2> dans l'aperçu.
+      expect(preview.querySelector('h2')?.textContent).toContain(
+        'Nouveau titre',
+      );
+    });
+
+    it('bascule éditeur/aperçu → met à jour editorView + classe', () => {
+      enterEditingWith('Texte');
+      expect(component.editorView()).toBe('edit');
+
+      const previewBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+        '[data-testid="view-preview-btn"]',
+      );
+      previewBtn.click();
+      fixture.detectChanges();
+      expect(component.editorView()).toBe('preview');
+      expect(
+        fixture.nativeElement
+          .querySelector('.cs-edit-split')
+          .classList.contains('cs-edit-split--show-preview'),
+      ).toBe(true);
+
+      const editBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+        '[data-testid="view-edit-btn"]',
+      );
+      editBtn.click();
+      fixture.detectChanges();
+      expect(component.editorView()).toBe('edit');
+    });
+
+    it('« Enregistrer » → PATCH /content avec le markdown inchangé (non-régression)', () => {
+      enterEditingWith('Contenu de départ');
+      // L'avocat applique un gras puis enregistre : le content reste markdown.
+      component.onDraftInput('Texte **gras** edité');
+      fixture.detectChanges();
+
+      const saveBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+        '[data-testid="save-btn"]',
+      );
+      saveBtn.click();
+
+      const req = httpMock.expectOne(contentUrl('conc-2'));
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ content: 'Texte **gras** edité' });
+      req.flush(
+        doneResponse({
+          lifecycleStatus: 'DRAFT',
+          content: 'Texte **gras** edité',
+        }),
+      );
+      httpMock.expectOne(VERSIONS_URL).flush(versionList());
+      fixture.detectChanges();
+
+      expect(component.editing()).toBe(false);
     });
   });
 });
