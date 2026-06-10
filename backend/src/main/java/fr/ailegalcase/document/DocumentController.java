@@ -150,6 +150,23 @@ public class DocumentController {
                 oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 
+    /**
+     * SF-261-01 : marque (ou démarque) un document comme « écritures adverses »
+     * (conclusions de la partie adverse), pour désigner la source des moyens à
+     * extraire (SF-261-02) puis réfuter (SF-261-03). Marquage = jugement humain
+     * de l'avocat. Body { adversePleadings } obligatoire (400 si absent).
+     */
+    @PatchMapping("/{documentId}/adverse-pleadings")
+    public DocumentResponse markAdversePleadings(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID documentId,
+            @Valid @RequestBody MarkAdversePleadingsRequest request,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return documentService.markAdversePleadings(caseFileId, documentId, request.adversePleadings(),
+                oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
     @PostMapping(consumes = "multipart/form-data")
     @ResponseStatus(HttpStatus.CREATED)
     public DocumentResponse upload(

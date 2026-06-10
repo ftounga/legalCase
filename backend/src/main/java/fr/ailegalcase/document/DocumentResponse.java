@@ -41,12 +41,18 @@ public record DocumentResponse(
          * l'extraction n'est pas encore DONE ou si la détection n'a pas tourné
          * (documents antérieurs à F-145).
          */
-        List<DocumentPieceSummary> pieces
+        List<DocumentPieceSummary> pieces,
+        /**
+         * SF-261-01 : true si le document est marqué « écritures adverses »
+         * (conclusions de la partie adverse) par l'avocat. Tout document naît
+         * non marqué. Source des moyens à extraire (SF-261-02) puis réfuter.
+         */
+        boolean adversePleadings
 ) {
     /** Constructeur rétrocompat 6 champs (avant SF-121-01). */
     public DocumentResponse(UUID id, UUID caseFileId, String originalFilename,
                              String contentType, long fileSize, Instant createdAt) {
-        this(id, caseFileId, originalFilename, contentType, fileSize, createdAt, null, null, false, false, List.of());
+        this(id, caseFileId, originalFilename, contentType, fileSize, createdAt, null, null, false, false, List.of(), false);
     }
 
     /** Constructeur rétrocompat 8 champs (SF-121-01, avant SF-144-01). */
@@ -54,7 +60,7 @@ public record DocumentResponse(
                              String contentType, long fileSize, Instant createdAt,
                              String extractionStatus, String failureReason) {
         this(id, caseFileId, originalFilename, contentType, fileSize, createdAt,
-                extractionStatus, failureReason, false, false, List.of());
+                extractionStatus, failureReason, false, false, List.of(), false);
     }
 
     /** Constructeur rétrocompat 10 champs (SF-144-01, avant SF-145-01). */
@@ -63,6 +69,16 @@ public record DocumentResponse(
                              String extractionStatus, String failureReason,
                              boolean ocrRunning, boolean ocrExtracted) {
         this(id, caseFileId, originalFilename, contentType, fileSize, createdAt,
-                extractionStatus, failureReason, ocrRunning, ocrExtracted, List.of());
+                extractionStatus, failureReason, ocrRunning, ocrExtracted, List.of(), false);
+    }
+
+    /** Constructeur rétrocompat 11 champs (SF-145-01, avant SF-261-01). */
+    public DocumentResponse(UUID id, UUID caseFileId, String originalFilename,
+                             String contentType, long fileSize, Instant createdAt,
+                             String extractionStatus, String failureReason,
+                             boolean ocrRunning, boolean ocrExtracted,
+                             List<DocumentPieceSummary> pieces) {
+        this(id, caseFileId, originalFilename, contentType, fileSize, createdAt,
+                extractionStatus, failureReason, ocrRunning, ocrExtracted, pieces, false);
     }
 }

@@ -140,4 +140,132 @@ class DocumentServiceTest {
         assertThat(DocumentService.isOcrExtracted(null)).isFalse();
         assertThat(DocumentService.isOcrExtracted("")).isFalse();
     }
+
+    // ── SF-261-01 : marquage « écritures adverses » ──────────────────────────
+
+    private static final UUID DOCUMENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
+
+    /** Prépare user/workspace/caseFile + un document appartenant au dossier. */
+    private Document mockUserWorkspaceCaseFileAndDocument() {
+        User user = new User();
+        Workspace workspace = new Workspace();
+        workspace.setId(WORKSPACE_ID);
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(CASE_FILE_ID);
+        caseFile.setWorkspace(workspace);
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setUser(user);
+        member.setWorkspace(workspace);
+
+        Document document = new Document();
+        document.setId(DOCUMENT_ID);
+        document.setCaseFile(caseFile);
+        document.setOriginalFilename("conclusions-adverses.pdf");
+        document.setContentType("application/pdf");
+        document.setFileSize(1024L);
+
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
+        when(documentRepository.findById(DOCUMENT_ID)).thenReturn(Optional.of(document));
+        lenient().when(documentRepository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(extractionRepository.findByDocumentId(DOCUMENT_ID)).thenReturn(Optional.empty());
+        lenient().when(documentPieceRepository.findByDocument_IdOrderByOrderIndexAsc(DOCUMENT_ID))
+                .thenReturn(java.util.List.of());
+        return document;
+    }
+
+    // U-AP-01 : marquage true persiste et est exposé dans la réponse
+    @Test
+    void markAdversePleadings_true_persistsAndReturnsFlag() {
+        Document document = mockUserWorkspaceCaseFileAndDocument();
+
+        DocumentResponse response = service.markAdversePleadings(
+                CASE_FILE_ID, DOCUMENT_ID, true, oidcUser, "GOOGLE", null);
+
+        assertThat(document.isAdversePleadings()).isTrue();
+        assertThat(response.adversePleadings()).isTrue();
+        verify(documentRepository).save(document);
+    }
+
+    // U-AP-02 : démarquage (false) persiste à false
+    @Test
+    void markAdversePleadings_false_persistsAndReturnsFlag() {
+        Document document = mockUserWorkspaceCaseFileAndDocument();
+        document.setAdversePleadings(true);
+
+        DocumentResponse response = service.markAdversePleadings(
+                CASE_FILE_ID, DOCUMENT_ID, false, oidcUser, "GOOGLE", null);
+
+        assertThat(document.isAdversePleadings()).isFalse();
+        assertThat(response.adversePleadings()).isFalse();
+    }
+
+    // U-AP-03 : document d'un dossier d'un autre workspace → 404 (isolation)
+    @Test
+    void markAdversePleadings_caseFileOtherWorkspace_returns404() {
+        User user = new User();
+        Workspace myWorkspace = new Workspace();
+        myWorkspace.setId(WORKSPACE_ID);
+        Workspace otherWorkspace = new Workspace();
+        otherWorkspace.setId(UUID.randomUUID());
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(CASE_FILE_ID);
+        caseFile.setWorkspace(otherWorkspace); // dossier d'un AUTRE workspace
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setUser(user);
+        member.setWorkspace(myWorkspace);
+
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
+
+        assertThatThrownBy(() -> service.markAdversePleadings(
+                CASE_FILE_ID, DOCUMENT_ID, true, oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Case file not found");
+
+        verify(documentRepository, never()).save(any());
+    }
+
+    // U-AP-04 : document appartenant à un AUTRE dossier (même workspace) → 404
+    @Test
+    void markAdversePleadings_documentInAnotherCaseFile_returns404() {
+        Document document = mockUserWorkspaceCaseFileAndDocument();
+        CaseFile autreDossier = new CaseFile();
+        autreDossier.setId(UUID.randomUUID());
+        autreDossier.setWorkspace(document.getCaseFile().getWorkspace());
+        document.setCaseFile(autreDossier); // le doc pointe sur un autre dossier
+
+        assertThatThrownBy(() -> service.markAdversePleadings(
+                CASE_FILE_ID, DOCUMENT_ID, true, oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Document not found");
+    }
+
+    // U-AP-05 : document inexistant → 404
+    @Test
+    void markAdversePleadings_unknownDocument_returns404() {
+        User user = new User();
+        Workspace workspace = new Workspace();
+        workspace.setId(WORKSPACE_ID);
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(CASE_FILE_ID);
+        caseFile.setWorkspace(workspace);
+        WorkspaceMember member = new WorkspaceMember();
+        member.setUser(user);
+        member.setWorkspace(workspace);
+
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
+        when(documentRepository.findById(DOCUMENT_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.markAdversePleadings(
+                CASE_FILE_ID, DOCUMENT_ID, true, oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Document not found");
+    }
 }
