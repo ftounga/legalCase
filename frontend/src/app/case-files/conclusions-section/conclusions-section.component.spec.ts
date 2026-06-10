@@ -15,6 +15,7 @@ import {
   ConclusionsSectionComponent,
   parseMarkdownSections,
   replaceSectionInDraft,
+  buildExportContent,
 } from './conclusions-section.component';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
@@ -878,6 +879,74 @@ describe('ConclusionsSectionComponent', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // F-266 SF-266-02 — Export à en-tête du cabinet
+  // ---------------------------------------------------------------------------
+
+  it('en-tête vide → export Word neutre (content inchangé, non-régression)', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.downloadWord();
+
+    expect(docxSpy.exportConclusion).toHaveBeenCalledWith(
+      'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
+      jasmine.any(String),
+      2,
+    );
+  });
+
+  it('en-tête saisi → export Word préfixé du bloc d\'en-tête (content stocké inchangé)', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.cabinetHeader.set('Cabinet Durand\n12 rue de la Loi');
+    component.downloadWord();
+
+    const passed = docxSpy.exportConclusion.calls.mostRecent().args[0] as string;
+    expect(passed).toContain('# Cabinet Durand');
+    expect(passed).toContain('12 rue de la Loi');
+    expect(passed).toContain('---');
+    expect(passed).toContain('POUR : M. X'); // le corps suit
+    // Le content de la version n'est pas modifié.
+    expect(component.conclusion()?.content).toBe(
+      'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
+    );
+  });
+
+  it('en-tête saisi → export PDF également préfixé', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.cabinetHeader.set('Cabinet X');
+    component.downloadPdf();
+
+    const passed = pdfSpy.exportConclusion.calls.mostRecent().args[0] as string;
+    expect(passed).toContain('# Cabinet X');
+  });
+
+  it('toggle → affiche puis masque le champ d\'en-tête (opt-in)', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="cabinet-header-input"]'),
+    ).toBeNull();
+
+    fixture.nativeElement
+      .querySelector('[data-testid="toggle-cabinet-header-btn"]')
+      .click();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="cabinet-header-input"]'),
+    ).not.toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------
   // SF-98-48 — découvrabilité du corpus de style (b1) + indicateur style (b2)
   // ---------------------------------------------------------------------------
 
@@ -1400,5 +1469,40 @@ describe('F-265 — replaceSectionInDraft', () => {
     expect(result).toContain('## A\nun');
     expect(result).toContain('## B\nnouveau');
     expect(result).not.toContain('deux');
+  });
+});
+
+describe('F-266 SF-266-02 — buildExportContent', () => {
+  const BODY = 'POUR : M. X\n\nFAITS\nLe salarié…';
+
+  it('en-tête vide → content inchangé (export neutre)', () => {
+    expect(buildExportContent('', BODY)).toBe(BODY);
+    expect(buildExportContent('   \n  ', BODY)).toBe(BODY);
+  });
+
+  it('en-tête une ligne → titre markdown + filet + corps', () => {
+    const out = buildExportContent('Cabinet Durand', BODY);
+    expect(out).toBe(`# Cabinet Durand\n\n---\n\n${BODY}`);
+  });
+
+  it('en-tête multi-lignes → 1ʳᵉ ligne titre, suivantes paragraphes', () => {
+    const out = buildExportContent('Cabinet Durand\n12 rue de la Loi\nBarreau de Paris', BODY);
+    expect(out).toContain('# Cabinet Durand');
+    expect(out).toContain('12 rue de la Loi');
+    expect(out).toContain('Barreau de Paris');
+    expect(out).toContain('---');
+    expect(out.endsWith(BODY)).toBe(true);
+  });
+
+  it('caractères markdown de l\'en-tête échappés (traités comme texte)', () => {
+    const out = buildExportContent('Cabinet *Durand* #1', BODY);
+    // Les `*` et `#` du libellé sont échappés (ne créent pas de gras/titre).
+    expect(out).toContain('\\*Durand\\*');
+    expect(out).toContain('\\#1');
+  });
+
+  it('ne modifie jamais le corps fourni', () => {
+    const out = buildExportContent('X', BODY);
+    expect(out.endsWith(BODY)).toBe(true);
   });
 });

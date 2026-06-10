@@ -158,6 +158,15 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   /** SF-98-49 — Enregistrement du texte édité en cours (PATCH). */
   readonly savingContent = signal(false);
 
+  /**
+   * F-266 / SF-266-02 — En-tête de cabinet saisi pour l'export (nom, adresse,
+   * barreau…). **Non persisté** (vit le temps de la session) ; préfixé au seul
+   * fichier exporté (Word/PDF), jamais au `content` markdown stocké.
+   */
+  readonly cabinetHeader = signal('');
+  /** F-266 / SF-266-02 — Visibilité du champ « En-tête du cabinet » (opt-in, replié par défaut). */
+  readonly showCabinetHeader = signal(false);
+
   /** F-265 / SF-265-02 — Régénération d'une section en cours (POST). */
   readonly regenerating = signal(false);
   /** F-265 / SF-265-02 — Titre de la section sélectionnée pour la régénération. */
@@ -511,7 +520,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     }
     try {
       this.docxExportService.exportConclusion(
-        current.content,
+        buildExportContent(this.cabinetHeader(), current.content),
         this.caseTitle ?? '',
         current.versionNumber ?? 0,
       );
@@ -540,7 +549,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     }
     try {
       this.pdfExportService.exportConclusion(
-        current.content,
+        buildExportContent(this.cabinetHeader(), current.content),
         this.caseTitle ?? '',
         current.versionNumber ?? 0,
       );
@@ -986,6 +995,49 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       },
     });
   }
+
+  /**
+   * F-266 / SF-266-02 — Affiche / masque le champ « En-tête du cabinet » (opt-in).
+   */
+  toggleCabinetHeader(): void {
+    this.showCabinetHeader.update((v) => !v);
+  }
+}
+
+/**
+ * F-266 / SF-266-02 — Construit le contenu **exporté** à partir d'un en-tête de
+ * cabinet (libellé libre, optionnel) et du `content` markdown des conclusions.
+ *
+ * <p>Quand l'en-tête est non vide, on le préfixe sous forme de **markdown
+ * valide** (1ʳᵉ ligne = titre `#`, lignes suivantes = paragraphes, puis un
+ * filet `---`) → il est tokenisé par le même pipeline d'export que le corps
+ * (aucun marqueur brut visible). L'en-tête est traité comme du **texte** : ses
+ * caractères markdown (`#`, `*`, `_`, `` ` ``) sont échappés pour ne pas être
+ * interprétés. Quand l'en-tête est vide, on renvoie le `content` **inchangé**
+ * (export neutre, comportement historique).</p>
+ *
+ * <p>Le `content` d'origine n'est jamais modifié : cette fonction ne sert qu'à
+ * alimenter l'argument de l'export.</p>
+ */
+export function buildExportContent(header: string, content: string): string {
+  const trimmed = (header ?? '').trim();
+  if (trimmed.length === 0) {
+    return content;
+  }
+  const escape = (s: string): string =>
+    s.replace(/([\\`*_{}\[\]()#+\-.!>])/g, '\\$1');
+  const lines = trimmed
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  const parts: string[] = [];
+  // 1ʳᵉ ligne = titre de l'en-tête ; suivantes = paragraphes.
+  parts.push(`# ${escape(lines[0])}`);
+  for (let i = 1; i < lines.length; i++) {
+    parts.push(escape(lines[i]));
+  }
+  parts.push('---');
+  return parts.join('\n\n') + '\n\n' + content;
 }
 
 /**
