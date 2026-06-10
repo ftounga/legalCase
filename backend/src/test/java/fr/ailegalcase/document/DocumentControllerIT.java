@@ -665,6 +665,103 @@ class DocumentControllerIT {
                 .andExpect(jsonPath("$.code").value("VIDEO_QUOTA_EXCEEDED"));
     }
 
+    // ── SF-261-01 : marquage « écritures adverses » ──────────────────────────
+
+    // I-AP-01 : PATCH adverse-pleadings true → 200 + flag exposé, persisté (visible dans GET)
+    @Test
+    void markAdversePleadings_true_returns200AndPersists() throws Exception {
+        String docId = uploadPdf("conclusions-adverses.pdf");
+
+        mockMvc.perform(patch("/api/v1/case-files/" + caseFileId + "/documents/" + docId + "/adverse-pleadings")
+                        .contentType("application/json")
+                        .content("{\"adversePleadings\":true}")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(docId))
+                .andExpect(jsonPath("$.adversePleadings").value(true));
+
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].adversePleadings").value(true));
+    }
+
+    // I-AP-02 : re-cliquer repasse à false
+    @Test
+    void markAdversePleadings_false_togglesBack() throws Exception {
+        String docId = uploadPdf("doc.pdf");
+
+        mockMvc.perform(patch("/api/v1/case-files/" + caseFileId + "/documents/" + docId + "/adverse-pleadings")
+                        .contentType("application/json").content("{\"adversePleadings\":true}")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/v1/case-files/" + caseFileId + "/documents/" + docId + "/adverse-pleadings")
+                        .contentType("application/json").content("{\"adversePleadings\":false}")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.adversePleadings").value(false));
+    }
+
+    // I-AP-03 : body sans le champ adversePleadings → 400
+    @Test
+    void markAdversePleadings_missingField_returns400() throws Exception {
+        String docId = uploadPdf("doc.pdf");
+
+        mockMvc.perform(patch("/api/v1/case-files/" + caseFileId + "/documents/" + docId + "/adverse-pleadings")
+                        .contentType("application/json").content("{}")
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-AP-04 : sans auth → 401
+    @Test
+    void markAdversePleadings_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/" + caseFileId + "/documents/" + UUID.randomUUID() + "/adverse-pleadings")
+                        .contentType("application/json").content("{\"adversePleadings\":true}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // I-AP-05 : document inconnu → 404
+    @Test
+    void markAdversePleadings_unknownDocument_returns404() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/" + caseFileId + "/documents/" + UUID.randomUUID() + "/adverse-pleadings")
+                        .contentType("application/json").content("{\"adversePleadings\":true}")
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-AP-06 : dossier d'un autre workspace → 404 (isolation)
+    @Test
+    void markAdversePleadings_otherWorkspace_returns404() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/" + otherCaseFileId + "/documents/" + UUID.randomUUID() + "/adverse-pleadings")
+                        .contentType("application/json").content("{\"adversePleadings\":true}")
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-AP-07 : GET documents expose adversePleadings = false par défaut
+    @Test
+    void list_exposesAdversePleadingsDefaultFalse() throws Exception {
+        uploadPdf("doc.pdf");
+
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].adversePleadings").value(false));
+    }
+
+    /** Utilitaire — upload un PDF et retourne l'id du document créé. */
+    private String uploadPdf(String name) throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", name, "application/pdf", ("PDF " + name).getBytes());
+        String uploadResponse = mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file).with(authentication(auth)))
+                .andReturn().getResponse().getContentAsString();
+        return new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(uploadResponse).get("id").asText();
+    }
+
     /** Utilitaire — upload une vidéo MP4 avec la durée demandée en secondes. */
     private org.springframework.test.web.servlet.ResultActions uploadVideo(String name, long durationSeconds) throws Exception {
         MockMultipartFile file = new MockMultipartFile(

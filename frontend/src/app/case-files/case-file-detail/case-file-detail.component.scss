@@ -474,6 +474,24 @@
   }
 }
 
+/* F-261 SF-261-01 : marquage « écritures adverses » par document. */
+.adverse-cell {
+  white-space: nowrap;
+  width: 1%;
+  text-align: center;
+}
+
+.adverse-toggle {
+  /* Inactif : icône discrète, ton secondaire (pas une alerte). */
+  color: var(--color-text-secondary);
+
+  &.adverse-toggle--active {
+    /* Actif : navy/or de la charte — pas de rouge (ce n'est pas une alerte). */
+    color: #C9973A;
+    background: rgba(26, 58, 92, 0.08); /* halo navy léger */
+  }
+}
+
 /* Panier de fichiers en attente */
 .pending-files {
   margin-bottom: var(--spacing-lg);

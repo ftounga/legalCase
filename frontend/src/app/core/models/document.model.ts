@@ -66,6 +66,12 @@ export interface Document {
   ocrExtracted?: boolean;
   /** SF-145-01 : pièces identifiées dans le document composite. */
   pieces?: DocumentPieceSummary[];
+  /**
+   * F-261 SF-261-01 : document marqué « écritures adverses » (conclusions de la
+   * partie adverse). Désigne la source des moyens à extraire (SF-261-02) puis
+   * réfuter (SF-261-03). Distinct du marquage de citation adverse (SF-98-56).
+   */
+  adversePleadings?: boolean;
 }
 
 /**

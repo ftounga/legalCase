@@ -83,7 +83,7 @@ describe('CaseFileDetailComponent', () => {
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById', 'exportZip', 'getDecisionToolsVisibility']);
     (caseFileServiceSpy as any).getDecisionToolsVisibility.mockReturnValue(of({ alwaysOn: [], contextual: [], catalog: [] }));
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
-    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'uploadWithProgress', 'downloadUrl', 'delete', 'reorderPieces']);
+    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'uploadWithProgress', 'downloadUrl', 'delete', 'reorderPieces', 'markAdversePleadings']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
     caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis', 'getPartial', 'getVersions']);
     (caseAnalysisServiceSpy as any).getVersions.mockReturnValue(of([]));
@@ -2485,6 +2485,64 @@ describe('CaseFileDetailComponent', () => {
       expect(component.canMoveDown(docA as any)).toBe(true);
       expect(component.canMoveUp(docB as any)).toBe(true);
       expect(component.canMoveDown(docB as any)).toBe(false);
+    });
+  });
+
+  // ───────────────── F-261 SF-261-01 — tag « écritures adverses » par document ─────────────────
+  describe('F-261 SF-261-01 — marquage « écritures adverses »', () => {
+    const doc = {
+      id: 'docX', caseFileId: 'cf1', originalFilename: 'concl-adverse.pdf',
+      contentType: 'application/pdf', fileSize: 100, createdAt: '2026-06-10T10:00:00Z',
+      adversePleadings: false,
+    };
+
+    beforeEach(() => {
+      component.documents.set([doc] as any);
+      (component as any).caseFile.set({ id: 'cf1' });
+    });
+
+    it('colonne adverse présente dans docColumns', () => {
+      expect(component.docColumns).toContain('adverse');
+    });
+
+    it('rend un toggle adverse + tooltip de finalité dans la table', () => {
+      fixture.detectChanges();
+      const toggle: HTMLElement | null = fixture.nativeElement.querySelector('.adverse-toggle');
+      expect(toggle).toBeTruthy();
+      expect(toggle!.getAttribute('matTooltip') ?? toggle!.getAttribute('ng-reflect-message'))
+        .toContain('réfutés dans les conclusions');
+    });
+
+    it('toggleAdversePleadings — clic appelle markAdversePleadings(cf, doc, true)', () => {
+      documentServiceSpy.markAdversePleadings.mockReturnValue(of({ ...doc, adversePleadings: true } as any));
+      component.toggleAdversePleadings(doc as any);
+      expect(documentServiceSpy.markAdversePleadings).toHaveBeenCalledWith('cf1', 'docX', true);
+    });
+
+    it('toggleAdversePleadings — succès met à jour l\'état local du document', () => {
+      documentServiceSpy.markAdversePleadings.mockReturnValue(of({ ...doc, adversePleadings: true } as any));
+      component.toggleAdversePleadings(doc as any);
+      expect(component.documents()[0].adversePleadings).toBe(true);
+      expect(component.togglingAdverseDocId()).toBeNull();
+    });
+
+    it('toggleAdversePleadings — re-clic démarque (envoie false)', () => {
+      component.documents.set([{ ...doc, adversePleadings: true }] as any);
+      documentServiceSpy.markAdversePleadings.mockReturnValue(of({ ...doc, adversePleadings: false } as any));
+      component.toggleAdversePleadings(component.documents()[0] as any);
+      expect(documentServiceSpy.markAdversePleadings).toHaveBeenCalledWith('cf1', 'docX', false);
+      expect(component.documents()[0].adversePleadings).toBe(false);
+    });
+
+    it('toggleAdversePleadings — erreur → snackbar et togglingAdverseDocId remis à null', () => {
+      documentServiceSpy.markAdversePleadings.mockReturnValue(throwError(() => new Error('500')));
+      component.toggleAdversePleadings(doc as any);
+      expect(snackBarSpy.open).toHaveBeenCalledWith(
+        'Erreur lors du marquage « écritures adverses ».',
+        'Fermer',
+        expect.objectContaining({ panelClass: ['snack-error'] })
+      );
+      expect(component.togglingAdverseDocId()).toBeNull();
     });
   });
 

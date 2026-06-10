@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="599-add-adverse-pleadings-to-documents" author="legalcase">
+        <comment>
+            F-261 / SF-261-01 — marquage « écritures adverses » d'un document.
+            Booléen posé par action explicite de l'avocat pour désigner les
+            conclusions de la partie adverse ; tout document naît non marqué.
+            Les documents marqués alimentent l'extraction des moyens adverses
+            (SF-261-02) puis la réfutation dans les conclusions (SF-261-03).
+            Distinct de jurisprudence_checks.marked_adverse (SF-98-56, citation).
+        </comment>
+
+        <addColumn tableName="documents">
+            <column name="adverse_pleadings" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="documents" columnName="adverse_pleadings"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -60,6 +60,16 @@ public class Document {
     @Column(name = "ocr_enabled", nullable = false)
     private boolean ocrEnabled = true;
 
+    /**
+     * SF-261-01 : si true, ce document est marqué « écritures adverses » par
+     * l'avocat — il porte les conclusions de la partie adverse. Pré-requis de
+     * l'extraction des moyens adverses (SF-261-02) puis de leur réfutation
+     * (SF-261-03). Posé par jugement humain ; tout document naît non marqué.
+     * Distinct du marquage d'une citation adverse (SF-98-56, jurisprudence_checks).
+     */
+    @Column(name = "adverse_pleadings", nullable = false)
+    private boolean adversePleadings = false;
+
     @PrePersist
     void onPrePersist() {
         this.createdAt = Instant.now();

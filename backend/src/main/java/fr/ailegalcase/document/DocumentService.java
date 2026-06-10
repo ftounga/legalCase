@@ -142,6 +142,35 @@ public class DocumentService {
                 .toList();
     }
 
+    /**
+     * SF-261-01 : marque (ou démarque) un document comme « écritures adverses »
+     * (conclusions de la partie adverse). Pré-requis de l'extraction des moyens
+     * adverses (SF-261-02). Isolation workspace stricte : un document d'un autre
+     * dossier / workspace → 404.
+     *
+     * @return le {@link DocumentResponse} à jour.
+     */
+    @Transactional
+    public DocumentResponse markAdversePleadings(UUID caseFileId, UUID documentId, boolean adversePleadings,
+                                                 OidcUser oidcUser, String provider, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
+        Workspace workspace = resolveWorkspace(user);
+        resolveCaseFile(caseFileId, workspace); // isolation check (dossier appartient au workspace)
+
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found"));
+
+        if (!document.getCaseFile().getId().equals(caseFileId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found");
+        }
+
+        document.setAdversePleadings(adversePleadings);
+        documentRepository.save(document);
+
+        DocumentExtraction extraction = extractionRepository.findByDocumentId(documentId).orElse(null);
+        return toResponse(document, extraction);
+    }
+
     /** Surcharge rétrocompat — garde les callers existants (tests, autres services) qui ne passent pas le flag. */
     @Transactional
     public DocumentResponse upload(UUID caseFileId, MultipartFile file, OidcUser oidcUser, String provider, Principal principal) {
@@ -318,7 +347,8 @@ public class DocumentService {
                         ? extraction.getFailureReason().name() : null,
                 extraction != null && extraction.isOcrRunning(),
                 extraction != null && isOcrExtracted(extraction.getExtractionMetadata()),
-                pieces
+                pieces,
+                document.isAdversePleadings()
         );
     }
 

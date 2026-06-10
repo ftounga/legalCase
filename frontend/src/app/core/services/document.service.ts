@@ -95,4 +95,16 @@ export class DocumentService {
       { orderedPieceIds }
     );
   }
+
+  /**
+   * F-261 SF-261-01 : marque (ou démarque) un document comme « écritures
+   * adverses » — les conclusions de la partie adverse dont les moyens seront
+   * réfutés dans les conclusions. Renvoie le document à jour.
+   */
+  markAdversePleadings(caseFileId: string, documentId: string, value: boolean): Observable<Document> {
+    return this.http.patch<Document>(
+      `${this.apiUrl(caseFileId)}/${documentId}/adverse-pleadings`,
+      { adversePleadings: value }
+    );
+  }
 }

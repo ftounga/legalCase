@@ -80,4 +80,27 @@ describe('DocumentService', () => {
     expect(req.request.body).toEqual({ orderedPieceIds: ordered });
     req.flush(updated);
   });
+
+  // F-261 SF-261-01 : marquage « écritures adverses » au niveau document.
+  it('markAdversePleadings — PATCH .../doc1/adverse-pleadings avec {adversePleadings}', () => {
+    const updated: Document = { ...mockDocument, adversePleadings: true };
+    service.markAdversePleadings('cf1', 'doc1', true).subscribe(res => {
+      expect(res.adversePleadings).toBe(true);
+    });
+    const req = http.expectOne('/api/v1/case-files/cf1/documents/doc1/adverse-pleadings');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ adversePleadings: true });
+    req.flush(updated);
+  });
+
+  it('markAdversePleadings — démarque (value false)', () => {
+    const updated: Document = { ...mockDocument, adversePleadings: false };
+    service.markAdversePleadings('cf1', 'doc1', false).subscribe(res => {
+      expect(res.adversePleadings).toBe(false);
+    });
+    const req = http.expectOne('/api/v1/case-files/cf1/documents/doc1/adverse-pleadings');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ adversePleadings: false });
+    req.flush(updated);
+  });
 });

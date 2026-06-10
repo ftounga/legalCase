@@ -317,9 +317,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   readonly canDelete = computed(() => this.currentMemberRole() === 'OWNER');
 
   // F-260 SF-260-01 : colonnes 'order' (flèches haut/bas) et 'pieceNumber' (n° de pièce) ajoutées.
-  readonly docColumns = ['order', 'pieceNumber', 'name', 'type', 'size', 'date', 'preview', 'actions'];
+  // F-261 SF-261-01 : colonne 'adverse' (marquage « écritures adverses ») ajoutée.
+  readonly docColumns = ['order', 'pieceNumber', 'name', 'type', 'size', 'date', 'adverse', 'preview', 'actions'];
   // F-260 SF-260-01 : true pendant l'appel PUT .../pieces/order (désactive les flèches).
   readonly reordering = signal(false);
+  // F-261 SF-261-01 : id du document dont le marquage « écritures adverses » est en cours (désactive le toggle).
+  readonly togglingAdverseDocId = signal<string | null>(null);
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));
 
   // documents uploaded after the last synthesis — not covered by the current synthesis
@@ -1871,6 +1874,40 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       for (const p of ordered) ids.push(p.id);
     }
     return ids;
+  }
+
+  /**
+   * F-261 SF-261-01 : bascule le marquage « écritures adverses » du document
+   * (PATCH .../adverse-pleadings). Met à jour l'état local au succès, snackbar à
+   * l'erreur. Marquage = jugement humain (l'avocat désigne l'acte adverse).
+   */
+  toggleAdversePleadings(doc: Document): void {
+    if (this.togglingAdverseDocId() !== null) return;
+    const caseFileId = this.caseFile()?.id;
+    if (!caseFileId) return;
+
+    const next = !doc.adversePleadings;
+    this.togglingAdverseDocId.set(doc.id);
+    this.documentService.markAdversePleadings(caseFileId, doc.id, next).subscribe({
+      next: (updated) => {
+        this.documents.update(docs =>
+          docs.map(d => d.id === doc.id ? { ...d, adversePleadings: updated.adversePleadings } : d));
+        this.togglingAdverseDocId.set(null);
+        this.snackBar.open(
+          next ? 'Document marqué comme écritures adverses' : 'Marquage « écritures adverses » retiré',
+          'Fermer',
+          { duration: 3000, panelClass: ['snack-success'] }
+        );
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.togglingAdverseDocId.set(null);
+        this.snackBar.open('Erreur lors du marquage « écritures adverses ».', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   // ──────────────────────────────────────────────────────────────────────────────────────────────

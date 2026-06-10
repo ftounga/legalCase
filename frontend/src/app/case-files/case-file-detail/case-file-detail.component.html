@@ -425,6 +425,25 @@
                 <td mat-cell *matCellDef="let doc">{{ doc.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
               </ng-container>
 
+              <!-- F-261 SF-261-01 : marquage « écritures adverses » (document de la partie adverse). -->
+              <ng-container matColumnDef="adverse">
+                <th mat-header-cell *matHeaderCellDef>Adverse</th>
+                <td mat-cell *matCellDef="let doc" class="adverse-cell">
+                  <button mat-icon-button
+                          type="button"
+                          class="adverse-toggle"
+                          [class.adverse-toggle--active]="doc.adversePleadings"
+                          [attr.aria-pressed]="!!doc.adversePleadings"
+                          aria-label="Marquer comme écritures adverses"
+                          matTooltip="Marquer comme écritures de la partie adverse — ses moyens seront réfutés dans les conclusions"
+                          matTooltipPosition="above"
+                          [disabled]="togglingAdverseDocId() !== null"
+                          (click)="toggleAdversePleadings(doc)">
+                    <mat-icon>gavel</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
               <ng-container matColumnDef="preview">
                 <th mat-header-cell *matHeaderCellDef>Aperçu</th>
                 <td mat-cell *matCellDef="let doc">
