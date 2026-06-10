@@ -55,7 +55,9 @@ public class CaseConclusionPromptBuilder {
                     + "comme s'ils soutenaient ta thèse — ils ne servent QU'À être réfutés "
                     + "(arrêt introuvable, portée dénaturée). N'expose jamais le statut "
                     + "technique d'une citation (« suspecte », « non trouvée ») ni un nom de "
-                    + "fichier dans l'acte.";
+                    + "fichier dans l'acte. Pertinence : même si une référence figure dans "
+                    + "« JURISPRUDENCE APPLICABLE PAR OUTIL », ne l'utilise QUE si elle éclaire "
+                    + "réellement le moyen ou le fait débattu ; ne plaque pas un arrêt non topique.";
 
     /**
      * F-98 / SF-98-55 — garde de qualité rédactionnelle commune à toutes les cellules
@@ -90,7 +92,13 @@ public class CaseConclusionPromptBuilder {
                     + "compensatrice de préavis, congés payés afférents — dues indépendamment du caractère "
                     + "réel et sérieux du motif ; rappels de salaire incontestables). N'invente AUCUN chef "
                     + "non étayé par les faits, les pièces ou les verdicts fournis : à défaut d'élément "
-                    + "fondant une demande subsidiaire, n'en ajoute pas.";
+                    + "fondant une demande subsidiaire, n'en ajoute pas.\n"
+                    + "6. Identité des parties. Reprends les identités et adresses fournies dans la "
+                    + "section « IDENTITÉ DES PARTIES » ; à défaut mets « [à compléter] », n'invente "
+                    + "jamais d'adresse ni d'identité de partie.\n"
+                    + "7. Signature. Ne signe JAMAIS avec un nom d'avocat inventé : termine par un "
+                    + "emplacement de signature neutre « [Nom et qualité de l'avocat] » que l'avocat "
+                    + "complétera.";
 
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
@@ -168,6 +176,8 @@ public class CaseConclusionPromptBuilder {
                 .append(" — ").append(nullSafe(input.positionLabel())).append('\n');
 
         appendSynthesis(sb, input.analysisResultJson());
+
+        appendPartiesIdentity(sb, input.analysisResultJson());
 
         sb.append("\n=== PIÈCES NUMÉROTÉES DU DOSSIER ===\n");
         if (input.pieces() == null || input.pieces().isEmpty()) {
@@ -365,6 +375,78 @@ public class CaseConclusionPromptBuilder {
                 sb.append("  - ").append(texte).append('\n');
             }
         }
+    }
+
+    /**
+     * F-98 / SF-98-61 — extrait l'identité et l'adresse des parties du sous-objet
+     * {@code travail_extracted_data} du JSON d'analyse (clés {@code nom_salarie},
+     * {@code prenom_salarie}, {@code adresse_salarie}, {@code nom_employeur},
+     * {@code adresse_employeur}) et les injecte dans une section dédiée, afin que le LLM
+     * reprenne les vraies adresses au lieu d'un placeholder « [adresse] ».
+     *
+     * <p>Fail-open (comme {@link #appendSynthesis}) : un JSON absent / illisible n'ajoute
+     * simplement aucune section. La section est <strong>absente</strong> si aucune des
+     * cinq identités n'est présente (pas de rubrique vide). Chaque champ n'est rendu que
+     * s'il est présent.</p>
+     */
+    private void appendPartiesIdentity(StringBuilder sb, String analysisResultJson) {
+        if (analysisResultJson == null || analysisResultJson.isBlank()) {
+            return;
+        }
+        try {
+            JsonNode travail = objectMapper.readTree(analysisResultJson)
+                    .path("travail_extracted_data");
+            if (travail.isMissingNode() || !travail.isObject()) {
+                return;
+            }
+            String prenomSalarie = textOrBlank(travail, "prenom_salarie");
+            String nomSalarie = textOrBlank(travail, "nom_salarie");
+            String adresseSalarie = textOrBlank(travail, "adresse_salarie");
+            String nomEmployeur = textOrBlank(travail, "nom_employeur");
+            String adresseEmployeur = textOrBlank(travail, "adresse_employeur");
+
+            boolean hasAny = !prenomSalarie.isBlank() || !nomSalarie.isBlank()
+                    || !adresseSalarie.isBlank() || !nomEmployeur.isBlank()
+                    || !adresseEmployeur.isBlank();
+            if (!hasAny) {
+                return;
+            }
+
+            sb.append("\n=== IDENTITÉ DES PARTIES ===\n");
+            if (!prenomSalarie.isBlank() || !nomSalarie.isBlank() || !adresseSalarie.isBlank()) {
+                sb.append("Salarié :");
+                String nomComplet = (prenomSalarie + " " + nomSalarie).strip();
+                if (!nomComplet.isBlank()) {
+                    sb.append(' ').append(nomComplet);
+                }
+                if (!adresseSalarie.isBlank()) {
+                    sb.append(" — Adresse : ").append(adresseSalarie);
+                }
+                sb.append('\n');
+            }
+            if (!nomEmployeur.isBlank() || !adresseEmployeur.isBlank()) {
+                sb.append("Employeur :");
+                if (!nomEmployeur.isBlank()) {
+                    sb.append(' ').append(nomEmployeur);
+                }
+                if (!adresseEmployeur.isBlank()) {
+                    sb.append(" — Adresse : ").append(adresseEmployeur);
+                }
+                sb.append('\n');
+            }
+        } catch (Exception ex) {
+            log.warn("Identité des parties illisible pour la génération de conclusions : {}",
+                    ex.getMessage());
+        }
+    }
+
+    /** Lit un champ texte du nœud, en chaîne vide si absent / null / non textuel. */
+    private static String textOrBlank(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        if (value.isMissingNode() || value.isNull() || !value.isTextual()) {
+            return "";
+        }
+        return value.asText().strip();
     }
 
     private static String nullSafe(String value) {
