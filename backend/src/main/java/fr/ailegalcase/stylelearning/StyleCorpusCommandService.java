@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -120,14 +122,40 @@ public class StyleCorpusCommandService {
                     "Échec du stockage du fichier.");
         }
 
-        rabbitTemplate.convertAndSend(
-                StyleCorpusRabbitMQConfig.STYLE_CORPUS_EXCHANGE,
-                StyleCorpusRabbitMQConfig.STYLE_CORPUS_ROUTING_KEY,
-                new StyleCorpusMessage(documentId, storageKey));
+        // SF-98-59 — publier le message APRÈS le commit. Sinon le worker
+        // (@RabbitListener concurrency=2) peut consommer et faire findById avant que
+        // la ligne PENDING soit visible → « introuvable, message ignoré » → bloqué PENDING.
+        publishAfterCommit(new StyleCorpusMessage(documentId, storageKey));
         log.info("Style corpus upload — workspace={}, document={}, key={}",
                 workspace.getId(), documentId, storageKey);
 
         return StyleCorpusUploadResponse.pending(documentId);
+    }
+
+    /**
+     * SF-98-59 — publie le message d'extraction de corpus de style sur RabbitMQ. Si une
+     * transaction est active, la publication est différée à {@code afterCommit} (la ligne
+     * {@code StyleCorpusDocument} PENDING doit être visible avant que le worker ne la lise) ;
+     * sinon (appel hors transaction, ex. tests) elle est immédiate.
+     */
+    private void publishAfterCommit(StyleCorpusMessage message) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    doPublish(message);
+                }
+            });
+        } else {
+            doPublish(message);
+        }
+    }
+
+    private void doPublish(StyleCorpusMessage message) {
+        rabbitTemplate.convertAndSend(
+                StyleCorpusRabbitMQConfig.STYLE_CORPUS_EXCHANGE,
+                StyleCorpusRabbitMQConfig.STYLE_CORPUS_ROUTING_KEY,
+                message);
     }
 
     /**
