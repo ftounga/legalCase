@@ -492,6 +492,119 @@ class CaseConclusionPromptBuilderTest {
         assertThat(message).doesNotContain("JURISPRUDENCE ADVERSE À RÉFUTER");
     }
 
+    // ── SF-261-02 — moyens adverses à réfuter ────────────────────────────────
+
+    @Test
+    void buildSystemPrompt_redactionGuardIncludesAdverseMoyensRefutation() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        assertThat(system).contains("MOYENS ADVERSES À RÉFUTER");
+        assertThat(system).contains("réfute-le explicitement");
+        assertThat(system).contains("N'invente AUCUN moyen adverse non listé");
+        // non-régression : les gardes SF-98-55/56 cohabitent.
+        assertThat(system).contains("Aucun jargon interne");
+    }
+
+    @Test
+    void buildUserMessage_withAdverseMoyens_addsRefutationSection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier Dupont c/ SARL Martin",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(
+                        new AdverseMoyen(
+                                "Le licenciement repose sur une faute grave.",
+                                List.of("art. L. 1234-1 C. trav.", "art. L. 1234-9 C. trav."),
+                                List.of("Lettre de licenciement", "Attestations")),
+                        new AdverseMoyen(
+                                "Les rappels de salaire sont prescrits.",
+                                List.of("art. L. 3245-1 C. trav."),
+                                List.of())));
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== MOYENS ADVERSES À RÉFUTER ===");
+        assertThat(message).contains("réfute chacun explicitement");
+        assertThat(message).contains("Moyen 1 — Thèse adverse : Le licenciement repose sur une faute grave.");
+        assertThat(message).contains("Fondements invoqués : art. L. 1234-1 C. trav., art. L. 1234-9 C. trav.");
+        assertThat(message).contains("Pièces invoquées : Lettre de licenciement, Attestations");
+        assertThat(message).contains("Moyen 2 — Thèse adverse : Les rappels de salaire sont prescrits.");
+    }
+
+    @Test
+    void buildUserMessage_withoutAdverseMoyens_omitsRefutationSection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier sans moyen adverse",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("MOYENS ADVERSES À RÉFUTER");
+    }
+
+    @Test
+    void buildUserMessage_emptyAdverseMoyens_omitsRefutationSection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier liste vide",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("MOYENS ADVERSES À RÉFUTER");
+    }
+
+    @Test
+    void buildUserMessage_adverseMoyensWithoutFondementsOrPieces_rendersTheseOnly() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier moyen minimal",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(new AdverseMoyen("Thèse seule.", List.of(), List.of())));
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("Moyen 1 — Thèse adverse : Thèse seule.");
+        // sans fondements / pièces, on n'ajoute pas les segments correspondants
+        int line = message.indexOf("Moyen 1");
+        String moyenLine = message.substring(line, message.indexOf('\n', line));
+        assertThat(moyenLine).doesNotContain("Fondements invoqués");
+        assertThat(moyenLine).doesNotContain("Pièces invoquées");
+    }
+
+    @Test
+    void buildUserMessage_moyensSectionPrecedesAdverseJurisprudence() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier mixte",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(new ConclusionPromptInput.AdverseCitationToRefute(
+                        "Cass. soc. 1 jan. 2099, n° 99-99.999",
+                        "Référence introuvable.", null)),
+                List.of(new AdverseMoyen("Moyen adverse.", List.of(), List.of())));
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message.indexOf("=== MOYENS ADVERSES À RÉFUTER ==="))
+                .isLessThan(message.indexOf("=== JURISPRUDENCE ADVERSE À RÉFUTER ==="));
+    }
+
     @Test
     void humanizeToolId_stripsPrefixAndCapitalises() {
         assertThat(CaseConclusionPromptBuilder.humanizeToolId("f-dt-08-licenciement-validite"))

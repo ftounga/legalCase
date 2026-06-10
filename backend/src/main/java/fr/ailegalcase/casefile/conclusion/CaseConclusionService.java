@@ -19,8 +19,12 @@ import fr.ailegalcase.casefile.DashboardTile;
 import fr.ailegalcase.casefile.ProcedureStageCatalog;
 import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitation;
 import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository;
+import fr.ailegalcase.document.Document;
+import fr.ailegalcase.document.DocumentExtraction;
+import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentPiece;
 import fr.ailegalcase.document.DocumentPieceRepository;
+import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.stylelearning.StyleCorpusDocument;
 import fr.ailegalcase.stylelearning.StyleCorpusDocumentStatus;
 import fr.ailegalcase.stylelearning.StyleCorpusRepository;
@@ -71,6 +75,9 @@ public class CaseConclusionService {
     private final JurisprudenceCitationRepository jurisprudenceCitationRepository;
     private final JurisprudenceCheckRepository jurisprudenceCheckRepository;
     private final fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext;
+    private final DocumentRepository documentRepository;
+    private final DocumentExtractionRepository documentExtractionRepository;
+    private final AdverseMoyensExtractor adverseMoyensExtractor;
 
     /** Auto-référence pour franchir le proxy transactionnel depuis le listener. */
     @Lazy
@@ -87,7 +94,10 @@ public class CaseConclusionService {
                                  StyleCorpusRepository styleCorpusRepository,
                                  JurisprudenceCitationRepository jurisprudenceCitationRepository,
                                  JurisprudenceCheckRepository jurisprudenceCheckRepository,
-                                 fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext) {
+                                 fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext,
+                                 DocumentRepository documentRepository,
+                                 DocumentExtractionRepository documentExtractionRepository,
+                                 AdverseMoyensExtractor adverseMoyensExtractor) {
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.strategicOptionRepository = strategicOptionRepository;
@@ -99,6 +109,9 @@ public class CaseConclusionService {
         this.jurisprudenceCitationRepository = jurisprudenceCitationRepository;
         this.jurisprudenceCheckRepository = jurisprudenceCheckRepository;
         this.toolJurisprudenceContext = toolJurisprudenceContext;
+        this.documentRepository = documentRepository;
+        this.documentExtractionRepository = documentExtractionRepository;
+        this.adverseMoyensExtractor = adverseMoyensExtractor;
     }
 
     @RabbitListener(queues = CaseConclusionRabbitMQConfig.CASE_CONCLUSION_QUEUE, concurrency = "2")
@@ -191,7 +204,8 @@ public class CaseConclusionService {
                         loadRetainedStrategies(caseFileId),
                         loadJurisprudenceCitations(caseFileId),
                         toolJurisprudenceContext.collectForCaseFile(caseFileId),
-                        loadAdverseJurisprudenceChecks(caseFileId));
+                        loadAdverseJurisprudenceChecks(caseFileId),
+                        loadAdverseMoyens(caseFileId, domain, country));
 
         List<String> styleSignatures = loadActiveStyleSignatures(conclusion.getWorkspace().getId());
         CombinationKey key = new CombinationKey(domain, country, conclusion.getJurisdictionCode(),
@@ -404,6 +418,42 @@ public class CaseConclusionService {
         } catch (RuntimeException ex) {
             log.warn("Lecture des citations adverses à réfuter indisponible pour caseFile {} — "
                     + "génération sans section de réfutation : {}", caseFileId, ex.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * F-261 / SF-261-02 — moyens de la partie adverse extraits des documents marqués
+     * « écritures adverses » ({@code adverse_pleadings}, SF-261-01) du dossier.
+     *
+     * <p>Charge le texte extrait de chaque document adverse ({@link DocumentExtraction})
+     * puis délègue l'extraction à {@link AdverseMoyensExtractor} (appel LLM uniquement
+     * pour le travail FR avec texte exploitable ; no-op sinon). <strong>Aucun document
+     * adverse → aucun appel LLM</strong> (liste de textes vide).</p>
+     *
+     * <p><strong>Fail-open</strong> : toute erreur de lecture aboutit à une liste vide
+     * (génération sans section), l'exception n'est jamais propagée. L'extracteur est
+     * lui-même fail-open sur l'appel IA.</p>
+     */
+    private List<AdverseMoyen> loadAdverseMoyens(UUID caseFileId, String domain, String country) {
+        try {
+            List<String> textesAdverses = new ArrayList<>();
+            for (Document document : documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId)) {
+                if (!document.isAdversePleadings()) {
+                    continue;
+                }
+                documentExtractionRepository.findByDocumentId(document.getId())
+                        .map(DocumentExtraction::getExtractedText)
+                        .filter(text -> text != null && !text.isBlank())
+                        .ifPresent(textesAdverses::add);
+            }
+            if (textesAdverses.isEmpty()) {
+                return List.of();
+            }
+            return adverseMoyensExtractor.extract(textesAdverses, domain, country, caseFileId);
+        } catch (RuntimeException ex) {
+            log.warn("Lecture des écritures adverses indisponible pour caseFile {} — "
+                    + "génération sans section de réfutation des moyens : {}", caseFileId, ex.getMessage());
             return List.of();
         }
     }

@@ -98,7 +98,11 @@ public class CaseConclusionPromptBuilder {
                     + "jamais d'adresse ni d'identité de partie.\n"
                     + "7. Signature. Ne signe JAMAIS avec un nom d'avocat inventé : termine par un "
                     + "emplacement de signature neutre « [Nom et qualité de l'avocat] » que l'avocat "
-                    + "complétera.";
+                    + "complétera.\n"
+                    + "8. Réfutation des moyens adverses (SF-261-02). Pour chaque moyen listé dans la "
+                    + "section « MOYENS ADVERSES À RÉFUTER » : réfute-le explicitement — démontre qu'il "
+                    + "est mal fondé, contredit par les faits et les pièces, ou que sa base juridique "
+                    + "est inopérante. N'invente AUCUN moyen adverse non listé dans cette section.";
 
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
@@ -222,9 +226,45 @@ public class CaseConclusionPromptBuilder {
 
         appendJurisprudenceCitations(sb, input.jurisprudenceCitations());
         appendToolJurisprudenceCitations(sb, input.toolJurisprudenceByTool());
+        // SF-261-02 — moyens adverses (arguments) AVANT la jurisprudence adverse (citations).
+        appendAdverseMoyensToRefute(sb, input.adverseMoyens());
         appendAdverseJurisprudenceToRefute(sb, input.adverseToRefute());
 
         return sb.toString();
+    }
+
+    /**
+     * F-261 / SF-261-02 — section des moyens (arguments) de la partie adverse extraits
+     * de ses écritures (documents marqués {@code adverse_pleadings}), à réfuter moyen par
+     * moyen. La section est <strong>absente</strong> si la liste est vide (no-op).
+     *
+     * <p>Complémentaire de {@link #appendAdverseJurisprudenceToRefute} : les MOYENS
+     * (thèses + fondements + pièces invoqués par l'adversaire) coexistent avec la
+     * « JURISPRUDENCE ADVERSE À RÉFUTER » (citations douteuses), sans doublon.</p>
+     */
+    private void appendAdverseMoyensToRefute(StringBuilder sb, List<AdverseMoyen> moyens) {
+        if (moyens == null || moyens.isEmpty()) {
+            return;
+        }
+        sb.append("\n=== MOYENS ADVERSES À RÉFUTER ===\n");
+        sb.append("Moyens soutenus par la partie adverse dans ses écritures : réfute "
+                + "chacun explicitement — démontre qu'il est mal fondé, contredit par les "
+                + "faits et les pièces, ou que sa base juridique est inopérante.\n");
+        int index = 1;
+        for (AdverseMoyen m : moyens) {
+            if (m == null || m.these() == null || m.these().isBlank()) {
+                continue;
+            }
+            sb.append("Moyen ").append(index).append(" — Thèse adverse : ").append(m.these().strip());
+            if (m.fondements() != null && !m.fondements().isEmpty()) {
+                sb.append(" — Fondements invoqués : ").append(String.join(", ", m.fondements()));
+            }
+            if (m.piecesInvoquees() != null && !m.piecesInvoquees().isEmpty()) {
+                sb.append(" — Pièces invoquées : ").append(String.join(", ", m.piecesInvoquees()));
+            }
+            sb.append('\n');
+            index++;
+        }
     }
 
     /**
@@ -491,6 +531,10 @@ public class CaseConclusionPromptBuilder {
      * @param toolJurisprudenceByTool F-JU-02 — arrêts curatés par outil décisionnel
      * @param adverseToRefute         F-98 / SF-98-56 — citations adverses marquées à
      *                                réfuter (ne porte ni nom de fichier ni statut technique)
+     * @param adverseMoyens           F-261 / SF-261-02 — moyens (arguments) de la partie
+     *                                adverse extraits de ses écritures, à réfuter moyen par
+     *                                moyen ; complémentaire de {@code adverseToRefute}
+     *                                (citations). Vide hors travail FR ou sans document adverse.
      */
     public record ConclusionPromptInput(
             String caseTitle,
@@ -503,7 +547,8 @@ public class CaseConclusionPromptBuilder {
             List<RetainedStrategy> retainedStrategies,
             List<JurisprudenceCitationForPrompt> jurisprudenceCitations,
             List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool,
-            List<AdverseCitationToRefute> adverseToRefute) {
+            List<AdverseCitationToRefute> adverseToRefute,
+            List<AdverseMoyen> adverseMoyens) {
 
         /** F-JU-02 / SF-JU-02-01 — constructeur back-compat (pré-F-JU-02). */
         public ConclusionPromptInput(
@@ -513,7 +558,7 @@ public class CaseConclusionPromptBuilder {
                 List<JurisprudenceCitationForPrompt> jurisprudenceCitations) {
             this(caseTitle, jurisdictionLabel, stageLabel, positionLabel, analysisResultJson,
                     pieces, toolTiles, retainedStrategies, jurisprudenceCitations,
-                    java.util.List.of(), java.util.List.of());
+                    java.util.List.of(), java.util.List.of(), java.util.List.of());
         }
 
         /** F-98 / SF-98-56 — constructeur back-compat (pré-SF-98-56, avec outils F-JU-02). */
@@ -525,7 +570,20 @@ public class CaseConclusionPromptBuilder {
                 List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool) {
             this(caseTitle, jurisdictionLabel, stageLabel, positionLabel, analysisResultJson,
                     pieces, toolTiles, retainedStrategies, jurisprudenceCitations,
-                    toolJurisprudenceByTool, java.util.List.of());
+                    toolJurisprudenceByTool, java.util.List.of(), java.util.List.of());
+        }
+
+        /** F-98 / SF-98-56 — constructeur back-compat (pré-SF-261-02, sans moyens adverses). */
+        public ConclusionPromptInput(
+                String caseTitle, String jurisdictionLabel, String stageLabel, String positionLabel,
+                String analysisResultJson, List<NumberedPiece> pieces, List<DashboardTile> toolTiles,
+                List<RetainedStrategy> retainedStrategies,
+                List<JurisprudenceCitationForPrompt> jurisprudenceCitations,
+                List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool,
+                List<AdverseCitationToRefute> adverseToRefute) {
+            this(caseTitle, jurisdictionLabel, stageLabel, positionLabel, analysisResultJson,
+                    pieces, toolTiles, retainedStrategies, jurisprudenceCitations,
+                    toolJurisprudenceByTool, adverseToRefute, java.util.List.of());
         }
 
         /** Pièce numérotée du dossier. */
