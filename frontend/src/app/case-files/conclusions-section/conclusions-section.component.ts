@@ -153,6 +153,41 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   /** SF-98-49 — Enregistrement du texte édité en cours (PATCH). */
   readonly savingContent = signal(false);
 
+  /** F-265 / SF-265-02 — Régénération d'une section en cours (POST). */
+  readonly regenerating = signal(false);
+  /** F-265 / SF-265-02 — Titre de la section sélectionnée pour la régénération. */
+  readonly selectedSectionStart = signal<number | null>(null);
+  /** F-265 / SF-265-02 — Instruction libre de l'avocat (« renforce la prescription »). */
+  readonly regenInstruction = signal('');
+
+  /**
+   * F-265 / SF-265-02 — Sections détectées dans le brouillon courant, par
+   * parsing **déterministe** des titres markdown (`##`/`###`). Chaque section
+   * couvre `[début du titre, début du titre suivant de niveau ≤[`. Aucune
+   * requête réseau. Recalculée à chaque changement de `draftContent`.
+   */
+  readonly sections = computed<ConclusionSection[]>(() =>
+    parseMarkdownSections(this.draftContent()),
+  );
+
+  /** F-265 / SF-265-02 — Section actuellement sélectionnée (ou `null`). */
+  readonly selectedSection = computed<ConclusionSection | null>(() => {
+    const start = this.selectedSectionStart();
+    if (start === null) {
+      return null;
+    }
+    return this.sections().find((s) => s.start === start) ?? null;
+  });
+
+  /** F-265 / SF-265-02 — Vrai si la régénération peut être déclenchée. */
+  readonly canRegenerate = computed<boolean>(
+    () =>
+      !this.regenerating() &&
+      !this.savingContent() &&
+      this.selectedSection() !== null &&
+      this.regenInstruction().trim().length > 0,
+  );
+
   /**
    * SF-264-01 — Vue active du mode édition sur écran étroit : `edit`
    * (éditeur + barre d'outils) ou `preview` (aperçu « acte » formaté). Sur
@@ -515,6 +550,9 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     this.draftContent.set(this.conclusion()?.content ?? '');
     this.editorView.set('edit');
     this.editing.set(true);
+    // F-265 — réinitialise l'état de co-rédaction à chaque entrée en édition.
+    this.selectedSectionStart.set(null);
+    this.regenInstruction.set('');
   }
 
   /** SF-264-01 — Bascule la vue éditeur/aperçu sur écran étroit. */
@@ -648,6 +686,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   cancelEditing(): void {
     this.editing.set(false);
     this.draftContent.set('');
+    this.selectedSectionStart.set(null);
+    this.regenInstruction.set('');
   }
 
   /** SF-98-49 — Met à jour le brouillon depuis le `textarea`. */
@@ -685,6 +725,81 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
           const msg =
             err?.error?.message ||
             'Impossible d\'enregistrer les modifications.';
+          this.snackBar.open(msg, 'Fermer', {
+            duration: 6000,
+            panelClass: ['snack-error'],
+          });
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /**
+   * F-265 / SF-265-02 — Mémorise la section sélectionnée dans le menu déroulant.
+   * La valeur transmise est l'index de début du bloc (clé stable et unique).
+   */
+  onSelectSection(start: string): void {
+    const parsed = Number(start);
+    this.selectedSectionStart.set(Number.isNaN(parsed) ? null : parsed);
+  }
+
+  /** F-265 / SF-265-02 — Met à jour l'instruction de co-rédaction. */
+  onInstructionInput(value: string): void {
+    this.regenInstruction.set(value);
+  }
+
+  /**
+   * F-265 / SF-265-02 — Régénère la section sélectionnée via l'IA selon
+   * l'instruction de l'avocat, puis **remplace en place** le bloc dans le
+   * brouillon (round-trip markdown). Aucune sauvegarde automatique : l'avocat
+   * relit puis enregistre via « Enregistrer ». Les erreurs sont remontées en
+   * snackbar et le brouillon reste inchangé.
+   */
+  regenerateSection(): void {
+    const current = this.conclusion();
+    const section = this.selectedSection();
+    const instruction = this.regenInstruction().trim();
+    if (!current?.id || !section || instruction.length === 0 || this.regenerating()) {
+      return;
+    }
+    const versionId = current.id;
+    const sectionMarkdown = section.markdown;
+    this.regenerating.set(true);
+    this.conclusionsService
+      .regenerateSection(this.caseFileId, versionId, sectionMarkdown, instruction)
+      .subscribe({
+        next: (res) => {
+          this.regenerating.set(false);
+          const replaced = replaceSectionInDraft(
+            this.draftContent(),
+            sectionMarkdown,
+            res.regeneratedMarkdown,
+          );
+          if (replaced === null) {
+            // La section n'est plus retrouvable (édition manuelle entre-temps).
+            this.snackBar.open(
+              'Section introuvable dans le brouillon — resélectionnez-la.',
+              'Fermer',
+              { duration: 6000, panelClass: ['snack-error'] },
+            );
+            this.cdr.markForCheck();
+            return;
+          }
+          this.draftContent.set(replaced);
+          this.selectedSectionStart.set(null);
+          this.regenInstruction.set('');
+          this.snackBar.open(
+            'Section régénérée — relisez puis enregistrez.',
+            'Fermer',
+            { duration: 4000 },
+          );
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.regenerating.set(false);
+          const msg =
+            err?.error?.message ||
+            'Impossible de régénérer la section. Réessayez.';
           this.snackBar.open(msg, 'Fermer', {
             duration: 6000,
             panelClass: ['snack-error'],
@@ -823,4 +938,88 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       },
     });
   }
+}
+
+/**
+ * F-265 / SF-265-02 — Section de l'acte détectée par parsing markdown.
+ *
+ * @property title    texte du titre (sans les `#`), pour le libellé du menu
+ * @property start    index de début du bloc dans le `content` (clé stable)
+ * @property markdown bloc markdown complet de la section (titre + corps,
+ *                    jusqu'au titre suivant de niveau ≤ ou la fin du document)
+ */
+export interface ConclusionSection {
+  title: string;
+  start: number;
+  markdown: string;
+}
+
+/**
+ * F-265 / SF-265-02 — Découpe un markdown en sections délimitées par les titres
+ * `##` / `###`. Déterministe, sans dépendance. Une section couvre du début de
+ * son titre jusqu'au début du **titre suivant de niveau inférieur ou égal**
+ * (un `###` enfant reste DANS la section `##` parente). Le préambule éventuel
+ * avant le premier titre n'est pas une section régénérable (on cible les
+ * moyens/parties titrés).
+ */
+export function parseMarkdownSections(content: string): ConclusionSection[] {
+  if (!content) {
+    return [];
+  }
+  const lines = content.split('\n');
+  // Repère chaque titre : offset de début de ligne + niveau (2 ou 3).
+  const headings: { start: number; level: number; title: string }[] = [];
+  let offset = 0;
+  for (const line of lines) {
+    const match = /^(#{2,3})\s+(.*)$/.exec(line);
+    if (match) {
+      headings.push({
+        start: offset,
+        level: match[1].length,
+        title: match[2].trim(),
+      });
+    }
+    offset += line.length + 1; // +1 pour le '\n' retiré par split
+  }
+  const sections: ConclusionSection[] = [];
+  for (let i = 0; i < headings.length; i++) {
+    const h = headings[i];
+    // Fin = début du prochain titre de niveau ≤ au courant, sinon fin du texte.
+    let end = content.length;
+    for (let j = i + 1; j < headings.length; j++) {
+      if (headings[j].level <= h.level) {
+        end = headings[j].start;
+        break;
+      }
+    }
+    sections.push({
+      title: h.title,
+      start: h.start,
+      markdown: content.slice(h.start, end).replace(/\n+$/, ''),
+    });
+  }
+  return sections;
+}
+
+/**
+ * F-265 / SF-265-02 — Remplace **en place** le bloc `originalSection` par
+ * `regenerated` dans `draft`. Round-trip markdown : seul ce bloc change, le
+ * reste est byte-identique. Retourne `null` si le bloc original n'est pas
+ * retrouvé tel quel (édition manuelle entre la sélection et la régénération) —
+ * on n'effectue alors aucun remplacement hasardeux.
+ */
+export function replaceSectionInDraft(
+  draft: string,
+  originalSection: string,
+  regenerated: string,
+): string | null {
+  const index = draft.indexOf(originalSection);
+  if (index === -1) {
+    return null;
+  }
+  return (
+    draft.slice(0, index) +
+    regenerated.replace(/\n+$/, '') +
+    draft.slice(index + originalSection.length)
+  );
 }

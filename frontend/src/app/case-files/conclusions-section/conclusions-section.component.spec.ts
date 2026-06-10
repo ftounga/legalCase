@@ -11,7 +11,11 @@ import {
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
-import { ConclusionsSectionComponent } from './conclusions-section.component';
+import {
+  ConclusionsSectionComponent,
+  parseMarkdownSections,
+  replaceSectionInDraft,
+} from './conclusions-section.component';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import {
@@ -1306,5 +1310,85 @@ describe('ConclusionsSectionComponent', () => {
 
       expect(component.editing()).toBe(false);
     });
+  });
+});
+
+// ── F-265 / SF-265-02 — parsing & remplacement de section (helpers purs) ────
+describe('F-265 — parseMarkdownSections', () => {
+  it('détecte les sections ## et ### dans l\'ordre du document', () => {
+    const md = [
+      'Préambule sans titre.',
+      '',
+      '## Sur la prescription',
+      'Corps prescription.',
+      '',
+      '## Sur le licenciement',
+      '### Validité',
+      'Corps validité.',
+      '',
+      '## Dispositif',
+      'PAR CES MOTIFS.',
+    ].join('\n');
+
+    const sections = parseMarkdownSections(md);
+
+    expect(sections.map((s) => s.title)).toEqual([
+      'Sur la prescription',
+      'Sur le licenciement',
+      'Validité',
+      'Dispositif',
+    ]);
+  });
+
+  it('rattache un ### enfant à la SECTION ## parente (fin au prochain titre de niveau ≤)', () => {
+    const md = [
+      '## Sur le licenciement',
+      'Intro.',
+      '### Validité',
+      'Détail.',
+      '## Dispositif',
+      'Fin.',
+    ].join('\n');
+
+    const sections = parseMarkdownSections(md);
+    const parent = sections.find((s) => s.title === 'Sur le licenciement')!;
+
+    // La section ## couvre jusqu'au prochain ## (le ### enfant reste dedans).
+    expect(parent.markdown).toContain('### Validité');
+    expect(parent.markdown).not.toContain('## Dispositif');
+  });
+
+  it('retourne une liste vide quand aucun titre ##/###', () => {
+    expect(parseMarkdownSections('Juste du texte sans titre.')).toEqual([]);
+    expect(parseMarkdownSections('')).toEqual([]);
+  });
+
+  it('ignore les titres # de niveau 1 (cible moyens ##/###)', () => {
+    const sections = parseMarkdownSections('# Titre acte\nText\n## Moyen\nCorps');
+    expect(sections.map((s) => s.title)).toEqual(['Moyen']);
+  });
+});
+
+describe('F-265 — replaceSectionInDraft', () => {
+  it('remplace EN PLACE le bloc, le reste byte-identique', () => {
+    const draft = '## A\nun\n\n## B\ndeux\n\n## C\ntrois';
+    const original = '## B\ndeux';
+    const result = replaceSectionInDraft(draft, original, '## B\nDEUX renforcé');
+
+    expect(result).toBe('## A\nun\n\n## B\nDEUX renforcé\n\n## C\ntrois');
+  });
+
+  it('retourne null si le bloc original n\'est plus retrouvé (édition manuelle)', () => {
+    const result = replaceSectionInDraft('## A\nun', '## Z\ninconnu', 'x');
+    expect(result).toBeNull();
+  });
+
+  it('round-trip markdown : un seul bloc change', () => {
+    const sections = parseMarkdownSections('## A\nun\n## B\ndeux');
+    const b = sections.find((s) => s.title === 'B')!;
+    const result = replaceSectionInDraft('## A\nun\n## B\ndeux', b.markdown, '## B\nnouveau');
+    expect(result).toContain('## A\nun');
+    expect(result).toContain('## B\nnouveau');
+    expect(result).not.toContain('deux');
   });
 });

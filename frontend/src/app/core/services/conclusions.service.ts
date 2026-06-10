@@ -97,4 +97,28 @@ export class ConclusionsService {
       { content },
     );
   }
+
+  /**
+   * F-265 / SF-265-01 — Co-rédaction au paragraphe : régénère le markdown d'UNE
+   * section de l'acte selon une instruction libre de l'avocat. Synchrone, sans
+   * persistance : la réponse `{ regeneratedMarkdown }` est insérée dans le
+   * brouillon (round-trip markdown F-264), l'avocat enregistre ensuite via
+   * `updateContent`. Réservé à une version `DONE` + `DRAFT` (sinon `409`).
+   */
+  regenerateSection(
+    caseFileId: string,
+    versionId: string,
+    sectionMarkdown: string,
+    instruction: string,
+  ): Observable<SectionRegenerationResponse> {
+    return this.http.post<SectionRegenerationResponse>(
+      `/api/v1/case-files/${caseFileId}/conclusions/versions/${versionId}/sections/regenerate`,
+      { sectionMarkdown, instruction },
+    );
+  }
+}
+
+/** F-265 / SF-265-01 — réponse de la régénération d'une section. */
+export interface SectionRegenerationResponse {
+  regeneratedMarkdown: string;
 }
