@@ -22,7 +22,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
-import { ConclusionDocumentComponent } from '../conclusion-document/conclusion-document.component';
+import {
+  ConclusionDocumentComponent,
+  PieceRef,
+} from '../conclusion-document/conclusion-document.component';
+import { DocumentService } from '../../core/services/document.service';
+import { documentPieceTypeLabel } from '../../core/models/document.model';
 import {
   MarkdownAction,
   MarkdownToolbarComponent,
@@ -213,6 +218,14 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly missingToolsCount = signal(0);
 
   /**
+   * F-266 / SF-266-01 — Pièces numérotées du dossier (numéro persistant F-260),
+   * passées à l'aperçu « acte » pour la traçabilité fait → pièce au survol.
+   * Chargées au montage depuis `DocumentService.list`. En cas d'échec → liste
+   * vide (aucune décoration, dégradation propre).
+   */
+  readonly pieceRefs = signal<PieceRef[]>([]);
+
+  /**
    * F-98 / SF-98-56 — Nombre de citations adverses marquées **et** réfutables
    * (statut SUSPECT / NOT_FOUND ET `markedAdverse = true`) du dossier. Calculé
    * au montage à partir des jurisprudence-checks. `0` ⇒ aucune mention affichée
@@ -228,6 +241,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   private readonly conclusionsService = inject(ConclusionsService);
   private readonly caseFileService = inject(CaseFileService);
   private readonly caseDashboardService = inject(CaseDashboardService);
+  private readonly documentService = inject(DocumentService);
   private readonly jurisprudenceCheckService = inject(JurisprudenceCheckService);
   private readonly docxExportService = inject(DocxExportService);
   private readonly pdfExportService = inject(PdfExportService);
@@ -302,6 +316,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.refreshMissingTools();
     this.refreshAdverseMarkedCount();
+    this.refreshPieceRefs();
     this.conclusionsService.getConclusion(this.caseFileId).subscribe({
       next: (res) => {
         this.conclusion.set(res);
@@ -847,6 +862,39 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       error: () => {
         // Dégradation silencieuse : sans données fiables, pas d'encart.
         this.missingToolsCount.set(0);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * F-266 / SF-266-01 — Charge les pièces numérotées du dossier et les met à
+   * plat en {@link PieceRef} (numéro persistant F-260 + libellé + type lisible
+   * anti-jargon). Alimente la traçabilité fait → pièce au survol de l'aperçu.
+   * Une pièce sans `pieceNumber` (très anciennes, non backfillées) est ignorée
+   * (pas de numéro fiable → pas de décoration). En cas d'échec → liste vide.
+   */
+  private refreshPieceRefs(): void {
+    this.documentService.list(this.caseFileId).subscribe({
+      next: (documents) => {
+        const refs: PieceRef[] = [];
+        for (const doc of documents) {
+          for (const piece of doc.pieces ?? []) {
+            if (piece.pieceNumber != null) {
+              refs.push({
+                number: piece.pieceNumber,
+                label: piece.label,
+                typeLabel: documentPieceTypeLabel(piece.type),
+              });
+            }
+          }
+        }
+        this.pieceRefs.set(refs);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Dégradation propre : sans pièces, aucune décoration de survol.
+        this.pieceRefs.set([]);
         this.cdr.markForCheck();
       },
     });
