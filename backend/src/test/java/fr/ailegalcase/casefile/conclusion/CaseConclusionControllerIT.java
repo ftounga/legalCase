@@ -2,6 +2,7 @@ package fr.ailegalcase.casefile.conclusion;
 
 import fr.ailegalcase.analysis.AnalysisStatus;
 import fr.ailegalcase.analysis.AnalysisType;
+import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
@@ -34,6 +35,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -726,6 +731,122 @@ class CaseConclusionControllerIT {
             c.setGeneratedAt(Instant.now());
         }
         return caseConclusionRepository.save(c);
+    }
+
+    // ── POST .../sections/regenerate (F-265 / SF-265-01) ─────────────────────
+
+    private static final String REGEN_URL_TPL =
+            "/api/v1/case-files/%s/conclusions/versions/%s/sections/regenerate";
+
+    @Test
+    void POST_regenerateSection_doneDraft_returns200WithMarkdown() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+        when(anthropicService.analyze(any(), anyString(), anyString(), anyInt()))
+                .thenReturn(new AnthropicResult("## Sur la prescription\n\nSection renforcée.",
+                        "claude-test", 100, 50));
+
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, supportedCf.getId(), v1.getId()))
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"## Sur la prescription\\n\\nTexte.\","
+                                + "\"instruction\":\"Renforce la prescription\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.regeneratedMarkdown")
+                        .value("## Sur la prescription\n\nSection renforcée."));
+
+        // Aucune persistance : le content de la version reste inchangé.
+        org.assertj.core.api.Assertions.assertThat(caseConclusionRepository
+                        .findById(v1.getId()).orElseThrow().getContent())
+                .isEqualTo("Conclusions générées — version 1");
+    }
+
+    @Test
+    void POST_regenerateSection_blankSection_returns400() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, supportedCf.getId(), v1.getId()))
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"  \",\"instruction\":\"Renforce\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void POST_regenerateSection_blankInstruction_returns400() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, supportedCf.getId(), v1.getId()))
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"## X\",\"instruction\":\"   \"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void POST_regenerateSection_nonDoneVersion_returns409() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.PENDING,
+                ConclusionLifecycleStatus.DRAFT);
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, supportedCf.getId(), v1.getId()))
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"## X\",\"instruction\":\"Renforce\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("CONTENT_REQUIRES_DONE"));
+    }
+
+    @Test
+    void POST_regenerateSection_validatedVersion_returns409() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.VALIDATED);
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, supportedCf.getId(), v1.getId()))
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"## X\",\"instruction\":\"Renforce\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("CONTENT_NOT_EDITABLE"));
+    }
+
+    @Test
+    void POST_regenerateSection_otherWorkspace_returns404() throws Exception {
+        CaseConclusion otherVersion = persistVersion(otherWorkspaceCf, 1,
+                CaseConclusionStatus.DONE, ConclusionLifecycleStatus.DRAFT);
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, otherWorkspaceCf.getId(), otherVersion.getId()))
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"## X\",\"instruction\":\"Renforce\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void POST_regenerateSection_unknownVersion_returns404() throws Exception {
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, supportedCf.getId(), UUID.randomUUID()))
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"## X\",\"instruction\":\"Renforce\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void POST_regenerateSection_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, supportedCf.getId(), UUID.randomUUID()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"## X\",\"instruction\":\"Renforce\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void POST_regenerateSection_emptyAiResult_returns502() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+        when(anthropicService.analyze(any(), anyString(), anyString(), anyInt()))
+                .thenReturn(new AnthropicResult("   ", "claude-test", 10, 0));
+
+        mockMvc.perform(post(String.format(REGEN_URL_TPL, supportedCf.getId(), v1.getId()))
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sectionMarkdown\":\"## X\",\"instruction\":\"Renforce\"}"))
+                .andExpect(status().is(502));
     }
 
     private OAuth2AuthenticationToken buildAuth(String sub, String email) {
