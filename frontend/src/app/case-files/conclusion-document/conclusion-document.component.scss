@@ -211,6 +211,15 @@ $divider: #e0e4ea;
   }
 }
 
+// ── F-266 / SF-266-01 — renvoi « Pièce n° X » survolable (traçabilité) ─────
+//    Décoration discrète : soulignement pointillé or + curseur d'aide. Le
+//    libellé/type apparaît dans l'info-bulle native (`title`). Scopé sous
+//    .cd-sheet pour ne pas fuiter globalement.
+.cd-sheet ::ng-deep .cd-piece-ref {
+  border-bottom: 1px dotted $gold;
+  cursor: help;
+}
+
 // ── Pied de page écran (jamais dans le content exporté) ───────────────────
 .cd-footer {
   margin: 32px 0 0;

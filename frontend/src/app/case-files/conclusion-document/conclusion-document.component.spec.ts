@@ -1,5 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ConclusionDocumentComponent } from './conclusion-document.component';
+import {
+  ConclusionDocumentComponent,
+  PieceRef,
+  annotatePieceReferences,
+  escapeHtmlAttribute,
+} from './conclusion-document.component';
 
 /**
  * F-259 / SF-259-02 — Le composant rend le **Markdown** du contenu (titres,
@@ -171,5 +176,107 @@ describe('ConclusionDocumentComponent', () => {
   it('aucun branding LegalCase dans le document rendu', () => {
     setContent('## Discussion\n\nArgument.');
     expect(sheet()!.textContent).not.toMatch(/LegalCase/i);
+  });
+
+  // ── F-266 / SF-266-01 — traçabilité fait → pièce au survol ─────────────
+  describe('F-266 SF-266-01 — annotatePieceReferences', () => {
+    const map = (refs: PieceRef[]): ReadonlyMap<number, PieceRef> =>
+      new Map(refs.map((r) => [r.number, r]));
+
+    it('décore « Pièce n° X » quand la pièce est connue (title = type + libellé)', () => {
+      const html = '<p>comme en atteste la Pièce n° 4.</p>';
+      const out = annotatePieceReferences(
+        html,
+        map([{ number: 4, label: 'Janvier 2024', typeLabel: 'Bulletin de paie' }]),
+      );
+      expect(out).toContain('class="cd-piece-ref"');
+      expect(out).toContain('title="Bulletin de paie — Janvier 2024"');
+      expect(out).toContain('Pièce n° 4');
+    });
+
+    it('pièce connue sans libellé → title = type seul', () => {
+      const out = annotatePieceReferences(
+        '<p>Pièce n° 2</p>',
+        map([{ number: 2, label: null, typeLabel: 'Contrat' }]),
+      );
+      expect(out).toContain('title="Contrat"');
+    });
+
+    it('numéro inconnu → AUCUNE décoration (jamais d\'info inventée)', () => {
+      const html = '<p>Pièce n° 9 absente</p>';
+      const out = annotatePieceReferences(
+        html,
+        map([{ number: 4, label: 'x', typeLabel: 'Contrat' }]),
+      );
+      expect(out).toBe(html);
+      expect(out).not.toContain('cd-piece-ref');
+    });
+
+    it('map vide → HTML inchangé', () => {
+      const html = '<p>Pièce n° 4</p>';
+      expect(annotatePieceReferences(html, new Map())).toBe(html);
+    });
+
+    it('tolère les variantes d\'espaces (« Pièce n°4 » / « Pièce n° 4 »)', () => {
+      const pieces = map([{ number: 4, label: 'l', typeLabel: 'Contrat' }]);
+      expect(annotatePieceReferences('Pièce n°4', pieces)).toContain('cd-piece-ref');
+      expect(annotatePieceReferences('Pièce n°  4', pieces)).toContain('cd-piece-ref');
+    });
+
+    it('ne touche pas au contenu des balises HTML (remplace hors « <...> »)', () => {
+      // Un attribut contenant « Pièce n° 4 » ne doit pas être réécrit.
+      const html = '<a data-x="Pièce n° 4">lien</a> et Pièce n° 4 dans le texte';
+      const out = annotatePieceReferences(
+        html,
+        map([{ number: 4, label: 'l', typeLabel: 'Contrat' }]),
+      );
+      // L'attribut d'origine reste intact (une seule réécriture, dans le texte).
+      expect(out).toContain('data-x="Pièce n° 4"');
+      expect(out.match(/cd-piece-ref/g)?.length).toBe(1);
+    });
+
+    it('échappe le libellé dans le title (pas d\'injection d\'attribut)', () => {
+      const out = annotatePieceReferences(
+        '<p>Pièce n° 1</p>',
+        map([{ number: 1, label: 'a"><img src=x>', typeLabel: 'Contrat' }]),
+      );
+      expect(out).not.toContain('<img src=x>');
+      expect(out).toContain('&quot;');
+    });
+  });
+
+  describe('F-266 SF-266-01 — escapeHtmlAttribute', () => {
+    it('échappe &, ", \', <, >', () => {
+      expect(escapeHtmlAttribute('a&b"c\'d<e>f')).toBe(
+        'a&amp;b&quot;c&#39;d&lt;e&gt;f',
+      );
+    });
+  });
+
+  describe('F-266 SF-266-01 — input [pieces]', () => {
+    it('sans pièces → rendu identique (non-régression), pas de décoration', () => {
+      setContent('Voir Pièce n° 3 du dossier.');
+      expect(contentEl().querySelector('.cd-piece-ref')).toBeNull();
+      expect(contentEl().textContent).toContain('Pièce n° 3');
+    });
+
+    it('avec pièces → le renvoi connu est décoré dans le DOM', () => {
+      component.pieces = [
+        { number: 3, label: 'Mars 2024', typeLabel: 'Bulletin de paie' },
+      ];
+      setContent('Voir Pièce n° 3 du dossier.');
+      const ref = contentEl().querySelector(
+        '.cd-piece-ref',
+      ) as HTMLElement | null;
+      expect(ref).not.toBeNull();
+      expect(ref!.getAttribute('title')).toBe('Bulletin de paie — Mars 2024');
+    });
+
+    it('le content (markdown) n\'est pas muté par la décoration', () => {
+      const src = 'Voir Pièce n° 3.';
+      component.pieces = [{ number: 3, label: 'x', typeLabel: 'Contrat' }];
+      setContent(src);
+      expect(component.content).toBe(src);
+    });
   });
 });

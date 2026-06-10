@@ -40,6 +40,8 @@ describe('ConclusionsSectionComponent', () => {
   const DASHBOARD_URL = `/api/v1/case-files/${CASE_ID}/dashboard`;
   // F-98 SF-98-56 — endpoint du décompte « citations adverses marquées ».
   const CHECKS_URL = `/api/v1/case-files/${CASE_ID}/jurisprudence-checks`;
+  // F-266 SF-266-01 — endpoint des documents (pièces numérotées au survol).
+  const DOCUMENTS_URL = `/api/v1/case-files/${CASE_ID}/documents`;
   const versionUrl = (id: string) => `${VERSIONS_URL}/${id}`;
   const lifecycleUrl = (id: string) => `${versionUrl(id)}/lifecycle`;
   const contentUrl = (id: string) => `${versionUrl(id)}/content`;
@@ -173,6 +175,8 @@ describe('ConclusionsSectionComponent', () => {
       })),
     });
     httpMock.expectOne(CHECKS_URL).flush({ checks });
+    // F-266 SF-266-01 — GET documents (pièces) déclenché au montage.
+    httpMock.expectOne(DOCUMENTS_URL).flush([]);
     httpMock.expectOne(GET_URL).flush(conclusion);
     httpMock.expectOne(VERSIONS_URL).flush(versions);
   }
@@ -188,6 +192,8 @@ describe('ConclusionsSectionComponent', () => {
     httpMock.expectOne(DASHBOARD_URL).flush({ caseFileId: CASE_ID, tiles: [] });
     // F-98 SF-98-56 — le GET des jurisprudence-checks part aussi au montage.
     httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
+    // F-266 SF-266-01 — le GET des documents (pièces) part aussi au montage.
+    httpMock.expectOne(DOCUMENTS_URL).flush([]);
     const req = httpMock.expectOne(GET_URL);
     expect(req.request.method).toBe('GET');
     req.flush(response());
@@ -703,6 +709,8 @@ describe('ConclusionsSectionComponent', () => {
     httpMock.expectOne(DASHBOARD_URL).flush({ caseFileId: CASE_ID, tiles: [] });
     // F-98 SF-98-56 — le décompte des citations adverses part aussi au montage.
     httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
+    // F-266 SF-266-01 — le GET des documents part aussi au montage.
+    httpMock.expectOne(DOCUMENTS_URL).flush([]);
     httpMock
       .expectOne(GET_URL)
       .flush({}, { status: 500, statusText: 'Server Error' });
@@ -1080,6 +1088,8 @@ describe('ConclusionsSectionComponent', () => {
         .flush('boom', { status: 500, statusText: 'Server Error' });
       // F-98 SF-98-56 — le décompte des citations adverses part aussi au montage.
       httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
+      // F-266 SF-266-01 — le GET des documents part aussi au montage.
+      httpMock.expectOne(DOCUMENTS_URL).flush([]);
       httpMock.expectOne(GET_URL).flush(response());
       httpMock.expectOne(VERSIONS_URL).flush([]);
       fixture.detectChanges();

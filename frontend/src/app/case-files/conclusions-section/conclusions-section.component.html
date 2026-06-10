@@ -312,7 +312,7 @@
                  (réutilise ConclusionDocumentComponent — aucun style dupliqué). -->
             <div class="cs-edit-pane cs-edit-pane--preview" data-testid="preview-pane">
               <span class="cs-preview-label">Aperçu</span>
-              <app-conclusion-document [content]="draftContent()" />
+              <app-conclusion-document [content]="draftContent()" [pieces]="pieceRefs()" />
             </div>
           </div>
 
@@ -337,7 +337,7 @@
             </button>
           </div>
         } @else {
-          <app-conclusion-document [content]="conclusion()?.content" />
+          <app-conclusion-document [content]="conclusion()?.content" [pieces]="pieceRefs()" />
 
           <div class="cs-actions">
             @if (editable()) {
