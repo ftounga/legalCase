@@ -20,9 +20,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * F-261 / SF-261-02 — tests unitaires de l'extracteur de moyens adverses :
- * travail FR → parse les moyens (LLM mocké) ; im/fa → vide ; texte vide → vide ;
- * échec LLM / parsing → vide (fail-open).
+ * F-261 / SF-261-02 + SF-261-04 — tests unitaires de l'extracteur de moyens
+ * adverses : travail / immigration / famille FR → parse les moyens (LLM mocké)
+ * avec le prompt dédié ; BE / domaine inconnu → vide sans appel ; texte vide →
+ * vide ; échec LLM / parsing → vide (fail-open).
  */
 class AdverseMoyensExtractorTest {
 
@@ -75,27 +76,101 @@ class AdverseMoyensExtractorTest {
     }
 
     @Test
-    void extract_immigrationDomain_returnsEmptyWithoutLlmCall() {
-        List<AdverseMoyen> moyens = extractor.extract(
-                List.of("Texte adverse"), "DROIT_IMMIGRATION", "FRANCE", CASE_FILE_ID);
+    void extract_immigrationFr_parsesMoyensWithImmigrationPrompt() {
+        String json = """
+                [
+                  {"these":"L'obligation de quitter le territoire est légale.",
+                   "fondements":["art. L. 611-1 du CESEDA","art. 8 de la CEDH"],
+                   "piecesInvoquees":["Arrêté préfectoral"]}
+                ]
+                """;
+        when(anthropicService.analyze(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult(json, "claude-sonnet-4-6", 100, 200, "end_turn"));
 
-        assertThat(moyens).isEmpty();
-        verify(anthropicService, never()).analyze(any(AiCallContext.class), any(), any(), anyInt());
+        List<AdverseMoyen> moyens = extractor.extract(
+                List.of("Mémoire en défense de la préfecture..."),
+                "DROIT_IMMIGRATION", "FRANCE", CASE_FILE_ID);
+
+        assertThat(moyens).hasSize(1);
+        assertThat(moyens.get(0).these()).contains("territoire");
+        assertThat(moyens.get(0).fondements()).contains("art. L. 611-1 du CESEDA");
+        // le prompt immigration (et lui seul) est passé au LLM
+        verify(anthropicService).analyze(
+                any(AiCallContext.class),
+                argThat(prompt -> prompt == AdverseMoyensExtractor.SYSTEM_PROMPT_IMMIGRATION_FR),
+                any(), anyInt());
     }
 
     @Test
-    void extract_familleDomain_returnsEmptyWithoutLlmCall() {
-        List<AdverseMoyen> moyens = extractor.extract(
-                List.of("Texte adverse"), "DROIT_FAMILLE", "FRANCE", CASE_FILE_ID);
+    void extract_familleFr_parsesMoyensWithFamillePrompt() {
+        String json = """
+                [
+                  {"these":"La résidence de l'enfant doit être fixée chez la mère.",
+                   "fondements":["art. 373-2-9 du Code civil"],
+                   "piecesInvoquees":["Attestation de l'école"]}
+                ]
+                """;
+        when(anthropicService.analyze(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult(json, "claude-sonnet-4-6", 100, 200, "end_turn"));
 
-        assertThat(moyens).isEmpty();
-        verify(anthropicService, never()).analyze(any(AiCallContext.class), any(), any(), anyInt());
+        List<AdverseMoyen> moyens = extractor.extract(
+                List.of("Conclusions de l'autre parent..."),
+                "DROIT_FAMILLE", "FRANCE", CASE_FILE_ID);
+
+        assertThat(moyens).hasSize(1);
+        assertThat(moyens.get(0).these()).contains("résidence");
+        assertThat(moyens.get(0).fondements()).contains("art. 373-2-9 du Code civil");
+        // le prompt famille (et lui seul) est passé au LLM
+        verify(anthropicService).analyze(
+                any(AiCallContext.class),
+                argThat(prompt -> prompt == AdverseMoyensExtractor.SYSTEM_PROMPT_FAMILLE_FR),
+                any(), anyInt());
+    }
+
+    @Test
+    void extract_travailFr_usesTravailPrompt() {
+        when(anthropicService.analyze(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("[]", "claude-sonnet-4-6", 1, 1, "end_turn"));
+
+        extractor.extract(List.of("texte"), "DROIT_DU_TRAVAIL", "FRANCE", CASE_FILE_ID);
+
+        verify(anthropicService).analyze(
+                any(AiCallContext.class),
+                argThat(prompt -> prompt == AdverseMoyensExtractor.SYSTEM_PROMPT_TRAVAIL_FR),
+                any(), anyInt());
     }
 
     @Test
     void extract_travailButNotFrance_returnsEmptyWithoutLlmCall() {
         List<AdverseMoyen> moyens = extractor.extract(
                 List.of("Texte adverse"), "DROIT_DU_TRAVAIL", "BELGIQUE", CASE_FILE_ID);
+
+        assertThat(moyens).isEmpty();
+        verify(anthropicService, never()).analyze(any(AiCallContext.class), any(), any(), anyInt());
+    }
+
+    @Test
+    void extract_immigrationButNotFrance_returnsEmptyWithoutLlmCall() {
+        List<AdverseMoyen> moyens = extractor.extract(
+                List.of("Texte adverse"), "DROIT_IMMIGRATION", "BELGIQUE", CASE_FILE_ID);
+
+        assertThat(moyens).isEmpty();
+        verify(anthropicService, never()).analyze(any(AiCallContext.class), any(), any(), anyInt());
+    }
+
+    @Test
+    void extract_familleButNotFrance_returnsEmptyWithoutLlmCall() {
+        List<AdverseMoyen> moyens = extractor.extract(
+                List.of("Texte adverse"), "DROIT_FAMILLE", "BELGIQUE", CASE_FILE_ID);
+
+        assertThat(moyens).isEmpty();
+        verify(anthropicService, never()).analyze(any(AiCallContext.class), any(), any(), anyInt());
+    }
+
+    @Test
+    void extract_unknownDomainFr_returnsEmptyWithoutLlmCall() {
+        List<AdverseMoyen> moyens = extractor.extract(
+                List.of("Texte adverse"), "DROIT_PENAL", "FRANCE", CASE_FILE_ID);
 
         assertThat(moyens).isEmpty();
         verify(anthropicService, never()).analyze(any(AiCallContext.class), any(), any(), anyInt());

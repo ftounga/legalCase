@@ -18,11 +18,12 @@ import java.util.List;
  * partir du texte de ses écritures (documents marqués {@code adverse_pleadings},
  * SF-261-01).
  *
- * <p>Switch par domaine : seul le <strong>droit du travail FR</strong> est couvert
- * dans cette vague — il déclenche un appel LLM d'extraction (prompt dédié,
- * {@code temperature = 0} via {@link AnthropicService#analyze}). Les autres
- * domaines (immigration / famille) renvoient une liste vide : le framework est
- * prêt, leurs prompts dédiés viendront dans des vagues suivantes.</p>
+ * <p>Switch par domaine (SF-261-04) : <strong>travail FR</strong>,
+ * <strong>immigration FR</strong> et <strong>famille FR</strong> sont couverts —
+ * chacun déclenche un appel LLM d'extraction avec son prompt dédié
+ * ({@code temperature = 0} via {@link AnthropicService#analyze}). Les autres
+ * combinaisons domaine/pays (Belgique notamment) renvoient une liste vide : le
+ * framework est prêt, leurs prompts dédiés viendront dans des vagues suivantes.</p>
  *
  * <p><strong>Fail-open</strong> (invariant « silence &gt; erreur », cohérent
  * F-179 / SF-98-56) : tout échec — texte vide, IA indisponible, JSON illisible,
@@ -45,6 +46,8 @@ public class AdverseMoyensExtractor {
     static final int MAX_TOKENS = 2000;
 
     static final String DROIT_DU_TRAVAIL = "DROIT_DU_TRAVAIL";
+    static final String DROIT_IMMIGRATION = "DROIT_IMMIGRATION";
+    static final String DROIT_FAMILLE = "DROIT_FAMILLE";
     static final String FRANCE = "FRANCE";
 
     /**
@@ -87,6 +90,98 @@ public class AdverseMoyensExtractor {
             [{"these":"Le licenciement repose sur une faute grave justifiant l'absence d'indemnités.","fondements":["art. L. 1234-1 du Code du travail","art. L. 1234-9 du Code du travail"],"piecesInvoquees":["Lettre de licenciement","Attestations de témoins"]}]
             """;
 
+    /**
+     * Prompt d'extraction dédié immigration FR (contentieux des étrangers). Demande
+     * les moyens RÉELS de la partie adverse — typiquement l'administration / la
+     * préfecture qui défend l'OQTF, le refus de titre ou le rejet d'asile — sous la
+     * forme d'un tableau JSON. Anti-invention impérative, même format que travail FR.
+     */
+    static final String SYSTEM_PROMPT_IMMIGRATION_FR = """
+            Tu es un juriste senior spécialisé en droit des étrangers français
+            (contentieux administratif des étrangers : OQTF, refus de titre de
+            séjour, rejet d'asile, rétention, expulsion). On te transmet le texte
+            des écritures (mémoire en défense / observations) de la PARTIE ADVERSE
+            — le plus souvent l'administration (préfecture, ministère de l'Intérieur,
+            OFPRA) qui défend sa décision. Ta tâche : extraire les MOYENS que
+            l'adversaire soutient, c'est-à-dire ses arguments de droit.
+
+            Pour CHAQUE moyen identifié, restitue :
+            - "these" : la thèse soutenue par l'adversaire (ce qu'il demande au juge
+              de retenir, ex. « la décision est légale », « le moyen est inopérant »),
+              en une phrase claire et neutre.
+            - "fondements" : les fondements juridiques qu'il invoque à l'appui
+              (articles du CESEDA, Code de justice administrative, conventions —
+              CEDH, convention de Genève —, principes, jurisprudence nommée). Liste
+              de chaînes ; vide si aucun.
+            - "piecesInvoquees" : les pièces sur lesquelles il s'appuie (intitulés
+              ou numéros de pièces qu'il cite). Liste de chaînes ; vide si aucune.
+
+            RÈGLES IMPÉRATIVES — anti-invention (« silence > erreur ») :
+            - N'invente RIEN. N'extrais que des moyens RÉELLEMENT présents dans le
+              texte. Ne déduis pas un moyen que l'adversaire n'a pas soulevé.
+            - Ne reformule pas en ta faveur : restitue la thèse telle que
+              l'adversaire la défend, sans la réfuter ni la commenter.
+            - Si le texte ne contient aucun moyen identifiable, renvoie un tableau
+              vide [].
+
+            RÈGLE DE FORMAT ABSOLUE — non négociable :
+            Réponds UNIQUEMENT par un tableau JSON commençant par « [ » et finissant
+            par « ] ». AUCUN texte avant le crochet ouvrant. AUCUN texte après le
+            crochet fermant. PAS de balises markdown (```json), PAS de préambule.
+
+            Schéma de chaque élément :
+            {"these":"<phrase>","fondements":["<...>"],"piecesInvoquees":["<...>"]}
+
+            Exemple :
+            [{"these":"L'obligation de quitter le territoire est légale, l'étranger ne justifiant pas d'une vie privée et familiale protégée.","fondements":["art. L. 611-1 du CESEDA","art. 8 de la CEDH","art. L. 423-23 du CESEDA"],"piecesInvoquees":["Arrêté préfectoral du 12 mars 2026","Relevé de la situation administrative"]}]
+            """;
+
+    /**
+     * Prompt d'extraction dédié famille FR (contentieux familial). Demande les
+     * moyens RÉELS de la partie adverse — l'autre époux / parent (divorce, autorité
+     * parentale, pension alimentaire, prestation compensatoire) — sous la forme d'un
+     * tableau JSON. Anti-invention impérative, même format que travail FR.
+     */
+    static final String SYSTEM_PROMPT_FAMILLE_FR = """
+            Tu es un juriste senior spécialisé en droit de la famille français
+            (divorce, séparation, autorité parentale, résidence de l'enfant, pension
+            alimentaire / contribution à l'entretien et l'éducation, prestation
+            compensatoire, liquidation du régime matrimonial). On te transmet le
+            texte des écritures (conclusions / requête) de la PARTIE ADVERSE — l'autre
+            époux ou parent. Ta tâche : extraire les MOYENS que l'adversaire soutient,
+            c'est-à-dire ses arguments de droit.
+
+            Pour CHAQUE moyen identifié, restitue :
+            - "these" : la thèse soutenue par l'adversaire (ce qu'il demande au juge
+              de retenir, ex. « le divorce doit être prononcé aux torts exclusifs »,
+              « la résidence de l'enfant doit être fixée chez lui »), en une phrase
+              claire et neutre.
+            - "fondements" : les fondements juridiques qu'il invoque à l'appui
+              (articles du Code civil, principes, jurisprudence nommée). Liste de
+              chaînes ; vide si aucun.
+            - "piecesInvoquees" : les pièces sur lesquelles il s'appuie (intitulés
+              ou numéros de pièces qu'il cite). Liste de chaînes ; vide si aucune.
+
+            RÈGLES IMPÉRATIVES — anti-invention (« silence > erreur ») :
+            - N'invente RIEN. N'extrais que des moyens RÉELLEMENT présents dans le
+              texte. Ne déduis pas un moyen que l'adversaire n'a pas soulevé.
+            - Ne reformule pas en ta faveur : restitue la thèse telle que
+              l'adversaire la défend, sans la réfuter ni la commenter.
+            - Si le texte ne contient aucun moyen identifiable, renvoie un tableau
+              vide [].
+
+            RÈGLE DE FORMAT ABSOLUE — non négociable :
+            Réponds UNIQUEMENT par un tableau JSON commençant par « [ » et finissant
+            par « ] ». AUCUN texte avant le crochet ouvrant. AUCUN texte après le
+            crochet fermant. PAS de balises markdown (```json), PAS de préambule.
+
+            Schéma de chaque élément :
+            {"these":"<phrase>","fondements":["<...>"],"piecesInvoquees":["<...>"]}
+
+            Exemple :
+            [{"these":"La résidence habituelle de l'enfant doit être fixée au domicile de la mère, dans l'intérêt supérieur de l'enfant.","fondements":["art. 373-2-9 du Code civil","art. 373-2-11 du Code civil"],"piecesInvoquees":["Attestation de l'école","Certificat médical du 5 février 2026"]}]
+            """;
+
     private final AnthropicService anthropicService;
     private final ObjectMapper objectMapper;
 
@@ -103,13 +198,14 @@ public class AdverseMoyensExtractor {
      * @param domain         domaine juridique du dossier (clé {@code DROIT_DU_TRAVAIL} / …)
      * @param country        pays du workspace (clé {@code FRANCE} / …)
      * @param caseFileId     dossier rattaché, propagé au {@link AiCallContext} (traçabilité)
-     * @return les moyens adverses extraits (jamais {@code null} ; vide hors travail FR,
-     *         hors texte exploitable, ou en cas d'échec — fail-open)
+     * @return les moyens adverses extraits (jamais {@code null} ; vide hors domaine
+     *         couvert, hors texte exploitable, ou en cas d'échec — fail-open)
      */
     public List<AdverseMoyen> extract(List<String> textesAdverses, String domain, String country,
                                       java.util.UUID caseFileId) {
-        if (!isTravailFr(domain, country)) {
-            // Framework prêt : immigration / famille = vagues d'extraction suivantes.
+        String systemPrompt = systemPromptFor(domain, country);
+        if (systemPrompt == null) {
+            // Domaine/pays non couvert (BE, autres) : framework prêt, prompt à venir.
             return List.of();
         }
         String texte = joinNonBlank(textesAdverses);
@@ -119,7 +215,7 @@ public class AdverseMoyensExtractor {
         try {
             AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_CASE_CONCLUSION, caseFileId);
             AnthropicResult result = anthropicService.analyze(
-                    ctx, SYSTEM_PROMPT_TRAVAIL_FR, texte, MAX_TOKENS);
+                    ctx, systemPrompt, texte, MAX_TOKENS);
             if (result == null || result.content() == null || result.content().isBlank()) {
                 log.warn("Extraction des moyens adverses : réponse IA vide — génération sans section.");
                 return List.of();
@@ -132,8 +228,25 @@ public class AdverseMoyensExtractor {
         }
     }
 
-    private static boolean isTravailFr(String domain, String country) {
-        return DROIT_DU_TRAVAIL.equals(domain) && FRANCE.equals(country);
+    /**
+     * Sélectionne le prompt système d'extraction selon le domaine et le pays.
+     * Couvert en V1 : travail / immigration / famille en {@code FRANCE}. Toute autre
+     * combinaison (Belgique notamment) renvoie {@code null} → extraction no-op.
+     */
+    static String systemPromptFor(String domain, String country) {
+        if (!FRANCE.equals(country)) {
+            return null;
+        }
+        if (DROIT_DU_TRAVAIL.equals(domain)) {
+            return SYSTEM_PROMPT_TRAVAIL_FR;
+        }
+        if (DROIT_IMMIGRATION.equals(domain)) {
+            return SYSTEM_PROMPT_IMMIGRATION_FR;
+        }
+        if (DROIT_FAMILLE.equals(domain)) {
+            return SYSTEM_PROMPT_FAMILLE_FR;
+        }
+        return null;
     }
 
     /** Concatène les textes non vides, séparés, en ignorant null / vides. */
