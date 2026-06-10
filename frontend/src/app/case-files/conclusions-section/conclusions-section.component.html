@@ -339,6 +339,31 @@
         } @else {
           <app-conclusion-document [content]="conclusion()?.content" [pieces]="pieceRefs()" />
 
+          <!-- F-266 SF-266-02 — en-tête de cabinet (opt-in, non persisté) :
+               préfixé au seul fichier exporté, jamais au content stocké. -->
+          <div class="cs-cabinet-header">
+            <button mat-button
+                    type="button"
+                    data-testid="toggle-cabinet-header-btn"
+                    (click)="toggleCabinetHeader()">
+              <mat-icon>{{ showCabinetHeader() ? 'expand_less' : 'expand_more' }}</mat-icon>
+              En-tête du cabinet (pour l'export)
+            </button>
+            @if (showCabinetHeader()) {
+              <textarea class="cs-cabinet-header-input"
+                        data-testid="cabinet-header-input"
+                        rows="3"
+                        placeholder="Cabinet Durand &amp; Associés&#10;12 rue de la Loi, 75001 Paris&#10;Avocat au Barreau de Paris"
+                        [value]="cabinetHeader()"
+                        (input)="cabinetHeader.set($any($event.target).value)"
+                        aria-label="En-tête du cabinet ajouté en tête du document exporté"></textarea>
+              <p class="cs-cabinet-header-hint">
+                Ajouté en tête du fichier exporté (Word / PDF). Le projet enregistré
+                n'est pas modifié. Laissez vide pour un document neutre.
+              </p>
+            }
+          </div>
+
           <div class="cs-actions">
             @if (editable()) {
               <button mat-stroked-button
