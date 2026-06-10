@@ -212,15 +212,59 @@
           </p>
         }
 
-        <!-- ── Éditeur de relecture (SF-98-49) ─────────────────── -->
+        <!-- ── Éditeur de relecture (SF-98-49 + SF-264-01) ─────── -->
         @if (editing()) {
-          <textarea class="cs-editor"
-                    data-testid="conclusions-editor"
-                    rows="18"
-                    [value]="draftContent()"
-                    [disabled]="savingContent()"
-                    (input)="onDraftInput($any($event.target).value)"
-                    aria-label="Texte du projet de conclusions"></textarea>
+          <!-- Bascule éditeur/aperçu — visible uniquement sur écran étroit
+               (la version large affiche les 2 colonnes côte à côte, cf. SCSS). -->
+          <div class="cs-edit-toggle" role="tablist"
+               aria-label="Affichage éditeur ou aperçu"
+               data-testid="edit-view-toggle">
+            <button mat-button type="button"
+                    role="tab"
+                    data-testid="view-edit-btn"
+                    class="cs-edit-toggle-btn"
+                    [class.cs-edit-toggle-btn--active]="editorView() === 'edit'"
+                    [attr.aria-selected]="editorView() === 'edit'"
+                    (click)="setEditorView('edit')">
+              <mat-icon>edit</mat-icon>
+              Édition
+            </button>
+            <button mat-button type="button"
+                    role="tab"
+                    data-testid="view-preview-btn"
+                    class="cs-edit-toggle-btn"
+                    [class.cs-edit-toggle-btn--active]="editorView() === 'preview'"
+                    [attr.aria-selected]="editorView() === 'preview'"
+                    (click)="setEditorView('preview')">
+              <mat-icon>visibility</mat-icon>
+              Aperçu
+            </button>
+          </div>
+
+          <div class="cs-edit-split"
+               [class.cs-edit-split--show-preview]="editorView() === 'preview'">
+            <!-- Colonne éditeur : barre d'outils markdown + textarea. -->
+            <div class="cs-edit-pane cs-edit-pane--editor" data-testid="editor-pane">
+              <app-markdown-toolbar
+                [disabled]="savingContent()"
+                (action)="applyMarkdown($event)" />
+              <textarea #editor
+                        class="cs-editor"
+                        data-testid="conclusions-editor"
+                        rows="18"
+                        [value]="draftContent()"
+                        [disabled]="savingContent()"
+                        (input)="onDraftInput($any($event.target).value)"
+                        aria-label="Texte du projet de conclusions"></textarea>
+            </div>
+
+            <!-- Colonne aperçu : rendu « acte » live du brouillon markdown
+                 (réutilise ConclusionDocumentComponent — aucun style dupliqué). -->
+            <div class="cs-edit-pane cs-edit-pane--preview" data-testid="preview-pane">
+              <span class="cs-preview-label">Aperçu</span>
+              <app-conclusion-document [content]="draftContent()" />
+            </div>
+          </div>
 
           <div class="cs-actions">
             <button mat-flat-button color="primary"

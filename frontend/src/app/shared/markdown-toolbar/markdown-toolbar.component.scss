@@ -1,0 +1,36 @@
+// F-264 / SF-264-01 — Barre d'outils markdown.
+// Palette navy #1A3A5C / or #C9973A. Espacements multiples de 4px.
+
+$navy: #1a3a5c;
+$gold: #c9973a;
+
+.mdt-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid rgba(26, 58, 92, 0.2);
+  border-radius: 6px 6px 0 0;
+  border-bottom: none;
+  background: rgba(26, 58, 92, 0.04);
+}
+
+.mdt-btn {
+  color: $navy;
+
+  &:hover:not(:disabled) {
+    color: $gold;
+  }
+
+  &:disabled {
+    color: rgba(26, 58, 92, 0.3);
+  }
+}
+
+.mdt-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 4px;
+  background: rgba(26, 58, 92, 0.18);
+}

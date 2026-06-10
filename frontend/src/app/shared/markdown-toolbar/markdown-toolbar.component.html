@@ -1,0 +1,71 @@
+<!--
+  F-264 / SF-264-01 — Barre d'outils markdown. Chaque bouton émet une intention
+  de mise en forme ; l'insertion réelle est gérée par l'hôte. `type="button"`
+  pour ne jamais soumettre un formulaire englobant.
+-->
+<div class="mdt-bar" role="toolbar" aria-label="Mise en forme du texte"
+     data-testid="markdown-toolbar">
+  <button mat-icon-button type="button"
+          class="mdt-btn"
+          data-testid="md-h2"
+          [disabled]="disabled"
+          matTooltip="Titre (niveau 2)"
+          aria-label="Titre de niveau 2"
+          (click)="emit('h2')">
+    <mat-icon>title</mat-icon>
+  </button>
+
+  <button mat-icon-button type="button"
+          class="mdt-btn"
+          data-testid="md-h3"
+          [disabled]="disabled"
+          matTooltip="Sous-titre (niveau 3)"
+          aria-label="Sous-titre de niveau 3"
+          (click)="emit('h3')">
+    <mat-icon>subtitles</mat-icon>
+  </button>
+
+  <span class="mdt-sep" aria-hidden="true"></span>
+
+  <button mat-icon-button type="button"
+          class="mdt-btn"
+          data-testid="md-bold"
+          [disabled]="disabled"
+          matTooltip="Gras"
+          aria-label="Gras"
+          (click)="emit('bold')">
+    <mat-icon>format_bold</mat-icon>
+  </button>
+
+  <button mat-icon-button type="button"
+          class="mdt-btn"
+          data-testid="md-italic"
+          [disabled]="disabled"
+          matTooltip="Italique"
+          aria-label="Italique"
+          (click)="emit('italic')">
+    <mat-icon>format_italic</mat-icon>
+  </button>
+
+  <span class="mdt-sep" aria-hidden="true"></span>
+
+  <button mat-icon-button type="button"
+          class="mdt-btn"
+          data-testid="md-list"
+          [disabled]="disabled"
+          matTooltip="Liste à puces"
+          aria-label="Liste à puces"
+          (click)="emit('list')">
+    <mat-icon>format_list_bulleted</mat-icon>
+  </button>
+
+  <button mat-icon-button type="button"
+          class="mdt-btn"
+          data-testid="md-quote"
+          [disabled]="disabled"
+          matTooltip="Citation"
+          aria-label="Citation"
+          (click)="emit('quote')">
+    <mat-icon>format_quote</mat-icon>
+  </button>
+</div>

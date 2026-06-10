@@ -262,13 +262,14 @@ $gold: #c9973a;
   display: block;
   width: 100%;
   box-sizing: border-box;
-  margin: 0 0 16px;
+  margin: 0;
   padding: 16px 20px;
-  border-radius: 6px;
+  border-radius: 0 0 6px 6px;
   border: 1px solid $navy;
   background: #fff;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  // La barre d'outils porte déjà la bordure haute (coins arrondis du haut).
+  font-family: 'JetBrains Mono', 'Inter', monospace;
+  font-size: 13px;
   line-height: 1.7;
   color: #1a2330;
   resize: vertical;
@@ -281,6 +282,83 @@ $gold: #c9973a;
   &:disabled {
     background: #f4f3ef;
     color: #5a6473;
+  }
+}
+
+// ── SF-264-01 — Layout éditeur + aperçu live ───────────────
+// Bascule éditeur/aperçu : visible uniquement sur écran étroit.
+.cs-edit-toggle {
+  display: none;
+  gap: 4px;
+  margin: 0 0 12px;
+}
+
+.cs-edit-toggle-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a6473;
+
+  &--active {
+    color: $navy;
+    border-bottom: 2px solid $gold;
+    border-radius: 0;
+  }
+}
+
+// Sur large écran : 2 colonnes côte à côte (éditeur | aperçu).
+.cs-edit-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 0 0 16px;
+  align-items: start;
+}
+
+.cs-edit-pane {
+  min-width: 0;
+}
+
+// Étiquette « Aperçu » au-dessus du rendu acte (large écran uniquement).
+.cs-preview-label {
+  display: block;
+  margin: 0 0 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $gold;
+}
+
+// Sur écran étroit : une seule colonne, pilotée par la bascule.
+@media (max-width: 900px) {
+  .cs-edit-toggle {
+    display: flex;
+  }
+
+  .cs-edit-split {
+    grid-template-columns: 1fr;
+  }
+
+  // Par défaut on montre l'éditeur ; l'aperçu est masqué.
+  .cs-edit-pane--preview {
+    display: none;
+  }
+
+  .cs-preview-label {
+    display: none;
+  }
+
+  // Vue « aperçu » active : on inverse.
+  .cs-edit-split--show-preview {
+    .cs-edit-pane--editor {
+      display: none;
+    }
+
+    .cs-edit-pane--preview {
+      display: block;
+    }
   }
 }
 
