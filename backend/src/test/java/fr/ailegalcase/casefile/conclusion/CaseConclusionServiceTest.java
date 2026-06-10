@@ -51,6 +51,11 @@ class CaseConclusionServiceTest {
     private final fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext
             toolJurisprudenceContext =
             mock(fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext.class);
+    private final fr.ailegalcase.document.DocumentRepository documentRepository =
+            mock(fr.ailegalcase.document.DocumentRepository.class);
+    private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository =
+            mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
+    private final AdverseMoyensExtractor adverseMoyensExtractor = mock(AdverseMoyensExtractor.class);
     private final ConclusionPromptRegistry promptRegistry = new ConclusionPromptRegistry(List.of(
             new CphFondDemandeurPromptProvider(), new CphFondDefendeurPromptProvider()));
     private final CaseConclusionPromptBuilder promptBuilder =
@@ -60,7 +65,8 @@ class CaseConclusionServiceTest {
             caseConclusionRepository, caseAnalysisRepository, strategicOptionRepository,
             documentPieceRepository, caseFileDashboardService,
             promptBuilder, anthropicService, styleCorpusRepository, jurisprudenceCitationRepository,
-            jurisprudenceCheckRepository, toolJurisprudenceContext);
+            jurisprudenceCheckRepository, toolJurisprudenceContext,
+            documentRepository, documentExtractionRepository, adverseMoyensExtractor);
 
     @BeforeEach
     void wireSelf() {
@@ -362,6 +368,85 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.isStyleApplied()).isFalse();
         verify(anthropicService).analyzeWithSystemCache(
                 any(AiCallContext.class), argThat(s -> !s.contains("Adopte le style rédactionnel suivant")), any(), anyInt());
+    }
+
+    // ── SF-261-02 — extraction & réfutation des moyens adverses ──────────────
+
+    @Test
+    void generate_withAdverseDocument_loadsTextAndCallsExtractor() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+
+        fr.ailegalcase.document.Document adverse = adverseDocument(true);
+        fr.ailegalcase.document.Document normal = adverseDocument(false);
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId))
+                .thenReturn(List.of(adverse, normal));
+        when(documentExtractionRepository.findByDocumentId(adverse.getId()))
+                .thenReturn(Optional.of(extraction("Conclusions adverses : faute grave invoquée.")));
+        when(adverseMoyensExtractor.extract(
+                eq(List.of("Conclusions adverses : faute grave invoquée.")),
+                eq("DROIT_DU_TRAVAIL"), eq("FRANCE"), eq(caseFileId)))
+                .thenReturn(List.of(new AdverseMoyen(
+                        "Le licenciement repose sur une faute grave.",
+                        List.of("art. L. 1234-1 C. trav."),
+                        List.of("Lettre de licenciement"))));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        // l'extracteur a bien été appelé avec le texte du seul document adverse
+        verify(adverseMoyensExtractor).extract(
+                eq(List.of("Conclusions adverses : faute grave invoquée.")),
+                eq("DROIT_DU_TRAVAIL"), eq("FRANCE"), eq(caseFileId));
+        // le moyen extrait alimente la section du prompt
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                contains("=== MOYENS ADVERSES À RÉFUTER ==="), anyInt());
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                contains("Le licenciement repose sur une faute grave."), anyInt());
+    }
+
+    @Test
+    void generate_noAdverseDocument_doesNotCallExtractor() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        // aucun document adverse (repository renvoie liste vide par défaut)
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        verify(adverseMoyensExtractor, never()).extract(any(), any(), any(), any());
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                argThat(m -> !m.contains("MOYENS ADVERSES À RÉFUTER")), anyInt());
+    }
+
+    private fr.ailegalcase.document.Document adverseDocument(boolean adverse) {
+        fr.ailegalcase.document.Document doc = new fr.ailegalcase.document.Document();
+        ReflectionTestUtils.setField(doc, "id", UUID.randomUUID());
+        doc.setAdversePleadings(adverse);
+        return doc;
+    }
+
+    private fr.ailegalcase.document.DocumentExtraction extraction(String text) {
+        fr.ailegalcase.document.DocumentExtraction extraction =
+                new fr.ailegalcase.document.DocumentExtraction();
+        extraction.setExtractedText(text);
+        return extraction;
     }
 
     /** Stubs communs aux scénarios de génération aboutie (hors corpus de style et IA). */
