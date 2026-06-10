@@ -285,6 +285,108 @@ class CaseConclusionPromptBuilderTest {
         assertThat(system).contains("À titre subsidiaire");
         assertThat(system).contains("Demandes subsidiaires");
         assertThat(system).contains("N'invente AUCUN chef");
+        // SF-98-61 — 3a identité/adresse des parties + 3b signature neutre
+        assertThat(system).contains("IDENTITÉ DES PARTIES");
+        assertThat(system).contains("n'invente jamais d'adresse");
+        assertThat(system).contains("[Nom et qualité de l'avocat]");
+    }
+
+    // --- SF-98-61 — finitions rédactionnelles (identité parties, signature, jurisprudence topique) ---
+
+    @Test
+    void buildSystemPrompt_jurisprudenceGuardRequiresTopicality() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        // 3c — pertinence : un arrêt d'outil n'est utilisé que s'il est topique.
+        assertThat(system).contains("ne plaque pas un arrêt non topique");
+        assertThat(system).contains("JURISPRUDENCE APPLICABLE PAR OUTIL");
+    }
+
+    @Test
+    void buildUserMessage_withTravailIdentities_addsPartiesIdentitySection() {
+        String analysisJson = """
+                {
+                  "faits": [],
+                  "points_juridiques": [],
+                  "risques": [],
+                  "travail_extracted_data": {
+                    "prenom_salarie": "Jean",
+                    "nom_salarie": "DUPONT",
+                    "adresse_salarie": "12 rue des Lilas, 75011 Paris",
+                    "nom_employeur": "SARL Martin",
+                    "adresse_employeur": "5 avenue de la République, 75011 Paris"
+                  }
+                }
+                """;
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier Dupont c/ SARL Martin",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                analysisJson,
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== IDENTITÉ DES PARTIES ===");
+        assertThat(message).contains("Salarié : Jean DUPONT — Adresse : 12 rue des Lilas, 75011 Paris");
+        assertThat(message).contains("Employeur : SARL Martin — Adresse : 5 avenue de la République, 75011 Paris");
+    }
+
+    @Test
+    void buildUserMessage_withoutTravailIdentities_omitsPartiesIdentitySection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier sans identités",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("=== IDENTITÉ DES PARTIES ===");
+    }
+
+    @Test
+    void buildUserMessage_partialTravailIdentity_rendersOnlyPresentFields() {
+        String analysisJson = """
+                {
+                  "travail_extracted_data": {
+                    "nom_salarie": "DUPONT",
+                    "adresse_salarie": "12 rue des Lilas, 75011 Paris"
+                  }
+                }
+                """;
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier identité partielle",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                analysisJson,
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== IDENTITÉ DES PARTIES ===");
+        assertThat(message).contains("Salarié : DUPONT — Adresse : 12 rue des Lilas, 75011 Paris");
+        // Aucune ligne Employeur quand ses champs sont absents.
+        assertThat(message).doesNotContain("Employeur :");
+    }
+
+    @Test
+    void buildUserMessage_malformedJson_omitsPartiesIdentitySectionWithoutThrowing() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier JSON cassé identités",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{ ceci n'est pas du JSON",
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("=== IDENTITÉ DES PARTIES ===");
     }
 
     @Test
