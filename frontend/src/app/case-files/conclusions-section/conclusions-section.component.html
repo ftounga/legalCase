@@ -243,17 +243,67 @@
 
           <div class="cs-edit-split"
                [class.cs-edit-split--show-preview]="editorView() === 'preview'">
-            <!-- Colonne éditeur : barre d'outils markdown + textarea. -->
+            <!-- Colonne éditeur : co-rédaction IA + barre d'outils markdown + textarea. -->
             <div class="cs-edit-pane cs-edit-pane--editor" data-testid="editor-pane">
+              <!-- F-265 / SF-265-02 — Co-rédaction IA par section. -->
+              <div class="cs-coredaction" data-testid="coredaction-zone">
+                <div class="cs-coredaction-head">
+                  <mat-icon class="cs-coredaction-icon">auto_fix_high</mat-icon>
+                  <span class="cs-coredaction-title">Co-rédaction IA</span>
+                </div>
+                @if (sections().length > 0) {
+                  <div class="cs-coredaction-row">
+                    <select class="cs-coredaction-select"
+                            data-testid="coredaction-section-select"
+                            aria-label="Section à régénérer"
+                            [disabled]="regenerating() || savingContent()"
+                            (change)="onSelectSection($any($event.target).value)">
+                      <option value="">Choisir une section…</option>
+                      @for (section of sections(); track section.start) {
+                        <option [value]="section.start"
+                                [selected]="section.start === selectedSectionStart()">
+                          {{ section.title }}
+                        </option>
+                      }
+                    </select>
+                    <input class="cs-coredaction-instruction"
+                           type="text"
+                           data-testid="coredaction-instruction"
+                           aria-label="Instruction de régénération"
+                           placeholder="Instruction : « renforce la prescription »…"
+                           [value]="regenInstruction()"
+                           [disabled]="regenerating() || savingContent()"
+                           (input)="onInstructionInput($any($event.target).value)" />
+                    <button mat-flat-button color="primary"
+                            type="button"
+                            data-testid="coredaction-regenerate-btn"
+                            [disabled]="!canRegenerate()"
+                            (click)="regenerateSection()">
+                      @if (regenerating()) {
+                        <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
+                      } @else {
+                        <mat-icon>auto_fix_high</mat-icon>
+                      }
+                      Régénérer cette section
+                    </button>
+                  </div>
+                } @else {
+                  <span class="cs-coredaction-empty"
+                        data-testid="coredaction-empty">
+                    Aucune section détectée (ajoutez un titre ## ou ###).
+                  </span>
+                }
+              </div>
+
               <app-markdown-toolbar
-                [disabled]="savingContent()"
+                [disabled]="savingContent() || regenerating()"
                 (action)="applyMarkdown($event)" />
               <textarea #editor
                         class="cs-editor"
                         data-testid="conclusions-editor"
                         rows="18"
                         [value]="draftContent()"
-                        [disabled]="savingContent()"
+                        [disabled]="savingContent() || regenerating()"
                         (input)="onDraftInput($any($event.target).value)"
                         aria-label="Texte du projet de conclusions"></textarea>
             </div>
