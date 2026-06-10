@@ -19,6 +19,8 @@ public enum JobType {
     QUESTION_GENERATION,
     ENRICHED_ANALYSIS,
     CHAT_MESSAGE,
+    /** F-265 / SF-265-01 — régénération d'une section de conclusions sur instruction de l'avocat (user-level : gate token + record). */
+    CONCLUSION_SECTION_REGEN,
 
     // ── System-level (skip gate user, record obligatoire) ────────────────
     SYSTEM_REFERENTIAL_CHECK,

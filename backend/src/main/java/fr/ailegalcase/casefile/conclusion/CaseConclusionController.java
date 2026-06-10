@@ -43,9 +43,12 @@ import java.util.UUID;
 public class CaseConclusionController {
 
     private final CaseConclusionCommandService caseConclusionCommandService;
+    private final ConclusionSectionRegenerationService sectionRegenerationService;
 
-    public CaseConclusionController(CaseConclusionCommandService caseConclusionCommandService) {
+    public CaseConclusionController(CaseConclusionCommandService caseConclusionCommandService,
+                                    ConclusionSectionRegenerationService sectionRegenerationService) {
         this.caseConclusionCommandService = caseConclusionCommandService;
+        this.sectionRegenerationService = sectionRegenerationService;
     }
 
     @PostMapping("/generate")
@@ -107,6 +110,25 @@ public class CaseConclusionController {
             Principal principal) {
         return caseConclusionCommandService.updateContent(
                 caseFileId, versionId, request != null ? request.content() : null,
+                oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    /**
+     * F-265 / SF-265-01 — régénère le markdown d'UNE section d'une version selon une
+     * instruction libre de l'avocat. Synchrone, aucune persistance (le frontend insère
+     * dans l'éditeur, l'avocat enregistre via {@code PATCH .../content}).
+     */
+    @PostMapping("/versions/{versionId}/sections/regenerate")
+    public SectionRegenerationResponse regenerateSection(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID versionId,
+            @RequestBody SectionRegenerationRequest request,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return sectionRegenerationService.regenerateSection(
+                caseFileId, versionId,
+                request != null ? request.sectionMarkdown() : null,
+                request != null ? request.instruction() : null,
                 oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }
