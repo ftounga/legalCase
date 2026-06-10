@@ -82,7 +82,15 @@ public class CaseConclusionPromptBuilder {
                     + "exécution provisoire, intérêts au taux légal et leur capitalisation "
                     + "(art. 1343-2 du Code civil), et astreinte sur la remise des documents.\n"
                     + "4. Faits et procédure : expose une chronologie claire et rappelle le cadre "
-                    + "procédural pertinent. Reste sobre et strictement juridique.";
+                    + "procédural pertinent. Reste sobre et strictement juridique.\n"
+                    + "5. Demandes subsidiaires. Lorsque la logique juridique le justifie, structure le "
+                    + "dispositif en « À titre principal » puis « À titre subsidiaire » : plaide "
+                    + "subsidiairement les chefs qui restent dus même si la demande principale est "
+                    + "écartée (ex. indemnités légales de rupture — indemnité de licenciement, indemnité "
+                    + "compensatrice de préavis, congés payés afférents — dues indépendamment du caractère "
+                    + "réel et sérieux du motif ; rappels de salaire incontestables). N'invente AUCUN chef "
+                    + "non étayé par les faits, les pièces ou les verdicts fournis : à défaut d'élément "
+                    + "fondant une demande subsidiaire, n'en ajoute pas.";
 
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;

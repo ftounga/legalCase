@@ -281,6 +281,10 @@ class CaseConclusionPromptBuilderTest {
         // dispositif complet
         assertThat(system).contains("article 700");
         assertThat(system).contains("1343-2");
+        // SF-98-60 — demandes subsidiaires
+        assertThat(system).contains("À titre subsidiaire");
+        assertThat(system).contains("Demandes subsidiaires");
+        assertThat(system).contains("N'invente AUCUN chef");
     }
 
     @Test
