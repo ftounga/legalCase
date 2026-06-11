@@ -374,6 +374,43 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * F-278 — Point d'entrée des boutons « Générer » / « Régénérer ». Quand une
+   * version existe déjà, ouvre une confirmation INFORMATIVE (couplée F-271) avant
+   * de régénérer : la nouvelle version repart des conclusions actuelles (éditions
+   * de l'avocat incluses) et les consolide. À la première génération (aucune
+   * version), enchaîne directement sans dialogue.
+   */
+  requestGenerate(): void {
+    if (this.generating()) {
+      return;
+    }
+    if (!this.hasVersions()) {
+      this.generate();
+      return;
+    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '480px',
+        data: {
+          title: 'Régénérer les conclusions',
+          message:
+            'La régénération crée une nouvelle version qui repart de vos ' +
+            'conclusions actuelles (vos modifications incluses) et les consolide. ' +
+            'Continuer ?',
+          confirmLabel: 'Régénérer',
+          confirmColor: 'primary',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.generate();
+        }
+        this.cdr.markForCheck();
+      });
+  }
+
+  /**
    * Déclenche (ou relance) la génération du projet de conclusions.
    * SF-98-52 : crée une nouvelle version. Sur succès `202`, démarre le
    * polling et sélectionne la nouvelle version.
