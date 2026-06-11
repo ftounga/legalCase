@@ -685,4 +685,107 @@ class CaseConclusionPromptBuilderTest {
 
         assertThat(message).doesNotContain("BASE À CONSOLIDER");
     }
+
+    // ── F-272 / SF-272-01 — garde d'ordre in limine litis (art. 74 CPC) ──────
+
+    /** Cellule CPH / FOND / DEFENDEUR — droit du travail FR (position de défense). */
+    private static final CombinationKey DEFENDEUR_FR_KEY = new CombinationKey(
+            ProcedureStageCatalog.DROIT_DU_TRAVAIL, ProcedureStageCatalog.FRANCE,
+            "CPH", "FOND", "DEFENDEUR");
+
+    /** Cellule CA_SOC / APPEL / INTIME — défendeur en appel FR. */
+    private static final CombinationKey INTIME_FR_KEY = new CombinationKey(
+            ProcedureStageCatalog.DROIT_DU_TRAVAIL, ProcedureStageCatalog.FRANCE,
+            "CA_SOC", "APPEL", "INTIME");
+
+    /** Cellule CASS_SOC / POURVOI / DEFENDEUR_POURVOI — défendeur au pourvoi FR. */
+    private static final CombinationKey DEFENDEUR_POURVOI_FR_KEY = new CombinationKey(
+            ProcedureStageCatalog.DROIT_DU_TRAVAIL, ProcedureStageCatalog.FRANCE,
+            "CASS_SOC", "POURVOI", "DEFENDEUR_POURVOI");
+
+    /** Cellule TT / FOND / DEFENDEUR — défendeur BE (régime du Code judiciaire, hors garde). */
+    private static final CombinationKey DEFENDEUR_BE_KEY = new CombinationKey(
+            ProcedureStageCatalog.DROIT_DU_TRAVAIL, ProcedureStageCatalog.BELGIQUE,
+            "TT", "FOND", "DEFENDEUR");
+
+    private final ConclusionPromptRegistry procedureRegistry = new ConclusionPromptRegistry(List.of(
+            new CphFondDemandeurPromptProvider(),
+            new CphFondDefendeurPromptProvider(),
+            new CaSocAppelIntimePromptProvider(),
+            new CassSocPourvoiDefendeurPromptProvider(),
+            new TtFondDefendeurPromptProvider()));
+
+    private final CaseConclusionPromptBuilder procedureBuilder =
+            new CaseConclusionPromptBuilder(new ObjectMapper(), procedureRegistry);
+
+    @Test
+    void buildSystemPrompt_defendeurFr_containsInLimineLitisGuard() {
+        String system = procedureBuilder.buildSystemPrompt(DEFENDEUR_FR_KEY, List.of());
+
+        assertThat(system).containsIgnoringCase("in limine litis");
+        assertThat(system).contains("article 74 du Code de procédure civile");
+        assertThat(system).contains("EXCEPTIONS DE PROCÉDURE");
+        assertThat(system).contains("FINS DE NON-RECEVOIR");
+    }
+
+    @Test
+    void buildSystemPrompt_demandeurFr_omitsInLimineLitisGuard() {
+        String system = procedureBuilder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        assertThat(system).doesNotContainIgnoringCase("in limine litis");
+        assertThat(system).doesNotContain("article 74 du Code de procédure civile");
+    }
+
+    @Test
+    void buildSystemPrompt_intimeFr_containsInLimineLitisGuard() {
+        String system = procedureBuilder.buildSystemPrompt(INTIME_FR_KEY, List.of());
+
+        assertThat(system).containsIgnoringCase("in limine litis");
+    }
+
+    @Test
+    void buildSystemPrompt_defendeurPourvoiFr_containsInLimineLitisGuard() {
+        String system = procedureBuilder.buildSystemPrompt(DEFENDEUR_POURVOI_FR_KEY, List.of());
+
+        assertThat(system).containsIgnoringCase("in limine litis");
+    }
+
+    @Test
+    void buildSystemPrompt_defendeurBe_omitsInLimineLitisGuard() {
+        String system = procedureBuilder.buildSystemPrompt(DEFENDEUR_BE_KEY, List.of());
+
+        assertThat(system).doesNotContainIgnoringCase("in limine litis");
+    }
+
+    @Test
+    void buildSystemPrompt_defendeurFr_stillContainsRedactionQualityGuard() {
+        // Non-régression SF-98-55 : la garde rédactionnelle commune reste présente,
+        // la nouvelle garde s'ajoute sans la remplacer.
+        String system = procedureBuilder.buildSystemPrompt(DEFENDEUR_FR_KEY, List.of());
+
+        assertThat(system).contains("Garde de qualité rédactionnelle");
+        assertThat(system).contains("Aucun jargon interne");
+        assertThat(system).containsIgnoringCase("in limine litis");
+    }
+
+    @Test
+    void buildSystemPrompt_inLimineLitisGuard_doesNotLeakToolCode() {
+        // Anti-jargon : la garde ne nomme jamais un code d'outil interne (ex. « F-DT-36 »).
+        String system = procedureBuilder.buildSystemPrompt(DEFENDEUR_FR_KEY, List.of());
+
+        assertThat(CaseConclusionPromptBuilder.PROCEDURE_ORDER_GUARD)
+                .doesNotContainIgnoringCase("F-DT-36")
+                .doesNotContainIgnoringCase("F-DT-");
+        assertThat(system).contains("vices de procédure");
+    }
+
+    @Test
+    void appliesProcedureOrderGuard_truthTable() {
+        assertThat(CaseConclusionPromptBuilder.appliesProcedureOrderGuard(DEFENDEUR_FR_KEY)).isTrue();
+        assertThat(CaseConclusionPromptBuilder.appliesProcedureOrderGuard(INTIME_FR_KEY)).isTrue();
+        assertThat(CaseConclusionPromptBuilder.appliesProcedureOrderGuard(DEFENDEUR_POURVOI_FR_KEY)).isTrue();
+        assertThat(CaseConclusionPromptBuilder.appliesProcedureOrderGuard(DEMANDEUR_KEY)).isFalse();
+        assertThat(CaseConclusionPromptBuilder.appliesProcedureOrderGuard(DEFENDEUR_BE_KEY)).isFalse();
+        assertThat(CaseConclusionPromptBuilder.appliesProcedureOrderGuard(null)).isFalse();
+    }
 }
