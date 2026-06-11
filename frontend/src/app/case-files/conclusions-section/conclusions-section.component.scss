@@ -4,6 +4,7 @@
 
 $navy: #1a3a5c;
 $gold: #c9973a;
+$divider: #e0e4ea;
 
 .conclusions-section {
   padding: 24px;
@@ -307,22 +308,53 @@ $gold: #c9973a;
 }
 
 // Sur large écran : 2 colonnes côte à côte (éditeur | aperçu).
+// SF-267-02 — la page passe en pleine largeur en édition (cf.
+// case-file-conclusions-page) ; ici on donne de la HAUTEUR et de l'air aux
+// deux panneaux pour qu'ils soient confortables et lisibles.
 .cs-edit-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin: 0 0 16px;
-  align-items: start;
+  gap: 24px;
+  margin: 0 0 20px;
+  align-items: stretch;
 }
 
 .cs-edit-pane {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-// Étiquette « Aperçu » au-dessus du rendu acte (large écran uniquement).
+// L'éditeur remplit la hauteur du panneau (gros confort de saisie).
+.cs-edit-pane--editor .cs-editor {
+  flex: 1 1 auto;
+  min-height: 58vh;
+}
+
+// SF-267-02 — l'aperçu devient une vraie « feuille » : surface blanche
+// encadrée, défilement interne quand l'acte est long (les 2 panneaux restent
+// alignés côte à côte au lieu d'allonger toute la page).
+.cs-edit-pane--preview {
+  position: sticky;
+  top: 12px;
+}
+
+.cs-edit-pane--preview app-conclusion-document {
+  display: block;
+  max-height: 72vh;
+  overflow: auto;
+  padding: 24px 28px;
+  background: #fff;
+  border: 1px solid $divider;
+  border-top: 3px solid $gold;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(26, 58, 92, 0.07);
+}
+
+// Étiquette « Aperçu » / « Édition » au-dessus du panneau (large écran).
 .cs-preview-label {
   display: block;
-  margin: 0 0 4px;
+  margin: 0 0 8px;
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 600;

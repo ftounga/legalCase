@@ -1345,6 +1345,14 @@ describe('ConclusionsSectionComponent', () => {
       );
     });
 
+    it('SF-267-02 : les deux panneaux portent leur libellé (Édition / Aperçu)', () => {
+      enterEditingWith('Texte');
+      const labels = Array.from(
+        fixture.nativeElement.querySelectorAll('.cs-preview-label'),
+      ).map((el) => (el as HTMLElement).textContent?.trim());
+      expect(labels).toEqual(expect.arrayContaining(['Édition', 'Aperçu']));
+    });
+
     it('bascule éditeur/aperçu → met à jour editorView + classe', () => {
       enterEditingWith('Texte');
       expect(component.editorView()).toBe('edit');
