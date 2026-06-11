@@ -84,6 +84,14 @@
   margin: 0;
 }
 
+/* F-270 : réserve de prudence sous le niveau de risque (indicatif, jamais un % de succès). */
+.risk-reserve {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--color-text-secondary, #6B7A8D);
+  margin: 4px 0 0;
+}
+
 .empty-block {
   display: flex;
   flex-direction: column;

@@ -40,6 +40,16 @@ class CaseConclusionPromptBuilderTest {
         assertThat(system).contains("Pièce n°");
     }
 
+    // F-270 : la garde rédactionnelle interdit tout pronostic chiffré de succès
+    @Test
+    void buildSystemPrompt_containsPronosticPrudenceGuard() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        assertThat(system).contains("Prudence du pronostic");
+        assertThat(system).contains("chance de gagner");
+        assertThat(system).contains("juridiction saisie et de la formation de jugement");
+    }
+
     @Test
     void buildSystemPrompt_unknownCombination_throws() {
         CombinationKey unknown = new CombinationKey(

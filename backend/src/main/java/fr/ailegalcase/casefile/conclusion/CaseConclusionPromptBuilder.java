@@ -102,7 +102,11 @@ public class CaseConclusionPromptBuilder {
                     + "8. Réfutation des moyens adverses (SF-261-02). Pour chaque moyen listé dans la "
                     + "section « MOYENS ADVERSES À RÉFUTER » : réfute-le explicitement — démontre qu'il "
                     + "est mal fondé, contredit par les faits et les pièces, ou que sa base juridique "
-                    + "est inopérante. N'invente AUCUN moyen adverse non listé dans cette section.";
+                    + "est inopérante. N'invente AUCUN moyen adverse non listé dans cette section.\n"
+                    + "9. Prudence du pronostic (F-270). N'exprime JAMAIS une probabilité ou un "
+                    + "pourcentage chiffré de succès ou d'issue favorable, ni une « chance de gagner ». "
+                    + "L'appréciation de l'aléa judiciaire reste qualitative et assortie de la réserve "
+                    + "que l'issue dépend de la juridiction saisie et de la formation de jugement.";
 
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;

@@ -258,6 +258,18 @@ class CaseAnalysisServiceTest {
         assertThat(prompt).contains("questions_ouvertes");
     }
 
+    // F-270 U-10 : le system prompt porte la garde de prudence du pronostic
+    @Test
+    void systemPrompt_containsPronosticPrudenceGuard() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).contains("Prudence du pronostic");
+        assertThat(prompt).contains("chance de gagner");
+        assertThat(prompt).contains("pourcentage chiffré de succès");
+        assertThat(prompt).contains("juridiction saisie et de la formation de jugement");
+    }
+
     // F-269 U-08 : ancrage de la partie représentée — demandeur en droit du travail = salarié
     @Test
     void partieRepresenteeContext_travailDemandeur_ancreSalarieEtPiecesMedicales() {

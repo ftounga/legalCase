@@ -128,6 +128,17 @@ describe('SynthesisRisquesComponent (F-162 SF-162-05)', () => {
     expect(fixture.nativeElement.textContent).toContain('80');
   });
 
+  // F-270 : réserve de prudence affichée sous le niveau de risque (indicatif, pas un % de succès)
+  it('F-270: affiche la réserve de prudence sous le niveau de risque', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1)]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeAnalysis(1, [{ texte: 'r1' }], 'ELEVE', 80)));
+    fixture.detectChanges();
+
+    const reserve = fixture.nativeElement.querySelector('[data-testid="risk-reserve"]');
+    expect(reserve).toBeTruthy();
+    expect(reserve.textContent).toContain('indicative');
+  });
+
   // U-6 : riskLabel humanise l'enum
   it('U6: riskLabel humanises enum values', () => {
     expect(component.riskLabel('FAIBLE')).toBe('Faible');

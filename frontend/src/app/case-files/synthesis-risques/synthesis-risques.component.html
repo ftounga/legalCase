@@ -35,6 +35,12 @@
         }
       </div>
       <p class="case-subtitle">{{ caseFile()!.title }}</p>
+      <!-- F-270 : réserve de prudence — le niveau de risque est indicatif, jamais une « chance de succès ». -->
+      @if (synthesis()?.riskLevel) {
+        <p class="risk-reserve" data-testid="risk-reserve">
+          Estimation indicative — l'issue dépend de la juridiction saisie et de la formation de jugement.
+        </p>
+      }
     </div>
 
     @if (!synthesis() || synthesis()!.risques.length === 0) {
