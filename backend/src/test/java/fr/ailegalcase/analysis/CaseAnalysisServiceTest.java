@@ -247,6 +247,37 @@ class CaseAnalysisServiceTest {
         assertThat(prompt).contains("date_detectee");
     }
 
+    // F-269 U-07 : le system prompt porte la garde anti-attribution erronée des pièces
+    @Test
+    void systemPrompt_containsPieceAttributionGuard() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).contains("ne concerne pas le client");
+        assertThat(prompt).contains("réputée concerner le client");
+        assertThat(prompt).contains("questions_ouvertes");
+    }
+
+    // F-269 U-08 : ancrage de la partie représentée — demandeur en droit du travail = salarié
+    @Test
+    void partieRepresenteeContext_travailDemandeur_ancreSalarieEtPiecesMedicales() {
+        String ctx = CaseAnalysisService.buildPartieRepresenteeContext("DROIT_DU_TRAVAIL", "FRANCE", "DEMANDEUR");
+        assertThat(ctx).contains("PARTIE REPRÉSENTÉE");
+        assertThat(ctx).contains("DEMANDEUR");
+        assertThat(ctx).contains("SALARIÉ");
+        assertThat(ctx).contains("arrêt de travail");
+        assertThat(ctx).contains("se rapporte par défaut au client");
+    }
+
+    // F-269 U-09 : position non renseignée → consigne de rattachement par défaut au client
+    @Test
+    void partieRepresenteeContext_positionNulle_rattacheAuClientParDefaut() {
+        String ctx = CaseAnalysisService.buildPartieRepresenteeContext("DROIT_DU_TRAVAIL", "FRANCE", null);
+        assertThat(ctx).contains("PARTIE REPRÉSENTÉE");
+        assertThat(ctx).contains("n'est pas renseignée");
+        assertThat(ctx).contains("concerne le client");
+    }
+
     // U-06 : le prompt agrège les documents dans l'ordre chronologique
     @Test
     void consumeCaseAnalysis_promptContainsDocumentsInChronologicalOrder() {

@@ -139,8 +139,36 @@ public class CaseAnalysisService {
             sourceKeys génériques attendus si la donnée est dans la synthèse : convention_collective, date_entree, salaire_brut_mensuel, conges_contractuels, prime_anciennete_contractuelle, type_rupture, date_licenciement, duree_mariage, revenus_conjoints, nationalite_ue, type_titre_sejour, type_recours, date_notification_decision_contestee. Codes F96 additionnels possibles : FR_CONVOCATION, FR_MOTIVATION, BE_AUDITION, RC_CONSENTEMENT, RC_DELAI_RETRACTATION, DT09_TYPE_RUPTURE, FA05_VALEUR_VENALE, FA06_MODE_GARDE, IM05_MOTIF, IM06_RECOURS_TYPE, IM07_TITRE_TYPE, IM21_REGULARITE_SEJOUR_FR, IM21_DELAI_DEPOT_FR, IM21_PIECE_IDENTITE_FR, IM21_JUSTIF_DOMICILE_FR, IM21_ETAT_CIVIL_FR, IM21_PHOTO_FR, IM21_TIMBRE_FISCAL_FR, IM21_PIECES_MARIAGE_FR, IM21_COMMUNAUTE_VIE_FR, IM21_RESSOURCES_FR, IM21_CONVENTION_ACCUEIL_FR, IM21_REGULARITE_SEJOUR_BE, IM21_PIECE_IDENTITE_BE, IM21_PIECES_COHABITATION_BE, IM21_RESSOURCES_BE, IM21_LOGEMENT_BE, IM21_ASSURANCE_BE, IM21_EXTRAIT_CASIER_BE, etc. Produis uniquement les sourcekeys dont la donnée est concrète dans la synthèse ; omet les autres. Aucune invention : un label DOCUMENT doit correspondre à un fichier réellement listé dans le prompt utilisateur. Si aucune source unique n'est identifiable, utilise sourceType="ANALYSIS_DETECTION" et label="Synthèse du dossier". Si aucune donnée factuelle pertinente, "source_explanations": [].
             IMPORTANT : si plusieurs sources corroborent la même donnée (ex. un document ET une réponse à une question confirment la même convention), produis PLUSIEURS entries avec le MÊME sourceKey, chacune avec un sourceType et label différents. Cela permet d'afficher les sources côte à côte. Exemple : [{"sourceKey": "convention_collective", "sourceType": "DOCUMENT", "label": "contrat.pdf", ...}, {"sourceKey": "convention_collective", "sourceType": "QUESTION_AI", "label": "Quelle convention ?", ...}].
 
+            Fiabilité d'attribution des pièces (F-269) : n'affirme JAMAIS qu'une pièce « ne concerne pas le client » ou « n'est pas applicable » sans citer le nom d'une partie tierce figurant explicitement sur la pièce. À défaut de mention nominative contraire, toute pièce du dossier est réputée concerner le client. En cas de doute, traite-la comme concernant le client et signale-le dans questions_ouvertes — jamais comme une exclusion.
             Contraintes de longueur : produis jusqu'à %d entrées timeline, %d faits, %d points_juridiques, %d risques, %d questions_ouvertes, %d pièces manquantes, %d points procédure, %d pistes stratégiques. Pas de minimum — produis exactement ce que la richesse du dossier justifie, sans rembourrer pour atteindre les limites.
             """;
+
+    /**
+     * F-269 — Bloc de contexte « partie représentée » injecté en tête du prompt
+     * utilisateur de la synthèse. Ancre l'identité du client (déduite de la position
+     * procédurale du dossier) pour empêcher l'IA d'attribuer à tort une pièce — en
+     * particulier une pièce médicale (arrêt de travail) — à une autre partie que le client.
+     */
+    static String buildPartieRepresenteeContext(String legalDomain, String country, String procedurePosition) {
+        StringBuilder sb = new StringBuilder("=== PARTIE REPRÉSENTÉE ===\n");
+        if (procedurePosition == null || procedurePosition.isBlank()) {
+            sb.append("La partie représentée n'est pas renseignée. En cas de doute, "
+                    + "considère que toute pièce du dossier concerne le client de l'avocat.");
+        } else {
+            sb.append("Ce dossier est analysé du côté : ").append(procedurePosition).append(". ");
+            if ("DROIT_DU_TRAVAIL".equals(legalDomain)) {
+                sb.append("En droit du travail, le demandeur est par défaut le SALARIÉ et le "
+                        + "défendeur l'EMPLOYEUR. ");
+            }
+            sb.append("Le client de l'avocat est cette partie. Toute pièce du dossier — notamment "
+                    + "toute pièce médicale (arrêt de travail, certificat médical, avis du médecin "
+                    + "du travail, déclaration d'accident du travail ou de maladie professionnelle) — "
+                    + "se rapporte par défaut au client SAUF mention explicite et nominative d'une "
+                    + "autre personne.");
+        }
+        sb.append("\n");
+        return sb.toString();
+    }
 
     static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
         return SYSTEM_PROMPT_TEMPLATE.formatted(
@@ -412,9 +440,13 @@ public class CaseAnalysisService {
         // F-146 SF-146-01 : préfixe le prompt utilisateur avec la liste des pièces
         // identifiées (F-145) pour que l'IA puisse produire des `sourceRef` précis.
         String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
-        String userPrompt = (piecesContext == null || piecesContext.isEmpty())
+        // F-269 — ancrage de la partie représentée (client) en tête du prompt, pour
+        // empêcher l'attribution erronée d'une pièce à une autre partie.
+        String partieContext = buildPartieRepresenteeContext(legalDomain, country, caseFile.getProcedurePosition());
+        String aggregated = (piecesContext == null || piecesContext.isEmpty())
                 ? buildAggregatedPrompt(documentAnalyses)
                 : piecesContext + "\n" + buildAggregatedPrompt(documentAnalyses);
+        String userPrompt = partieContext + "\n" + aggregated;
         // F-257 — pré-résolution workspaceId + userId pour la construction de
         // AiCallContext dans consumeCaseAnalysis (un seul ctx pour streaming + fallback sync).
         UUID workspaceId = ws != null ? ws.getId()
