@@ -838,4 +838,88 @@ class CaseConclusionPromptBuilderTest {
         assertThat(CaseConclusionPromptBuilder.appliesProcedureOrderGuard(DEFENDEUR_BE_KEY)).isFalse();
         assertThat(CaseConclusionPromptBuilder.appliesProcedureOrderGuard(null)).isFalse();
     }
+
+    // ── F-274 / SF-274-01 — garde « pièces adverses » (communication / rejet, art. 132-135 CPC) ──
+
+    @Test
+    void buildSystemPrompt_demandeurFr_containsAdversePiecesGuard() {
+        // CA1 — présente sur une cellule FR demandeur (la garde s'applique des deux côtés).
+        String system = procedureBuilder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        assertThat(system).contains("article 132 du Code de procédure civile");
+        assertThat(system).contains("article 135 du Code de procédure civile");
+        assertThat(system).containsIgnoringCase("communiqu");
+        assertThat(system).containsIgnoringCase("écarter des débats");
+    }
+
+    @Test
+    void buildSystemPrompt_defendeurFr_containsAdversePiecesGuard() {
+        // CA2 — présente sur une cellule FR défendeur.
+        String system = procedureBuilder.buildSystemPrompt(DEFENDEUR_FR_KEY, List.of());
+
+        assertThat(system).contains("Pièces de la partie adverse");
+        assertThat(system).contains("article 132 du Code de procédure civile");
+        assertThat(system).contains("article 135 du Code de procédure civile");
+    }
+
+    @Test
+    void buildSystemPrompt_defendeurBe_omitsAdversePiecesGuard() {
+        // CA3 — absente sur une cellule BE (régime du Code judiciaire, hors périmètre).
+        String system = procedureBuilder.buildSystemPrompt(DEFENDEUR_BE_KEY, List.of());
+
+        assertThat(system).doesNotContain("Pièces de la partie adverse");
+        assertThat(system).doesNotContain("article 132 du Code de procédure civile");
+    }
+
+    @Test
+    void adversePiecesGuard_carriesAutoConditioningAndAntiInvention() {
+        // CA4 — auto-conditionnement sur la présence de pièces adverses + anti-invention.
+        String guard = CaseConclusionPromptBuilder.ADVERSE_PIECES_GUARD;
+
+        assertThat(guard).contains("LORSQUE la partie adverse a communiqué");
+        assertThat(guard).contains("MOYENS ADVERSES À RÉFUTER");
+        assertThat(guard).contains("n'invente aucune pièce");
+        assertThat(guard).containsIgnoringCase("n'invente AUCUNE pièce, AUCUNE date");
+        assertThat(guard).contains("n'ajoute pas de rubrique vide");
+    }
+
+    @Test
+    void adversePiecesGuard_doesNotLeakToolCodeOrFileName() {
+        // CA5 — anti-jargon (non-régression SF-98-55) : aucun code outil, aucun nom de fichier.
+        String guard = CaseConclusionPromptBuilder.ADVERSE_PIECES_GUARD;
+
+        assertThat(guard)
+                .doesNotContainIgnoringCase("F-DT-")
+                .doesNotContainIgnoringCase("F-274")
+                .doesNotContain(".pdf")
+                .doesNotContain("nom de fichier interne");
+        assertThat(guard).contains("sans exposer de libellé interne ni de nom de fichier");
+    }
+
+    @Test
+    void buildSystemPrompt_defendeurFr_adversePieces_doesNotRegressOtherGuards() {
+        // CA6 — coexistence : la garde s'ajoute sans remplacer les gardes existantes.
+        String system = procedureBuilder.buildSystemPrompt(DEFENDEUR_FR_KEY, List.of());
+
+        // Garde rédactionnelle commune (SF-98-55) + point 8 réfutation des moyens (SF-261-02)
+        assertThat(system).contains("Garde de qualité rédactionnelle");
+        assertThat(system).contains("Réfutation des moyens adverses");
+        // Ossature in limine litis (F-272)
+        assertThat(system).containsIgnoringCase("in limine litis");
+        // Garde jurisprudence (F-242)
+        assertThat(system).contains("Garde jurisprudence");
+        // Nouvelle garde F-274
+        assertThat(system).contains("Pièces de la partie adverse");
+    }
+
+    @Test
+    void appliesAdversePiecesGuard_truthTable() {
+        // CA7 — FR (toute position) → true ; BE → false ; null → false.
+        assertThat(CaseConclusionPromptBuilder.appliesAdversePiecesGuard(DEMANDEUR_KEY)).isTrue();
+        assertThat(CaseConclusionPromptBuilder.appliesAdversePiecesGuard(DEFENDEUR_FR_KEY)).isTrue();
+        assertThat(CaseConclusionPromptBuilder.appliesAdversePiecesGuard(INTIME_FR_KEY)).isTrue();
+        assertThat(CaseConclusionPromptBuilder.appliesAdversePiecesGuard(DEFENDEUR_POURVOI_FR_KEY)).isTrue();
+        assertThat(CaseConclusionPromptBuilder.appliesAdversePiecesGuard(DEFENDEUR_BE_KEY)).isFalse();
+        assertThat(CaseConclusionPromptBuilder.appliesAdversePiecesGuard(null)).isFalse();
+    }
 }

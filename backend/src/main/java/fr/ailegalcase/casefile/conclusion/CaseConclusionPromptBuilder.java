@@ -177,6 +177,51 @@ public class CaseConclusionPromptBuilder {
                     + "réellement fondée par les faits, les pièces ou les verdicts fournis. À défaut, "
                     + "n'ajoute pas de rubrique vide et n'invente aucun moyen de procédure.";
 
+    /**
+     * F-274 / SF-274-01 — garde « pièces adverses » : réflexe du contradictoire sur les
+     * pièces de la partie adverse, conditionnée à la <strong>France</strong> (les articles
+     * 132 et 135 du Code de procédure civile sont propres à la procédure civile française ;
+     * le régime belge est hors périmètre). Elle s'applique au demandeur comme au défendeur
+     * (les deux peuvent répliquer sur la communication des pièces), mais reste
+     * <strong>auto-conditionnée</strong> dans son texte à la présence réelle d'écritures /
+     * pièces adverses au dossier (sections « MOYENS ADVERSES À RÉFUTER » / « JURISPRUDENCE
+     * ADVERSE À RÉFUTER » du message utilisateur, alimentées par les documents tagués
+     * {@code adverse_pleadings} — F-261). Sans pièce adverse, la garde est inopérante
+     * (no-op) : aucune rubrique vide, aucune invention.
+     *
+     * <p>Mécanisme symétrique de {@link #JURISPRUDENCE_GUARD},
+     * {@link #REDACTION_QUALITY_GUARD} et {@link #PROCEDURE_ORDER_GUARD} : garde transverse
+     * appliquée par-dessus le prompt de base, jamais dupliquée provider par provider,
+     * transverse aux 3 domaines FR (le régime de communication des pièces ne dépend pas du
+     * domaine). Anti-jargon (non-régression SF-98-55) : viser les articles du CPC, jamais
+     * un libellé d'outil ni un nom de fichier.</p>
+     */
+    static final String ADVERSE_PIECES_GUARD =
+            "Pièces de la partie adverse (impératif — procédure civile française, principe du "
+                    + "contradictoire) :\n"
+                    + "1. Champ d'application. Cette consigne ne s'applique que LORSQUE la partie "
+                    + "adverse a communiqué des écritures ou des pièces — c'est-à-dire lorsque les "
+                    + "sections « MOYENS ADVERSES À RÉFUTER » ou « JURISPRUDENCE ADVERSE À RÉFUTER » "
+                    + "sont présentes. À défaut, n'ajoute AUCUNE demande relative aux pièces adverses "
+                    + "et n'invente aucune pièce.\n"
+                    + "2. Demande de communication (article 132 du Code de procédure civile). Si la "
+                    + "partie adverse fait état d'une pièce qu'elle n'a pas communiquée, sollicite sa "
+                    + "communication : un développement en discussion et une prétention au dispositif "
+                    + "(« ORDONNER à la partie adverse de communiquer la pièce … »). Ne le fais que "
+                    + "pour des pièces réellement visées par l'adversaire sans figurer parmi les pièces "
+                    + "communiquées.\n"
+                    + "3. Rejet des pièces tardives (article 135 du Code de procédure civile). Si une "
+                    + "pièce a été communiquée tardivement, en violation du contradictoire et des "
+                    + "articles 15 et 16 du Code de procédure civile, demande qu'elle soit écartée des "
+                    + "débats (« ÉCARTER des débats la pièce … communiquée tardivement »). Ne formule "
+                    + "cette demande QUE si une communication tardive ou une atteinte au contradictoire "
+                    + "ressort réellement des éléments du dossier.\n"
+                    + "4. Anti-invention. N'invente AUCUNE pièce, AUCUNE date de communication ni "
+                    + "AUCUNE tardiveté non étayée par le dossier. Vise les articles applicables (132, "
+                    + "135, le cas échéant 15 et 16 du Code de procédure civile) sans exposer de "
+                    + "libellé interne ni de nom de fichier. À défaut d'élément fondant l'une de ces "
+                    + "demandes, n'ajoute pas de rubrique vide.";
+
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
 
@@ -216,6 +261,11 @@ public class CaseConclusionPromptBuilder {
         if (appliesProcedureOrderGuard(key)) {
             sb.append('\n').append(PROCEDURE_ORDER_GUARD).append('\n');
         }
+        // SF-274-01 — réflexe contradictoire sur les pièces adverses (art. 132/135 CPC),
+        // uniquement FR ; auto-conditionnée dans son texte à la présence de pièces adverses.
+        if (appliesAdversePiecesGuard(key)) {
+            sb.append('\n').append(ADVERSE_PIECES_GUARD).append('\n');
+        }
         List<String> usable = sanitizeSignatures(styleSignatures);
         if (!usable.isEmpty()) {
             sb.append(STYLE_INSTRUCTION_HEADER).append('\n');
@@ -242,6 +292,24 @@ public class CaseConclusionPromptBuilder {
         }
         return ProcedureStageCatalog.FRANCE.equals(key.country())
                 && DEFENCE_POSITIONS.contains(key.position());
+    }
+
+    /**
+     * F-274 / SF-274-01 — détermine si la garde {@link #ADVERSE_PIECES_GUARD} s'applique à
+     * la cellule {@code key} : uniquement en procédure <strong>française</strong>
+     * ({@code country == FRANCE}), pour toute position (demandeur comme défendeur) et tout
+     * domaine. Le déclenchement effectif reste auto-conditionné dans le texte de la garde à
+     * la présence d'écritures / pièces adverses (sections du message utilisateur) ; ici on
+     * ne fait que le gating pays. Le régime belge (Code judiciaire) est hors périmètre.
+     *
+     * @param key cellule de matrice (peut être {@code null})
+     * @return {@code true} si la garde « pièces adverses » doit être injectée
+     */
+    static boolean appliesAdversePiecesGuard(CombinationKey key) {
+        if (key == null) {
+            return false;
+        }
+        return ProcedureStageCatalog.FRANCE.equals(key.country());
     }
 
     /** Filtre les signatures de style exploitables (non nulles, non vides). */
