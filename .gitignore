@@ -52,3 +52,7 @@ tools/prospection-apollo/lemlist-import-*.csv
 tools/prospection-apollo/suivi-avocats.csv
 tools/prospection-apollo/avocat-emails-pilote.md
 tools/prospection-apollo/batches/
+
+# Artefacts Python (outils prospection)
+__pycache__/
+*.pyc
