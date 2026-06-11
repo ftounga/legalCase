@@ -21,7 +21,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import {
   ConclusionDocumentComponent,
   PieceRef,
@@ -262,7 +264,17 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   private readonly docxExportService = inject(DocxExportService);
   private readonly pdfExportService = inject(PdfExportService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /**
+   * SF-266-03 — Emplacements « à compléter » (placeholders « [ … ] ») encore
+   * présents dans l'acte stocké. Sert au bandeau d'alerte et à la confirmation
+   * avant export « déposable ». Recalculé à chaque changement de `conclusion()`.
+   */
+  readonly placeholdersToFill = computed(() =>
+    extractPlaceholders(this.conclusion()?.content ?? ''),
+  );
 
   /** Handle du polling actif (null = aucun polling en cours). */
   private pollHandle: ReturnType<typeof setInterval> | null = null;
@@ -530,6 +542,10 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    * d'erreur ; une erreur synchrone inattendue est captée ici par sécurité.
    */
   downloadWord(): void {
+    this.guardThenExport(() => this.runWordExport());
+  }
+
+  private runWordExport(): void {
     const current = this.conclusion();
     if (current?.status !== 'DONE' || !current.content) {
       return;
@@ -550,6 +566,45 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * SF-266-03 — Garde avant export « déposable » : si l'acte contient encore
+   * des emplacements à compléter (`placeholdersToFill`), on ouvre une
+   * confirmation listant ces éléments avant de lancer l'export. Sinon l'export
+   * part directement. L'avocat reste libre d'exporter un brouillon (« Exporter
+   * quand même »).
+   */
+  private guardThenExport(run: () => void): void {
+    const current = this.conclusion();
+    if (current?.status !== 'DONE' || !current.content) {
+      return;
+    }
+    const pending = this.placeholdersToFill();
+    if (pending.length === 0) {
+      run();
+      return;
+    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '460px',
+        data: {
+          title: 'Éléments à compléter avant dépôt',
+          message:
+            `L'acte contient encore ${pending.length} ` +
+            `élément(s) à compléter : ${pending.join(', ')}. ` +
+            `Exporter quand même ?`,
+          confirmLabel: 'Exporter quand même',
+          confirmColor: 'warn',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          run();
+        }
+        this.cdr.markForCheck();
+      });
+  }
+
+  /**
    * SF-98-51 — Télécharge la version affichée au format PDF.
    *
    * Disponible uniquement quand la version est `DONE` (donc avec un `content`).
@@ -559,6 +614,10 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    * d'erreur ; une erreur synchrone inattendue est captée ici par sécurité.
    */
   downloadPdf(): void {
+    this.guardThenExport(() => this.runPdfExport());
+  }
+
+  private runPdfExport(): void {
     const current = this.conclusion();
     if (current?.status !== 'DONE' || !current.content) {
       return;
@@ -1054,6 +1113,42 @@ export function buildExportContent(header: string, content: string): string {
   }
   parts.push('---');
   return parts.join('\n\n') + '\n\n' + content;
+}
+
+/**
+ * SF-266-03 — Détecte les emplacements « à compléter » laissés dans l'acte :
+ * placeholders entre crochets posés par le générateur (« [Nom et qualité de
+ * l'avocat] », « [à compléter] », « [Date] », « [Lieu] »…). Avant tout export
+ * « déposable » (PDF/Word), on alerte l'avocat sur ces éléments non renseignés.
+ *
+ * <p>Heuristique générique : tout token « [ … ] » sur une seule ligne (≤ 80
+ * caractères), contenant au moins une lettre, et **non immédiatement suivi de
+ * `(`** (ce qui écarte les liens markdown « [libellé](url) »). Dédupliqué en
+ * conservant l'ordre d'apparition. Pure fonction, sans dépendance.</p>
+ *
+ * @param content markdown de l'acte (le `content` stocké, pas l'export)
+ * @returns liste ordonnée et dédupliquée des placeholders restants (crochets inclus)
+ */
+export function extractPlaceholders(content: string): string[] {
+  if (!content) {
+    return [];
+  }
+  const seen = new Set<string>();
+  const result: string[] = [];
+  const regex = /\[[^\]\n]{1,80}\](?!\()/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(content)) !== null) {
+    const token = match[0];
+    // Au moins une lettre (écarte les renvois numériques « [1] »).
+    if (!/\p{L}/u.test(token)) {
+      continue;
+    }
+    if (!seen.has(token)) {
+      seen.add(token);
+      result.push(token);
+    }
+  }
+  return result;
 }
 
 /**

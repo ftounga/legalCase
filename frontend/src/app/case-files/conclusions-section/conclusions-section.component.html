@@ -375,6 +375,36 @@
             }
           </div>
 
+          <!-- SF-266-03 — Garde « acte déposable » : alerte sur les emplacements
+               « [ … ] » encore à compléter (date, nom/qualité de l'avocat…)
+               avant l'export PDF/Word. -->
+          @if (placeholdersToFill().length > 0) {
+            <div class="cs-placeholder-alert"
+                 data-testid="placeholder-alert"
+                 role="status">
+              <mat-icon class="cs-placeholder-alert__icon">warning_amber</mat-icon>
+              <div class="cs-placeholder-alert__body">
+                <p class="cs-placeholder-alert__title">
+                  {{ placeholdersToFill().length }} élément(s) à compléter avant dépôt
+                </p>
+                <ul class="cs-placeholder-alert__list">
+                  @for (ph of placeholdersToFill(); track ph) {
+                    <li>{{ ph }}</li>
+                  }
+                </ul>
+                @if (editable()) {
+                  <button mat-stroked-button
+                          class="cs-placeholder-alert__cta"
+                          data-testid="placeholder-edit-btn"
+                          (click)="startEditing()">
+                    <mat-icon>edit</mat-icon>
+                    Compléter
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
           <div class="cs-actions">
             @if (editable()) {
               <button mat-stroked-button
