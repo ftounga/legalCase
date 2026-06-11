@@ -55,11 +55,24 @@ def main():
     if not key:
         print("ERREUR clé Apollo absente (.apollo_key)", file=sys.stderr); sys.exit(1)
 
+    # exclure les cabinets DÉJÀ contactés (vagues précédentes) -> ne ramène que du nouveau
+    here = os.path.dirname(os.path.abspath(__file__))
+    already = set()
+    for fn in ["lemlist-import-master.csv", "avocat-leads-final.csv"]:
+        fp = os.path.join(here, fn)
+        if os.path.exists(fp):
+            for row in csv.DictReader(open(fp, encoding="utf-8")):
+                c = (row.get("companyName") or row.get("cabinet") or "").strip().lower()
+                if c:
+                    already.add(c)
+    if already:
+        print(f"{len(already)} cabinets déjà contactés -> exclus")
+
     seen, pool = set(), []
     for d in DOMAINS:
         for r in search_domain(key, d, args.per_domain, reveal_emails=False):
             k = (r["cabinet"] or "").strip().lower()
-            if k and k not in seen:
+            if k and k not in seen and k not in already:
                 seen.add(k); pool.append(r)
     print(f"Pool brut: {len(pool)} cabinets uniques. Enrichissement...")
 
