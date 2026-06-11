@@ -1,14 +1,15 @@
 export const meta = {
   name: 'avocat-wave',
-  description: 'Vague avocats: sourcing Apollo + perso introPerso (fan-out) + push Lemlist',
+  description: "Lance une vague de prospection avocat de bout en bout : sourcing Apollo (3 domaines travail/famille/immigration) + filtre domaine-fit, generation d'accroches personnalisees en parallele, push direct dans la campagne Lemlist. Acquisition, ne cree pas de feature produit.",
+  whenToUse: "Lancer une nouvelle vague d'emailing avocat : 'lance la vague avocat' / 'run avocat-wave'. args.perDomain = nb de cabinets par domaine (defaut 100). Suppose Apollo + cle Lemlist configures (.apollo_key, .lemlist_key).",
   phases: [
     { title: 'Source', detail: 'avocat_pipeline.py (source + enrich + filtre domaine-fit)' },
     { title: 'Personnalise', detail: 'split -> fan-out accroches -> merge CSV Lemlist' },
-    { title: 'Push', detail: 'lemlist_push.py si API dispo, sinon CSV prêt pour import manuel' },
+    { title: 'Push', detail: 'lemlist_push.py -> pousse les leads dans la campagne (API OK plan Email)' },
   ],
 }
 
-// Lancer : Workflow({ scriptPath: "tools/prospection-apollo/avocat-wave.workflow.js", args: { perDomain: 100 } })
+// Lancer : Workflow({ name: "avocat-wave", args: { perDomain: 100 } })
 const DIR = 'tools/prospection-apollo'
 const perDomain = (args && args.perDomain) || 100
 
