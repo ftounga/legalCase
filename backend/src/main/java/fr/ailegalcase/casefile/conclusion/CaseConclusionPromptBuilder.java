@@ -106,7 +106,17 @@ public class CaseConclusionPromptBuilder {
                     + "9. Prudence du pronostic (F-270). N'exprime JAMAIS une probabilité ou un "
                     + "pourcentage chiffré de succès ou d'issue favorable, ni une « chance de gagner ». "
                     + "L'appréciation de l'aléa judiciaire reste qualitative et assortie de la réserve "
-                    + "que l'issue dépend de la juridiction saisie et de la formation de jugement.";
+                    + "que l'issue dépend de la juridiction saisie et de la formation de jugement.\n"
+                    + "10. Conclusions récapitulatives (F-271, art. 768 CPC). Lorsqu'une section "
+                    + "« BASE À CONSOLIDER (jeu de conclusions précédent) » est fournie, ce texte est le "
+                    + "dernier jeu de conclusions de l'avocat (ses éditions manuelles incluses) : tu "
+                    + "produis un jeu RÉCAPITULATIF qui REPREND l'intégralité de ses chefs de demande et "
+                    + "de ses moyens, puis les enrichit et les actualise au vu des éléments nouveaux "
+                    + "(synthèse, moyens et jurisprudence adverses, pièces). N'ABANDONNE aucun chef de "
+                    + "demande ni moyen présent dans la base sans qu'un élément du dossier ne le justifie "
+                    + "explicitement — en procédure écrite, un chef non repris est réputé abandonné. "
+                    + "Respecte la formulation et le style des passages que l'avocat a rédigés. Cette "
+                    + "section est une matière première INTERNE : ne la cite ni ne la commente, consolide-la.";
 
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
@@ -183,6 +193,10 @@ public class CaseConclusionPromptBuilder {
                 .append(" — ").append(nullSafe(input.stageLabel()))
                 .append(" — ").append(nullSafe(input.positionLabel())).append('\n');
 
+        // F-271 — base récapitulative : le dernier jeu de conclusions (éditions de l'avocat
+        // incluses) sert de socle à consolider (art. 768 CPC). Section absente si pas de base.
+        appendPreviousRecap(sb, input.previousRecapContent());
+
         appendSynthesis(sb, input.analysisResultJson());
 
         appendPartiesIdentity(sb, input.analysisResultJson());
@@ -235,6 +249,25 @@ public class CaseConclusionPromptBuilder {
         appendAdverseJurisprudenceToRefute(sb, input.adverseToRefute());
 
         return sb.toString();
+    }
+
+    /**
+     * F-271 — section « BASE À CONSOLIDER » : le {@code content} de la dernière version
+     * DONE des conclusions du dossier (éditions manuelles de l'avocat incluses). Sert de
+     * socle au jeu récapitulatif (art. 768 CPC). La section est <strong>absente</strong>
+     * (no-op) à la première génération, ou si le content précédent est nul / vide.
+     */
+    private void appendPreviousRecap(StringBuilder sb, String previousRecapContent) {
+        if (previousRecapContent == null || previousRecapContent.isBlank()) {
+            return;
+        }
+        sb.append("\n=== BASE À CONSOLIDER (jeu de conclusions précédent) ===\n");
+        sb.append("Le texte ci-dessous est le DERNIER jeu de conclusions de l'avocat sur ce "
+                + "dossier (ses éditions manuelles incluses). Produis un jeu RÉCAPITULATIF qui "
+                + "REPREND tous ses chefs de demande et moyens, puis les enrichit et les actualise "
+                + "au vu des éléments nouveaux. N'abandonne aucun chef sans justification (art. 768 "
+                + "CPC). Ne recopie pas servilement : consolide.\n");
+        sb.append(previousRecapContent.strip()).append('\n');
     }
 
     /**
@@ -552,7 +585,25 @@ public class CaseConclusionPromptBuilder {
             List<JurisprudenceCitationForPrompt> jurisprudenceCitations,
             List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool,
             List<AdverseCitationToRefute> adverseToRefute,
-            List<AdverseMoyen> adverseMoyens) {
+            List<AdverseMoyen> adverseMoyens,
+            String previousRecapContent) {
+
+        /**
+         * F-98 / SF-261-02 — constructeur back-compat (pré-F-271, sans base récapitulative).
+         * La base récapitulative est absente ({@code null}) → génération from-scratch.
+         */
+        public ConclusionPromptInput(
+                String caseTitle, String jurisdictionLabel, String stageLabel, String positionLabel,
+                String analysisResultJson, List<NumberedPiece> pieces, List<DashboardTile> toolTiles,
+                List<RetainedStrategy> retainedStrategies,
+                List<JurisprudenceCitationForPrompt> jurisprudenceCitations,
+                List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool,
+                List<AdverseCitationToRefute> adverseToRefute,
+                List<AdverseMoyen> adverseMoyens) {
+            this(caseTitle, jurisdictionLabel, stageLabel, positionLabel, analysisResultJson,
+                    pieces, toolTiles, retainedStrategies, jurisprudenceCitations,
+                    toolJurisprudenceByTool, adverseToRefute, adverseMoyens, null);
+        }
 
         /** F-JU-02 / SF-JU-02-01 — constructeur back-compat (pré-F-JU-02). */
         public ConclusionPromptInput(

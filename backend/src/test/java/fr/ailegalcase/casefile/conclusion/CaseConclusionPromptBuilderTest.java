@@ -624,4 +624,65 @@ class CaseConclusionPromptBuilderTest {
         assertThat(CaseConclusionPromptBuilder.humanizeToolId(null)).isEmpty();
         assertThat(CaseConclusionPromptBuilder.humanizeToolId("  ")).isEmpty();
     }
+
+    // ===== F-271 — conclusions récapitulatives (base à consolider) =====
+
+    @Test
+    void buildSystemPrompt_containsRecapitulatifGuard() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+        assertThat(system).contains("Conclusions récapitulatives");
+        assertThat(system).contains("art. 768 CPC");
+        assertThat(system).contains("BASE À CONSOLIDER");
+        assertThat(system).contains("réputé abandonné");
+    }
+
+    @Test
+    void buildUserMessage_withPreviousRecap_includesBaseSection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier Dupont c/ SARL Martin",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                "## PAR CES MOTIFS\nCondamner la SARL Martin à 18 000 € de dommages et intérêts.");
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== BASE À CONSOLIDER (jeu de conclusions précédent) ===");
+        assertThat(message).contains("Condamner la SARL Martin à 18 000 €");
+        assertThat(message).contains("art. 768");
+    }
+
+    @Test
+    void buildUserMessage_withoutPreviousRecap_omitsBaseSection() {
+        // Constructeur back-compat (pré-F-271) → previousRecapContent == null.
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier minimal",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("BASE À CONSOLIDER");
+    }
+
+    @Test
+    void buildUserMessage_blankPreviousRecap_omitsBaseSection() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier blanc",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                "   ");
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("BASE À CONSOLIDER");
+    }
 }
