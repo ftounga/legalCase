@@ -474,6 +474,69 @@ describe('ConclusionsSectionComponent', () => {
     component.ngOnDestroy();
   }));
 
+  // F-278 — garde anti-écrasement à la régénération (couplée F-271).
+  it('régénération avec versions existantes → confirmation puis POST', fakeAsync(() => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    expect(component.hasVersions()).toBe(true);
+    component.requestGenerate();
+
+    // F-278 : une confirmation a été ouverte avant la régénération.
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    const dialogData = dialogSpy.open.calls.mostRecent().args[1]?.data as {
+      title: string;
+      message: string;
+    };
+    expect(dialogData.title).toContain('Régénérer');
+    expect(dialogData.message).toContain('vos modifications incluses');
+
+    // afterClosed → true (défaut) → la génération part.
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 3 });
+    httpMock.expectOne(VERSIONS_URL).flush(versionList());
+
+    component.ngOnDestroy();
+  }));
+
+  it('régénération annulée → aucune requête POST', fakeAsync(() => {
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of(false),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.requestGenerate();
+
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    httpMock.expectNone(GENERATE_URL);
+
+    component.ngOnDestroy();
+  }));
+
+  it('première génération (aucune version) → pas de confirmation, POST direct', fakeAsync(() => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad(); // versions = [] par défaut
+    fixture.detectChanges();
+
+    expect(component.hasVersions()).toBe(false);
+    component.requestGenerate();
+
+    expect(dialogSpy.open).not.toHaveBeenCalled();
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 1 });
+    httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
   // SF-98-62 — une garde 409 (ex. combinaison procédurale non couverte) est un refus
   // actionnable → message PERSISTANT dans la section, plus de snackbar fugace.
   it('erreur 409 → message backend persistant dans la section (pas de snackbar)', () => {

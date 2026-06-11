@@ -77,7 +77,7 @@
             <button mat-flat-button color="primary"
                     data-testid="generate-btn"
                     [disabled]="generating()"
-                    (click)="generate()">
+                    (click)="requestGenerate()">
               @if (generating()) {
                 <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
               } @else {
@@ -161,7 +161,7 @@
                     class="cs-stale-action"
                     data-testid="stale-regenerate-btn"
                     [disabled]="generating()"
-                    (click)="generate()">
+                    (click)="requestGenerate()">
               @if (generating()) {
                 <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
               } @else {
