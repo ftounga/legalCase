@@ -491,6 +491,55 @@ $divider: #e0e4ea;
   gap: 12px;
 }
 
+/* SF-266-03 — Bandeau « éléments à compléter avant dépôt » (garde anti-export
+   d'un acte avec placeholders). Accent or (avertissement non bloquant). */
+.cs-placeholder-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #e7c98a;
+  border-left: 4px solid $gold;
+  border-radius: 10px;
+  background: #fdf7ec;
+
+  &__icon {
+    flex: 0 0 auto;
+    color: #b07d22;
+    margin-top: 1px;
+  }
+
+  &__body {
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0 0 6px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: #1a2330;
+  }
+
+  &__list {
+    margin: 0;
+    padding-left: 18px;
+    font-family: 'JetBrains Mono', 'Inter', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #5a4a26;
+
+    li {
+      word-break: break-word;
+    }
+  }
+
+  &__cta {
+    margin-top: 10px;
+  }
+}
+
 /* F-266 / SF-266-02 — En-tête de cabinet pour l'export (opt-in, non persisté). */
 .cs-cabinet-header {
   margin-bottom: 16px;

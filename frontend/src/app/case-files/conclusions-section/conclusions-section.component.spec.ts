@@ -10,9 +10,12 @@ import {
 } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { of } from 'rxjs';
 import { provideRouter } from '@angular/router';
 import {
   ConclusionsSectionComponent,
+  extractPlaceholders,
   parseMarkdownSections,
   replaceSectionInDraft,
   buildExportContent,
@@ -31,6 +34,7 @@ describe('ConclusionsSectionComponent', () => {
   let snackSpy: jasmine.SpyObj<MatSnackBar>;
   let docxSpy: jasmine.SpyObj<DocxExportService>;
   let pdfSpy: jasmine.SpyObj<PdfExportService>;
+  let dialogSpy: jasmine.SpyObj<MatDialog>;
 
   const CASE_ID = 'case-1';
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
@@ -117,6 +121,11 @@ describe('ConclusionsSectionComponent', () => {
     snackSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     docxSpy = jasmine.createSpyObj('DocxExportService', ['exportConclusion']);
     pdfSpy = jasmine.createSpyObj('PdfExportService', ['exportConclusion']);
+    dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
+    // Par défaut : confirmation acceptée (afterClosed → true).
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of(true),
+    } as never);
     await TestBed.configureTestingModule({
       imports: [
         ConclusionsSectionComponent,
@@ -127,6 +136,7 @@ describe('ConclusionsSectionComponent', () => {
         { provide: MatSnackBar, useValue: snackSpy },
         { provide: DocxExportService, useValue: docxSpy },
         { provide: PdfExportService, useValue: pdfSpy },
+        { provide: MatDialog, useValue: dialogSpy },
         provideRouter([]),
       ],
     }).compileComponents();
@@ -760,6 +770,89 @@ describe('ConclusionsSectionComponent', () => {
     expect(
       fixture.nativeElement.querySelector('[data-testid="download-word-btn"]'),
     ).toBeNull();
+  });
+
+  // ── SF-266-03 — garde « éléments à compléter » avant export ──────────────
+  describe('SF-266-03 — alerte placeholders avant export', () => {
+    it('extractPlaceholders : détecte, déduplique, ignore liens md et renvois [1]', () => {
+      const md = [
+        "POUR : [Nom et qualité de l'avocat]",
+        'Fait à [Lieu], le [Date].',
+        'Voir [Légifrance](https://x) et la note [1].',
+        "Signé : [Nom et qualité de l'avocat]",
+        'Reste [à compléter].',
+      ].join('\n');
+      expect(extractPlaceholders(md)).toEqual([
+        "[Nom et qualité de l'avocat]",
+        '[Lieu]',
+        '[Date]',
+        '[à compléter]',
+      ]);
+      expect(extractPlaceholders('')).toEqual([]);
+      expect(extractPlaceholders('Acte complet, sans crochet.')).toEqual([]);
+    });
+
+    it('bandeau rendu + placeholdersToFill quand l\'acte contient des placeholders', () => {
+      fixture.detectChanges();
+      flushInitialLoad(
+        doneResponse({
+          content: "POUR : [à compléter]\n\nSigné : [Nom et qualité de l'avocat]",
+        }),
+        versionList(),
+      );
+      fixture.detectChanges();
+
+      expect(component.placeholdersToFill()).toEqual([
+        '[à compléter]',
+        "[Nom et qualité de l'avocat]",
+      ]);
+      const alert = fixture.nativeElement.querySelector(
+        '[data-testid="placeholder-alert"]',
+      );
+      expect(alert).toBeTruthy();
+      expect(alert.textContent).toContain('2 élément(s) à compléter');
+    });
+
+    it('aucun bandeau quand l\'acte est complet', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList());
+      fixture.detectChanges();
+      expect(component.placeholdersToFill()).toEqual([]);
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="placeholder-alert"]'),
+      ).toBeNull();
+    });
+
+    it('downloadPdf avec placeholders → confirmation puis export si accepté', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse({ content: 'X [à compléter]' }), versionList());
+      fixture.detectChanges();
+
+      component.downloadPdf();
+      expect(dialogSpy.open).toHaveBeenCalled();
+      expect(pdfSpy.exportConclusion).toHaveBeenCalled();
+    });
+
+    it('downloadPdf → confirmation refusée → pas d\'export', () => {
+      dialogSpy.open.and.returnValue({ afterClosed: () => of(false) } as never);
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse({ content: 'X [à compléter]' }), versionList());
+      fixture.detectChanges();
+
+      component.downloadPdf();
+      expect(dialogSpy.open).toHaveBeenCalled();
+      expect(pdfSpy.exportConclusion).not.toHaveBeenCalled();
+    });
+
+    it('downloadWord sans placeholder → export direct, sans dialog', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList());
+      fixture.detectChanges();
+
+      component.downloadWord();
+      expect(dialogSpy.open).not.toHaveBeenCalled();
+      expect(docxSpy.exportConclusion).toHaveBeenCalled();
+    });
   });
 
   it('clic « Télécharger en Word » → appelle DocxExportService.exportConclusion', () => {
