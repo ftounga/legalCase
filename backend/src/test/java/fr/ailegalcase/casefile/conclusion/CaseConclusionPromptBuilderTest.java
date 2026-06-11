@@ -686,6 +686,56 @@ class CaseConclusionPromptBuilderTest {
         assertThat(message).doesNotContain("BASE À CONSOLIDER");
     }
 
+    // ===== F-273 / SF-273-01 — actualisation « sauf à parfaire » des montants & intérêts =====
+
+    @Test
+    void buildSystemPrompt_containsSaufAParfaireGuard() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        assertThat(system).contains("sauf à parfaire");
+        assertThat(system).contains("à la date de l'audience");
+        // point de départ des intérêts visé par les articles du Code civil
+        assertThat(system).contains("1231-6");
+        assertThat(system).contains("1231-7");
+        // anti-faux-positif : pas de réserve sur un montant définitivement arrêté
+        assertThat(system).contains("définitivement arrêté");
+    }
+
+    @Test
+    void buildSystemPrompt_saufAParfaire_doesNotRegressDispositifPostes() {
+        // Non-régression SF-98-55 point 3 : les postes systématiques restent imposés.
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        assertThat(system).contains("article 700");
+        assertThat(system).contains("1343-2"); // capitalisation des intérêts
+        assertThat(system).contains("Dispositif complet");
+    }
+
+    @Test
+    void buildSystemPrompt_saufAParfaire_uniformOnDemandeurAndDefendeur() {
+        // Portée uniforme : présent demandeur ET défendeur (aucun conditionnement).
+        String demandeur = procedureBuilder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+        String defendeur = procedureBuilder.buildSystemPrompt(DEFENDEUR_FR_KEY, List.of());
+
+        assertThat(demandeur).contains("sauf à parfaire");
+        assertThat(defendeur).contains("sauf à parfaire");
+    }
+
+    @Test
+    void buildSystemPrompt_saufAParfaireGuard_doesNotLeakToolCode() {
+        // Anti-jargon : la consigne « sauf à parfaire » elle-même ne nomme aucun code
+        // d'outil interne. (Le point 1 cite « F-DT-08 » comme contre-exemple à ne pas
+        // reproduire ; on isole donc la seule phrase ajoutée par F-273.)
+        String guard = CaseConclusionPromptBuilder.REDACTION_QUALITY_GUARD;
+        int start = guard.indexOf("Actualisation « sauf à parfaire »");
+        assertThat(start).isGreaterThan(0);
+        String saufAParfaireSentence = guard.substring(start, guard.indexOf("\n4.", start));
+        assertThat(saufAParfaireSentence)
+                .contains("sauf à parfaire")
+                .doesNotContainIgnoringCase("F-DT-")
+                .doesNotContain("critères sur");
+    }
+
     // ── F-272 / SF-272-01 — garde d'ordre in limine litis (art. 74 CPC) ──────
 
     /** Cellule CPH / FOND / DEFENDEUR — droit du travail FR (position de défense). */
