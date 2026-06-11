@@ -31,3 +31,12 @@ Désencombrer le panneau d'outils décisionnels (`decisional-tools-panel`, ongle
 
 ## Décision finale
 **GO avec ajustements.** Onglets par thème (`mat-tab-group`) dans le panneau d'outils, un thème à la fois, Catalogue conservé, activation d'onglet sur navigation entrante. Décidé par défaut (autonome), à juger visuellement après livraison.
+
+## ⚠️ Correction de périmètre — SF-268-02 (2026-06-11)
+Après livraison de SF-268-01, **le PO a précisé le périmètre réel** : le bloc surchargé n'est **pas** les outils **visibles** du dessus (alwaysOn ∪ contextual, certains **pré-remplis** — ceux-là doivent rester **visibles par défaut, à portée de vue**), mais la section **« Catalogue »** en dessous (outils à **activation manuelle**, `visibility().catalog`), longue liste de chips qui charge l'écran.
+
+SF-268-01 avait ciblé le **mauvais bloc** (onglets sur les outils visibles). **Décision corrigée (SF-268-02)** :
+1. **Annuler les onglets** sur les outils visibles → retour aux **sections empilées visibles par défaut** (état pré-F-268 que le PO appréciait).
+2. **Désencombrer le Catalogue** : section **repliable (repliée par défaut)** + chips **groupées par thème** (`THEME_BY_TOOL_ID`) une fois dépliée.
+
+Invariants inchangés (1–5) : pure présentation, visibilité/calcul/thématisation des outils intacts.

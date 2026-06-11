@@ -21,7 +21,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 // SF-268-01 — onglets par thème (désencombrement du panneau d'outils).
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { debounceTime } from 'rxjs';
 import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.service';
@@ -605,8 +604,6 @@ export interface ThemeDescriptor {
     MatIconModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    // SF-268-01 — mat-tab-group : un thème à la fois.
-    MatTabsModule,
     DecisionToolCardComponent,
     DecisionalToolsProgressBannerComponent,
   ],
@@ -6930,56 +6927,37 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   readonly themesOrdered = DecisionToolsPanelComponent.THEMES_ORDERED;
 
   /**
-   * SF-268-01 — index de l'onglet de thème sélectionné dans le `mat-tab-group`.
-   * Lié en `[(selectedIndex)]` via `selectedThemeIndexChange`. Par défaut le 1er
-   * onglet (1er thème non vide). Réinitialisé à 0 à chaque rechargement de la
-   * visibilité (cf. `loadVisibility`) pour éviter qu'un index devienne invalide
-   * quand le nombre de thèmes non vides diminue.
+   * SF-268-02 — état d'ouverture du Catalogue (section des outils à activation
+   * manuelle). **Replié par défaut** : c'est le désencombrement demandé par le
+   * PO — la longue liste d'outils complémentaires ne charge plus l'écran et ne
+   * s'affiche, organisée par thème, qu'à la demande.
    */
-  readonly selectedThemeIndex = signal(0);
+  readonly catalogExpanded = signal(false);
 
   /**
-   * SF-268-01 — onglets à afficher = thèmes **non vides** (dans l'ordre
-   * canonique `THEMES_ORDERED`), avec le compteur d'outils du thème. Un thème
-   * sans outil visible ne génère pas d'onglet (invariant 2 du cadrage
-   * SF-268-00). Réutilise `themedTools()` (aucun changement de visibilité /
-   * calcul / thématisation).
+   * SF-268-02 — regroupe les outils du **Catalogue** (`visibility().catalog`,
+   * activation manuelle) par thème métier (`THEME_BY_TOOL_ID`), dans l'ordre
+   * canonique `THEMES_ORDERED`. Un thème sans outil au catalogue n'apparaît pas.
+   * Un toolId sans mapping tombe dans `DIAGNOSTIC` (fallback identique à
+   * `themedTools()`). Pure présentation : aucun changement de visibilité.
    */
-  visibleThemes(): { key: ThemeKey; label: string; count: number; items: { toolId: string; entry: DecisionToolRegistryEntry }[] }[] {
-    const themed = this.themedTools();
-    const result: { key: ThemeKey; label: string; count: number; items: { toolId: string; entry: DecisionToolRegistryEntry }[] }[] = [];
+  themedCatalog(): { key: ThemeKey; label: string; toolIds: string[] }[] {
+    const catalog = this.visibility()?.catalog ?? [];
+    const byTheme = new Map<ThemeKey, string[]>();
+    for (const toolId of catalog) {
+      const theme = DecisionToolsPanelComponent.THEME_BY_TOOL_ID.get(toolId) ?? 'DIAGNOSTIC';
+      const list = byTheme.get(theme) ?? [];
+      list.push(toolId);
+      byTheme.set(theme, list);
+    }
+    const result: { key: ThemeKey; label: string; toolIds: string[] }[] = [];
     for (const theme of this.themesOrdered) {
-      const items = themed.get(theme.key);
-      if (items && items.length > 0) {
-        result.push({ key: theme.key, label: theme.label, count: items.length, items });
+      const ids = byTheme.get(theme.key);
+      if (ids && ids.length > 0) {
+        result.push({ key: theme.key, label: theme.label, toolIds: ids });
       }
     }
     return result;
-  }
-
-  /**
-   * SF-268-01 — sélectionne l'onglet du thème auquel appartient `toolId`, s'il
-   * est visible. Utilisé pour la navigation entrante : si une demande de scroll
-   * cible un outil d'un thème donné, on active l'onglet correspondant avant que
-   * l'outil ne soit scrollé (sinon il reste dans un onglet masqué).
-   *
-   * <p>No-op si le tool n'est mappé à aucun thème visible. Retourne `true` si un
-   * onglet a été activé, `false` sinon (utile pour les tests / appelants).</p>
-   *
-   * <p>NB : aujourd'hui la navigation entrante (`?section=decision`, stepper,
-   * F-258 « Voir les outils à calculer ») cible le panneau **entier** via l'ancre
-   * `section-outils-decisionnels` (gérée par `case-file-detail`), pas un outil
-   * précis. Cette méthode est le point d'extension prêt à l'emploi si un jour une
-   * ancre par outil est introduite.</p>
-   */
-  selectThemeForTool(toolId: string): boolean {
-    const theme = DecisionToolsPanelComponent.THEME_BY_TOOL_ID.get(toolId) ?? 'DIAGNOSTIC';
-    const index = this.visibleThemes().findIndex((t) => t.key === theme);
-    if (index >= 0) {
-      this.selectedThemeIndex.set(index);
-      return true;
-    }
-    return false;
   }
 
   ngOnInit(): void {
@@ -7065,10 +7043,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     this.caseFileService.getDecisionToolsVisibility(this.caseFileId).subscribe({
       next: (result) => {
         this.visibility.set(result);
-        // SF-268-01 — la liste des thèmes non vides peut avoir changé : on
-        // revient au 1er onglet pour éviter un index pointant sur un onglet
-        // disparu (un thème devenu vide décale les onglets suivants).
-        this.selectedThemeIndex.set(0);
+        // SF-268-02 — la visibilité a changé : on replie le Catalogue pour
+        // repartir d'un écran désencombré (la liste d'outils complémentaires a
+        // pu changer).
+        this.catalogExpanded.set(false);
         this.loading.set(false);
         this.recordPrefillSnapshot();
         // F-244 SF-244-02 — la liste des outils visibles vient de changer :
