@@ -297,8 +297,12 @@ class CaseConclusionPromptBuilderTest {
         assertThat(system).contains("N'invente AUCUN chef");
         // SF-98-61 — 3a identité/adresse des parties + 3b signature neutre
         assertThat(system).contains("IDENTITÉ DES PARTIES");
-        assertThat(system).contains("n'invente jamais d'adresse");
+        assertThat(system).contains("n'invente JAMAIS une adresse");
         assertThat(system).contains("[Nom et qualité de l'avocat]");
+        // F-275 / SF-275-01 — en-tête POUR / CONTRE auto-rempli, [à compléter] honnête
+        assertThat(system).contains("POUR");
+        assertThat(system).contains("CONTRE");
+        assertThat(system).contains("[à compléter]");
     }
 
     // --- SF-98-61 — finitions rédactionnelles (identité parties, signature, jurisprudence topique) ---
@@ -397,6 +401,136 @@ class CaseConclusionPromptBuilderTest {
         String message = builder.buildUserMessage(input);
 
         assertThat(message).doesNotContain("=== IDENTITÉ DES PARTIES ===");
+    }
+
+    // --- F-275 / SF-275-01 — orientation POUR / CONTRE de l'en-tête depuis la position ---
+
+    private static final String TRAVAIL_IDENTITIES_JSON = """
+            {
+              "travail_extracted_data": {
+                "prenom_salarie": "Jean",
+                "nom_salarie": "DUPONT",
+                "adresse_salarie": "12 rue des Lilas, 75011 Paris",
+                "nom_employeur": "SARL Martin",
+                "adresse_employeur": "5 avenue de la République, 75011 Paris"
+              }
+            }
+            """;
+
+    @Test
+    void buildUserMessage_demandeurSalarie_orientsSalarieAsClientPour() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier Dupont c/ SARL Martin",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                TRAVAIL_IDENTITIES_JSON,
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== IDENTITÉ DES PARTIES ===");
+        assertThat(message).contains("le SALARIÉ est client de l'avocat (POUR)");
+        assertThat(message).contains("l'EMPLOYEUR est partie adverse (CONTRE)");
+        // Les données identités (SF-98-61) restent inchangées.
+        assertThat(message).contains("Salarié : Jean DUPONT");
+        assertThat(message).contains("Employeur : SARL Martin");
+    }
+
+    @Test
+    void buildUserMessage_defendeurEmployeur_orientsEmployeurAsClientPour() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier SARL Martin",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Défendeur (employeur)",
+                TRAVAIL_IDENTITIES_JSON,
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== IDENTITÉ DES PARTIES ===");
+        assertThat(message).contains("l'EMPLOYEUR est client de l'avocat (POUR)");
+        assertThat(message).contains("le SALARIÉ est partie adverse (CONTRE)");
+    }
+
+    @Test
+    void buildUserMessage_unmappablePosition_omitsPourContreOrientationButKeepsIdentities() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier sans rôle explicite",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Appelant",                       // pas de mention salarié / employeur
+                TRAVAIL_IDENTITIES_JSON,
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        // La section identités reste (SF-98-61) mais sans orientation devinée.
+        assertThat(message).contains("=== IDENTITÉ DES PARTIES ===");
+        assertThat(message).contains("Salarié : Jean DUPONT");
+        assertThat(message).doesNotContain("client de l'avocat (POUR)");
+        assertThat(message).doesNotContain("partie adverse (CONTRE)");
+    }
+
+    @Test
+    void buildUserMessage_nullPosition_omitsPourContreOrientation() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier position null",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                null,
+                TRAVAIL_IDENTITIES_JSON,
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== IDENTITÉ DES PARTIES ===");
+        assertThat(message).doesNotContain("client de l'avocat (POUR)");
+    }
+
+    @Test
+    void buildUserMessage_noIdentities_omitsSectionAndOrientation() {
+        // Hors travail (immigration / famille) : aucune identité extraite → no-op total.
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier immigration",
+                "Tribunal administratif",
+                "Recours",
+                "Requérant",
+                "{\"faits\": [], \"immigration_extracted_data\": {}}",
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).doesNotContain("=== IDENTITÉ DES PARTIES ===");
+        assertThat(message).doesNotContain("client de l'avocat (POUR)");
+    }
+
+    @Test
+    void resolveTravailClientRole_mapsRoleFromPositionLabel() {
+        assertThat(CaseConclusionPromptBuilder.resolveTravailClientRole("Demandeur (salarié)"))
+                .isEqualTo(CaseConclusionPromptBuilder.ClientRole.SALARIE);
+        assertThat(CaseConclusionPromptBuilder.resolveTravailClientRole("Défendeur (employeur)"))
+                .isEqualTo(CaseConclusionPromptBuilder.ClientRole.EMPLOYEUR);
+        assertThat(CaseConclusionPromptBuilder.resolveTravailClientRole("Appelant"))
+                .isEqualTo(CaseConclusionPromptBuilder.ClientRole.UNKNOWN);
+        assertThat(CaseConclusionPromptBuilder.resolveTravailClientRole(null))
+                .isEqualTo(CaseConclusionPromptBuilder.ClientRole.UNKNOWN);
+        assertThat(CaseConclusionPromptBuilder.resolveTravailClientRole(""))
+                .isEqualTo(CaseConclusionPromptBuilder.ClientRole.UNKNOWN);
+    }
+
+    @Test
+    void buildSystemPrompt_redactionGuard_keepsAntiInventionAndOtherPoints() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        // F-275 ne régresse pas l'anti-invention ni les autres points du guard.
+        assertThat(system).contains("n'invente JAMAIS une adresse");
+        assertThat(system).contains("[à compléter]");
+        // Points voisins conservés (5 subsidiaires, 8 moyens adverses, 10 récapitulatives).
+        assertThat(system).contains("Demandes subsidiaires");
+        assertThat(system).contains("MOYENS ADVERSES À RÉFUTER");
+        assertThat(system).contains("Conclusions récapitulatives");
     }
 
     @Test
