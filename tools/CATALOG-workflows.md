@@ -38,18 +38,28 @@ whenToUse, phases) en tête de chaque fichier.
   ```
 - **Coût** : crédits Apollo + tokens → réservé à une vraie vague (post-signal).
 
-## 2. `autonomous-delivery-wave`  (dev produit)
+## 2. `drh-wave`  (acquisition)
+- **Rôle** : vague de prospection DRH (employeur) de bout en bout — sourcing Apollo (5 secteurs : sécurité, propreté, transport, restauration, médico-social privé), exclut hôpitaux publics + déjà-contactés, enrich → accroches secteur-aware (fan-out) → **push direct dans la campagne Lemlist DRH** (`cam_sikMYuuPxpjoYysSa`).
+- **Fichier** : `.claude/workflows/drh-wave.js` · **Support** : `tools/prospection-apollo/{apollo_drh_pipeline,drh_split_batches,drh_merge_intros,lemlist_push}.py`
+- **Args** : `perSector` (nb d'entreprises/secteur, défaut **20**).
+- **Lancer** :
+  ```
+  Workflow({ name: "drh-wave", args: { perSector: 20 } })
+  ```
+- **Coût** : crédits Apollo + tokens → réservé à une vraie vague (post-signal).
+
+## 3. `autonomous-delivery-wave`  (dev produit)
 - **Rôle** : livre une **vague de N features** (cible 10) du backlog `PRODUCT_SPEC.md`, équipe d'agents, gouvernance CLAUDE.md, auto-merge. **Ne crée pas** de feature.
 - **Fichier** : `.claude/workflows/autonomous-delivery-wave.js` (+ skill `ai-skills/autonomous-delivery-wave.md`).
 - **Phases** : Bootstrap → Audit+File → Classer → Livrer → Docs+Staging → Récap.
 - **Lancer** : `Workflow({ name: "autonomous-delivery-wave" })` ou la skill. Cadrer le volume via la directive budget (« +500k »).
 
-## 3. `drh-product-spec`  (cadrage)
+## 4. `drh-product-spec`  (cadrage)
 - **Rôle** : fait **mûrir la fiche produit DRH** (offre employeur) comme document vivant, par appends justifiés.
 - **Fichier** : `.claude/workflows/drh-product-spec.js`.
 - **Lancer** : skill `/drh-product-spec` ou `Workflow({ name: "drh-product-spec" })`. Ré-invocable (converge).
 
-## 4. `afrique-product-spec`  (cadrage)
+## 5. `afrique-product-spec`  (cadrage)
 - **Rôle** : fait **mûrir la fiche produit Afrique OHADA**, piloté par le marché africain.
 - **Fichier** : `.claude/workflows/afrique-product-spec.js`.
 - **Lancer** : skill `/afrique-product-spec` ou `Workflow({ name: "afrique-product-spec" })`. Suppose `docs/afrique/CADRAGE-STRATEGIQUE-OHADA.md` figé.
