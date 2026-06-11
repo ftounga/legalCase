@@ -464,22 +464,27 @@ describe('ConclusionsSectionComponent', () => {
     component.ngOnDestroy();
   }));
 
-  it('erreur 409 → message backend affiché via snackbar', () => {
+  // SF-98-62 — une garde 409 (ex. combinaison procédurale non couverte) est un refus
+  // actionnable → message PERSISTANT dans la section, plus de snackbar fugace.
+  it('erreur 409 → message backend persistant dans la section (pas de snackbar)', () => {
     component.hasCompletedAnalysis = true;
     fixture.detectChanges();
     flushInitialLoad();
 
     component.generate();
     httpMock.expectOne(GENERATE_URL).flush(
-      { error: 'STAGE_NOT_SET', message: 'Renseignez le stade procédural.' },
+      {
+        error: 'COMBINATION_NOT_SUPPORTED',
+        message: "La génération de conclusions n'est pas encore disponible pour la combinaison procédurale du dossier.",
+      },
       { status: 409, statusText: 'Conflict' },
     );
+    fixture.detectChanges();
 
-    expect(snackSpy.open).toHaveBeenCalledWith(
-      'Renseignez le stade procédural.',
-      'Fermer',
-      jasmine.objectContaining({ panelClass: ['snack-error'] }),
+    expect(component.unsupportedMessage()).toBe(
+      "La génération de conclusions n'est pas encore disponible pour la combinaison procédurale du dossier.",
     );
+    expect(snackSpy.open).not.toHaveBeenCalled();
     expect(component.generating()).toBe(false);
   });
 
@@ -1338,6 +1343,14 @@ describe('ConclusionsSectionComponent', () => {
       expect(preview.querySelector('h2')?.textContent).toContain(
         'Nouveau titre',
       );
+    });
+
+    it('SF-267-02 : les deux panneaux portent leur libellé (Édition / Aperçu)', () => {
+      enterEditingWith('Texte');
+      const labels = Array.from(
+        fixture.nativeElement.querySelectorAll('.cs-preview-label'),
+      ).map((el) => (el as HTMLElement).textContent?.trim());
+      expect(labels).toEqual(expect.arrayContaining(['Édition', 'Aperçu']));
     });
 
     it('bascule éditeur/aperçu → met à jour editorView + classe', () => {

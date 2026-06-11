@@ -11,6 +11,10 @@ $muted: #6b7a8d;
 
 // Largeur de lecture confortable de la « feuille » d'acte.
 $sheet-width: 880px;
+// SF-267-02 — en mode ÉDITION (éditeur + aperçu côte à côte), la feuille
+// s'élargit largement pour donner de l'air aux deux panneaux (sans dépasser
+// la zone de contenu disponible).
+$sheet-edit-width: min(1640px, 100%);
 
 .conclusions-page {
   min-height: 100%;
@@ -126,6 +130,20 @@ $sheet-width: 880px;
 
   // Bandeau or discret en tête de feuille (signature design system).
   border-top: 3px solid $gold;
+
+  // Transition douce quand on passe lecture ↔ édition.
+  transition: max-width 180ms ease;
+}
+
+// SF-267-02 — Mode ÉDITION : dès que l'éditeur live (`.cs-edit-split`) est
+// présent dans la feuille, on élargit la page (en-tête + feuille) pour que
+// l'éditeur et l'aperçu disposent de toute la largeur utile. En lecture, la
+// feuille reste à 880px (confort de lecture inchangé).
+.conclusions-page:has(.cs-edit-split) {
+  .conclusions-page__header,
+  .conclusions-page__sheet {
+    max-width: $sheet-edit-width;
+  }
 }
 
 // La section conclusions est autonome : on lui laisse son padding interne mais

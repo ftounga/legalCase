@@ -86,6 +86,15 @@
               Générer le projet de conclusions
             </button>
           </div>
+          <!-- SF-98-62 : refus de génération persistant (ex. combinaison
+               procédurale non couverte) — fin des blocages muets. -->
+          @if (unsupportedMessage()) {
+            <p class="cs-message cs-message--guide" data-testid="generation-refused-message"
+               role="status">
+              <mat-icon class="cs-message-icon">info</mat-icon>
+              <span>{{ unsupportedMessage() }}</span>
+            </p>
+          }
         } @else {
           <p class="cs-message cs-message--guide" data-testid="prerequisite-message">
             <mat-icon class="cs-message-icon">info</mat-icon>
@@ -245,6 +254,8 @@
                [class.cs-edit-split--show-preview]="editorView() === 'preview'">
             <!-- Colonne éditeur : co-rédaction IA + barre d'outils markdown + textarea. -->
             <div class="cs-edit-pane cs-edit-pane--editor" data-testid="editor-pane">
+              <!-- SF-267-02 — libellé symétrique de « Aperçu » (large écran). -->
+              <span class="cs-preview-label cs-edit-label">Édition</span>
               <!-- F-265 / SF-265-02 — Co-rédaction IA par section. -->
               <div class="cs-coredaction" data-testid="coredaction-zone">
                 <div class="cs-coredaction-head">
