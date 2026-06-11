@@ -205,7 +205,9 @@ public class CaseConclusionService {
                         loadJurisprudenceCitations(caseFileId),
                         toolJurisprudenceContext.collectForCaseFile(caseFileId),
                         loadAdverseJurisprudenceChecks(caseFileId),
-                        loadAdverseMoyens(caseFileId, domain, country));
+                        loadAdverseMoyens(caseFileId, domain, country),
+                        // F-271 — base récapitulative : content de la dernière version DONE.
+                        loadPreviousRecapContent(caseFileId, conclusion.getId()));
 
         List<String> styleSignatures = loadActiveStyleSignatures(conclusion.getWorkspace().getId());
         CombinationKey key = new CombinationKey(domain, country, conclusion.getJurisdictionCode(),
@@ -290,6 +292,36 @@ public class CaseConclusionService {
         caseConclusionRepository.save(conclusion);
         log.info("Conclusion generation DONE — conclusion={}, tokens {}/{}", caseConclusionId,
                 result.promptTokens(), result.completionTokens());
+    }
+
+    /**
+     * F-271 — base récapitulative : {@code content} de la dernière version {@code DONE}
+     * du dossier (éditions manuelles de l'avocat incluses), à consolider en jeu
+     * récapitulatif (art. 768 CPC).
+     *
+     * <p>Retourne {@code null} (génération from-scratch) à la première génération, si la
+     * dernière version DONE a un content vide, ou si la seule version DONE est
+     * {@code currentId} lui-même (jamais sa propre base). <strong>Fail-open</strong> :
+     * toute exception est avalée (log warn) et la génération se poursuit sans base.</p>
+     *
+     * @param caseFileId dossier
+     * @param currentId  id de la version en cours de génération (à exclure)
+     * @return le content précédent à consolider, ou {@code null}
+     */
+    private String loadPreviousRecapContent(UUID caseFileId, UUID currentId) {
+        try {
+            return caseConclusionRepository
+                    .findFirstByCaseFileIdAndStatusOrderByVersionNumberDesc(
+                            caseFileId, CaseConclusionStatus.DONE)
+                    .filter(c -> !c.getId().equals(currentId))
+                    .map(CaseConclusion::getContent)
+                    .filter(content -> content != null && !content.isBlank())
+                    .orElse(null);
+        } catch (RuntimeException ex) {
+            log.warn("Lecture de la base récapitulative échouée — caseFile={}, current={} — "
+                    + "fail-open: génération sans base", caseFileId, currentId, ex);
+            return null;
+        }
     }
 
     /** JSON brut de la synthèse {@code DONE} la plus récente, ou {@code null}. */

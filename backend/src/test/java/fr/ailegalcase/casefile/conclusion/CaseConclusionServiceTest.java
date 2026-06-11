@@ -442,6 +442,83 @@ class CaseConclusionServiceTest {
         return doc;
     }
 
+    // ── F-271 — conclusions récapitulatives (reprise de la dernière version) ──
+
+    @Test
+    void generate_withPreviousDoneVersion_injectsRecapBaseIntoPrompt() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        // Dernière version DONE avec content édité par l'avocat = base récapitulative.
+        CaseConclusion previous = new CaseConclusion();
+        previous.setId(UUID.randomUUID());
+        previous.setStatus(CaseConclusionStatus.DONE);
+        previous.setContent("## PAR CES MOTIFS\nCondamner à 18 000 € (édition avocat).");
+        when(caseConclusionRepository.findFirstByCaseFileIdAndStatusOrderByVersionNumberDesc(
+                caseFileId, CaseConclusionStatus.DONE)).thenReturn(Optional.of(previous));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — récapitulatif", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                contains("BASE À CONSOLIDER"), anyInt());
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                contains("Condamner à 18 000 € (édition avocat)."), anyInt());
+    }
+
+    @Test
+    void generate_firstVersion_noRecapBaseInPrompt() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        // Aucune version DONE antérieure (findFirst...DONE renvoie empty par défaut).
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — from scratch", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                argThat(userMessage -> !userMessage.contains("BASE À CONSOLIDER")), anyInt());
+    }
+
+    @Test
+    void generate_previousDoneVersionWithBlankContent_noRecapBaseInPrompt() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        CaseConclusion previous = new CaseConclusion();
+        previous.setId(UUID.randomUUID());
+        previous.setStatus(CaseConclusionStatus.DONE);
+        previous.setContent("   ");
+        when(caseConclusionRepository.findFirstByCaseFileIdAndStatusOrderByVersionNumberDesc(
+                caseFileId, CaseConclusionStatus.DONE)).thenReturn(Optional.of(previous));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                argThat(userMessage -> !userMessage.contains("BASE À CONSOLIDER")), anyInt());
+    }
+
     private fr.ailegalcase.document.DocumentExtraction extraction(String text) {
         fr.ailegalcase.document.DocumentExtraction extraction =
                 new fr.ailegalcase.document.DocumentExtraction();

@@ -25,4 +25,12 @@ public interface CaseConclusionRepository extends JpaRepository<CaseConclusion, 
 
     /** Charge une version par id en s'assurant qu'elle est rattachée au dossier (isolation). */
     Optional<CaseConclusion> findByIdAndCaseFileId(UUID id, UUID caseFileId);
+
+    /**
+     * F-271 — version générée la plus récente du dossier dans le statut donné
+     * ({@code DONE}), version la plus haute d'abord. Sert de base récapitulative à la
+     * régénération (le {@code content} édité par l'avocat y est inclus).
+     */
+    Optional<CaseConclusion> findFirstByCaseFileIdAndStatusOrderByVersionNumberDesc(
+            UUID caseFileId, CaseConclusionStatus status);
 }
