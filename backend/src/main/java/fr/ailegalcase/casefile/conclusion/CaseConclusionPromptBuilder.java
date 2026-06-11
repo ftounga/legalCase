@@ -105,9 +105,14 @@ public class CaseConclusionPromptBuilder {
                     + "réel et sérieux du motif ; rappels de salaire incontestables). N'invente AUCUN chef "
                     + "non étayé par les faits, les pièces ou les verdicts fournis : à défaut d'élément "
                     + "fondant une demande subsidiaire, n'en ajoute pas.\n"
-                    + "6. Identité des parties. Reprends les identités et adresses fournies dans la "
-                    + "section « IDENTITÉ DES PARTIES » ; à défaut mets « [à compléter] », n'invente "
-                    + "jamais d'adresse ni d'identité de partie.\n"
+                    + "6. Identité des parties et en-tête POUR / CONTRE (F-275). Structure l'en-tête "
+                    + "de l'acte en « POUR : … » (le client de l'avocat) puis « CONTRE : … » (la "
+                    + "partie adverse), en reprenant les identités et adresses fournies dans la "
+                    + "section « IDENTITÉ DES PARTIES ». Lorsque cette section précise quelle partie "
+                    + "est le client (POUR) et laquelle est l'adversaire (CONTRE), respecte cette "
+                    + "orientation sans l'inverser. À défaut d'une identité ou d'une adresse "
+                    + "réellement fournie, mets « [à compléter] » pour le seul champ manquant ; "
+                    + "n'invente JAMAIS une adresse ni une identité de partie.\n"
                     + "7. Signature. Ne signe JAMAIS avec un nom d'avocat inventé : termine par un "
                     + "emplacement de signature neutre « [Nom et qualité de l'avocat] » que l'avocat "
                     + "complétera.\n"
@@ -348,7 +353,7 @@ public class CaseConclusionPromptBuilder {
 
         appendSynthesis(sb, input.analysisResultJson());
 
-        appendPartiesIdentity(sb, input.analysisResultJson());
+        appendPartiesIdentity(sb, input.analysisResultJson(), input.positionLabel());
 
         sb.append("\n=== PIÈCES NUMÉROTÉES DU DOSSIER ===\n");
         if (input.pieces() == null || input.pieces().isEmpty()) {
@@ -610,12 +615,22 @@ public class CaseConclusionPromptBuilder {
      * {@code adresse_employeur}) et les injecte dans une section dédiée, afin que le LLM
      * reprenne les vraies adresses au lieu d'un placeholder « [adresse] ».
      *
+     * <p>F-275 / SF-275-01 — <strong>orientation POUR / CONTRE</strong> : lorsque la
+     * position procédurale ({@code positionLabel}) identifie le rôle du client (« salarié »
+     * ou « employeur »), la section annote quelle partie est le <strong>client (POUR)</strong>
+     * et laquelle est l'<strong>adversaire (CONTRE)</strong>, à partir de la correspondance
+     * déjà tranchée par F-269 (salarié = demandeur, employeur = défendeur). Aucune donnée
+     * n'est inventée : l'orientation n'est ajoutée que si le rôle du client ressort de la
+     * position ; à défaut, la section reste neutre (comportement SF-98-61). Hors travail
+     * (immigration / famille), aucune identité n'est extraite → section absente (no-op),
+     * l'en-tête sera laissé « [à compléter] » par le modèle.</p>
+     *
      * <p>Fail-open (comme {@link #appendSynthesis}) : un JSON absent / illisible n'ajoute
      * simplement aucune section. La section est <strong>absente</strong> si aucune des
      * cinq identités n'est présente (pas de rubrique vide). Chaque champ n'est rendu que
      * s'il est présent.</p>
      */
-    private void appendPartiesIdentity(StringBuilder sb, String analysisResultJson) {
+    private void appendPartiesIdentity(StringBuilder sb, String analysisResultJson, String positionLabel) {
         if (analysisResultJson == null || analysisResultJson.isBlank()) {
             return;
         }
@@ -639,6 +654,18 @@ public class CaseConclusionPromptBuilder {
             }
 
             sb.append("\n=== IDENTITÉ DES PARTIES ===\n");
+            // F-275 — orientation POUR / CONTRE dérivée de la position (rôle du client).
+            ClientRole clientRole = resolveTravailClientRole(positionLabel);
+            if (clientRole != ClientRole.UNKNOWN) {
+                String salarieOrientation = clientRole == ClientRole.SALARIE
+                        ? "client de l'avocat (POUR)" : "partie adverse (CONTRE)";
+                String employeurOrientation = clientRole == ClientRole.EMPLOYEUR
+                        ? "client de l'avocat (POUR)" : "partie adverse (CONTRE)";
+                sb.append("Position du dossier : le SALARIÉ est ").append(salarieOrientation)
+                        .append(" ; l'EMPLOYEUR est ").append(employeurOrientation)
+                        .append(". Place le client du côté « POUR » et l'adversaire du côté "
+                                + "« CONTRE » dans l'en-tête de l'acte.\n");
+            }
             if (!prenomSalarie.isBlank() || !nomSalarie.isBlank() || !adresseSalarie.isBlank()) {
                 sb.append("Salarié :");
                 String nomComplet = (prenomSalarie + " " + nomSalarie).strip();
@@ -664,6 +691,41 @@ public class CaseConclusionPromptBuilder {
             log.warn("Identité des parties illisible pour la génération de conclusions : {}",
                     ex.getMessage());
         }
+    }
+
+    /**
+     * F-275 / SF-275-01 — rôle du client de l'avocat dans un dossier travail, déduit du
+     * libellé de position procédurale. Les libellés travail du
+     * {@code ProcedureStageCatalog} explicitent le rôle entre parenthèses (« Demandeur
+     * (salarié) », « Défendeur (employeur) ») : c'est le signal le plus fiable et
+     * directement aligné sur F-269 (salarié = demandeur, employeur = défendeur). Toute
+     * position sans mention de rôle (ou {@code null}) → {@link ClientRole#UNKNOWN}, aucune
+     * orientation n'est devinée.
+     */
+    static ClientRole resolveTravailClientRole(String positionLabel) {
+        if (positionLabel == null || positionLabel.isBlank()) {
+            return ClientRole.UNKNOWN;
+        }
+        String normalized = positionLabel.toLowerCase(java.util.Locale.ROOT);
+        boolean mentionsSalarie = normalized.contains("salari");   // salarié / salarie
+        boolean mentionsEmployeur = normalized.contains("employeur");
+        if (mentionsSalarie && !mentionsEmployeur) {
+            return ClientRole.SALARIE;
+        }
+        if (mentionsEmployeur && !mentionsSalarie) {
+            return ClientRole.EMPLOYEUR;
+        }
+        return ClientRole.UNKNOWN;
+    }
+
+    /** F-275 — rôle du client dans un dossier travail (orientation POUR / CONTRE). */
+    enum ClientRole {
+        /** Le client de l'avocat est le salarié (par défaut demandeur). */
+        SALARIE,
+        /** Le client de l'avocat est l'employeur (par défaut défendeur). */
+        EMPLOYEUR,
+        /** Rôle non déductible de la position → aucune orientation ajoutée. */
+        UNKNOWN
     }
 
     /** Lit un champ texte du nœud, en chaîne vide si absent / null / non textuel. */
