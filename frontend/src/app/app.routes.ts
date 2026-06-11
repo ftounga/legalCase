@@ -60,6 +60,14 @@ export const routes: Routes = [
           .then(m => m.SynthesisRisquesComponent)
       },
       {
+        // F-267 SF-267-01 — page dédiée « Projet de conclusions » (pleine
+        // largeur, feuille centrée). Sort le module conclusions de l'onglet
+        // Décision. AuthGuard hérité du shell.
+        path: 'case-files/:id/conclusions',
+        loadComponent: () => import('./case-files/case-file-conclusions-page/case-file-conclusions-page.component')
+          .then(m => m.CaseFileConclusionsPageComponent)
+      },
+      {
         path: 'case-files/:id/diff',
         loadComponent: () => import('./case-files/analysis-diff/analysis-diff.component')
           .then(m => m.AnalysisDiffComponent)

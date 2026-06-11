@@ -1,0 +1,52 @@
+<div class="conclusions-page">
+  <!-- En-tête de page : retour dossier + fil d'Ariane + titre + nom du dossier. -->
+  <header class="conclusions-page__header">
+    <a
+      mat-button
+      class="conclusions-page__back"
+      data-testid="back-to-case-file"
+      [routerLink]="['/case-files', caseFileId()]">
+      <mat-icon>arrow_back</mat-icon>
+      Retour au dossier
+    </a>
+
+    <nav class="conclusions-page__breadcrumb" aria-label="Fil d'Ariane">
+      <a [routerLink]="['/case-files']">Dossiers</a>
+      <span class="conclusions-page__breadcrumb-sep" aria-hidden="true">/</span>
+      @if (caseFile()) {
+        <a [routerLink]="['/case-files', caseFileId()]">{{ caseFile()!.title }}</a>
+      } @else {
+        <span>Dossier</span>
+      }
+      <span class="conclusions-page__breadcrumb-sep" aria-hidden="true">/</span>
+      <span class="conclusions-page__breadcrumb-current">Conclusions</span>
+    </nav>
+
+    <div class="conclusions-page__title-row">
+      <mat-icon class="conclusions-page__title-icon">description</mat-icon>
+      <h1 class="conclusions-page__title">Projet de conclusions</h1>
+    </div>
+
+    @if (caseFile()) {
+      <p class="conclusions-page__subtitle">{{ caseFile()!.title }}</p>
+    }
+  </header>
+
+  <!-- Corps : l'acte présenté comme une feuille centrée sur un fond neutre. -->
+  <div class="conclusions-page__body">
+    @if (loading()) {
+      <div class="conclusions-page__loading">
+        <mat-spinner diameter="36"></mat-spinner>
+        <p>Chargement du dossier…</p>
+      </div>
+    } @else {
+      <div class="conclusions-page__sheet">
+        <app-conclusions-section
+          [caseFileId]="caseFileId()"
+          [caseTitle]="caseFile()?.title"
+          (viewToolsRequested)="onViewToolsRequested()">
+        </app-conclusions-section>
+      </div>
+    }
+  </div>
+</div>

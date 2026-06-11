@@ -1,0 +1,184 @@
+// F-267 / SF-267-01 — Page dédiée « Projet de conclusions ».
+// Design system : marine #1A3A5C / or #C9973A, Merriweather (titres),
+// Inter (corps), fond de page #F5F6FA, surface #FFFFFF. Espacements ×4.
+
+$navy: #1a3a5c;
+$gold: #c9973a;
+$page-bg: #f5f6fa;
+$surface: #ffffff;
+$divider: #e0e4ea;
+$muted: #6b7a8d;
+
+// Largeur de lecture confortable de la « feuille » d'acte.
+$sheet-width: 880px;
+
+.conclusions-page {
+  min-height: 100%;
+  background: $page-bg;
+  font-family: 'Inter', sans-serif;
+}
+
+// ── En-tête de page ────────────────────────────────────────
+.conclusions-page__header {
+  max-width: $sheet-width;
+  margin: 0 auto;
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conclusions-page__back {
+  align-self: flex-start;
+  color: $navy;
+  font-weight: 600;
+}
+
+.conclusions-page__breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: $muted;
+
+  a {
+    color: $muted;
+    text-decoration: none;
+
+    &:hover {
+      color: $navy;
+      text-decoration: underline;
+    }
+  }
+}
+
+.conclusions-page__breadcrumb-sep {
+  color: rgba(107, 122, 141, 0.6);
+}
+
+.conclusions-page__breadcrumb-current {
+  color: $navy;
+  font-weight: 600;
+}
+
+.conclusions-page__title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.conclusions-page__title-icon {
+  color: $gold;
+  font-size: 30px;
+  width: 30px;
+  height: 30px;
+}
+
+.conclusions-page__title {
+  margin: 0;
+  font-family: 'Merriweather', serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.2;
+  color: $navy;
+}
+
+.conclusions-page__subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: $muted;
+}
+
+// ── Corps : la feuille centrée ─────────────────────────────
+.conclusions-page__body {
+  padding: 8px 24px 64px;
+}
+
+.conclusions-page__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 24px;
+  text-align: center;
+  color: $muted;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+// « Feuille » d'acte : surface blanche centrée, marges généreuses,
+// ombre douce pour la détacher du fond neutre.
+.conclusions-page__sheet {
+  max-width: $sheet-width;
+  margin: 0 auto;
+  background: $surface;
+  border: 1px solid $divider;
+  border-radius: 14px;
+  box-shadow:
+    0 1px 2px rgba(26, 58, 92, 0.04),
+    0 12px 32px rgba(26, 58, 92, 0.08);
+  overflow: hidden;
+
+  // Bandeau or discret en tête de feuille (signature design system).
+  border-top: 3px solid $gold;
+}
+
+// La section conclusions est autonome : on lui laisse son padding interne mais
+// on neutralise sa marge supérieure héritée du contexte « onglet » et on ouvre
+// l'espace de lecture sur la pleine largeur de la feuille.
+:host ::ng-deep .conclusions-page__sheet .conclusions-section {
+  margin-top: 0;
+  padding: 32px 40px 40px;
+}
+
+// En lecture, le rendu de l'acte (`.cd-sheet`) est déjà une carte blanche
+// bordée/ombrée. Imbriqué dans la feuille de page (elle aussi blanche), cela
+// produirait une « carte dans la carte » lourde : sur la page dédiée, l'acte
+// EST la feuille → on retire bordure / ombre / padding latéral redondants pour
+// un rendu épuré, document qui respire. Scopé sous `.conclusions-page__sheet`
+// pour ne JAMAIS affecter l'usage de `cd-sheet` ailleurs.
+:host ::ng-deep .conclusions-page__sheet .cd-sheet {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 8px 0 16px;
+  margin: 0;
+}
+
+// L'éditeur F-264 côte-à-côte (split) respire davantage sur pleine largeur.
+:host ::ng-deep .conclusions-page__sheet .cs-edit-split {
+  gap: 24px;
+}
+
+// Les barres d'actions (génération / édition / export) se regroupent
+// proprement avec un petit liseré supérieur pour les détacher du document.
+:host ::ng-deep .conclusions-page__sheet .cs-actions {
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .conclusions-page__header {
+    padding: 24px 16px 16px;
+  }
+
+  .conclusions-page__body {
+    padding: 8px 16px 48px;
+  }
+
+  .conclusions-page__sheet {
+    border-radius: 12px;
+  }
+
+  :host ::ng-deep .conclusions-page__sheet .conclusions-section {
+    padding: 24px 20px 32px;
+  }
+
+  .conclusions-page__title {
+    font-size: 24px;
+  }
+}
