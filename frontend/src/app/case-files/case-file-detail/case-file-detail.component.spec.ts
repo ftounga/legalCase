@@ -1411,11 +1411,14 @@ describe('CaseFileDetailComponent', () => {
       const input = space.querySelector('.decision-space__input');
       expect(input).not.toBeNull();
       expect(input.querySelector('app-decisional-tools-panel')).not.toBeNull();
-      // Colonne de verdict : tableau de bord + conclusions.
+      // Colonne de verdict : tableau de bord + carte CTA conclusions (F-267).
       const verdict = space.querySelector('.decision-space__verdict');
       expect(verdict).not.toBeNull();
       expect(verdict.querySelector('app-case-dashboard')).not.toBeNull();
-      expect(verdict.querySelector('app-conclusions-section')).not.toBeNull();
+      // F-267 SF-267-01 : le module conclusions a déménagé sur sa page dédiée ;
+      // l'onglet Décision ne porte plus que la carte CTA, pas la section.
+      expect(verdict.querySelector('app-conclusions-section')).toBeNull();
+      expect(verdict.querySelector('[data-testid="conclusions-cta"]')).not.toBeNull();
     });
 
     it('SF-244-02-T02: bandeau de couplage sync_alt rendu dans l\'onglet Décision', () => {
@@ -1449,12 +1452,18 @@ describe('CaseFileDetailComponent', () => {
       expect(component.decisionPrefillTotal()).toBe(0);
     });
 
-    it('SF-244-02-T06: conclusions-section (F-98) reste dans la colonne de verdict de l\'onglet Décision', () => {
+    it('SF-267-01-T06: la carte CTA conclusions (remplace F-98 empilé) mène à la page dédiée depuis la colonne de verdict', () => {
       fixture.detectChanges();
-      const conclusions = fixture.nativeElement.querySelector('app-conclusions-section');
-      expect(conclusions).not.toBeNull();
-      expect(conclusions.closest('.decision-space__verdict')).not.toBeNull();
-      expect(conclusions.closest('[data-tab-panel="decision"]')).not.toBeNull();
+      // F-267 SF-267-01 : plus de section conclusions empilée dans l'onglet.
+      expect(fixture.nativeElement.querySelector('app-conclusions-section')).toBeNull();
+      const cta = fixture.nativeElement.querySelector('[data-testid="conclusions-cta"]');
+      expect(cta).not.toBeNull();
+      expect(cta.closest('.decision-space__verdict')).not.toBeNull();
+      expect(cta.closest('[data-tab-panel="decision"]')).not.toBeNull();
+      // Le bouton pointe vers /case-files/:id/conclusions.
+      const link = cta.querySelector('[data-testid="open-conclusions"]');
+      expect(link).not.toBeNull();
+      expect(link.getAttribute('href')).toContain('/conclusions');
     });
   });
 

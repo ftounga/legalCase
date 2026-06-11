@@ -704,20 +704,32 @@
               </div>
             </section>
 
-            <!-- F-98 SF-98-01 : section de génération du projet de conclusions,
-                 placée juste après le tableau de bord décisionnel.
-                 hasCompletedAnalysis est dérivé du signal `synthesis` (une synthèse
-                 non nulle = au moins une analyse terminée). procedureStageComplete
-                 n'est pas dérivable proprement ici (le stade procédural est chargé
-                 par app-procedure-stage-section via son propre service, pas par ce
-                 composant) : on ne le passe donc pas et on laisse le 409
-                 STAGE_NOT_SET du backend piloter le message guidant. -->
-            <app-conclusions-section
-              [caseFileId]="caseFile()!.id"
-              [caseTitle]="caseFile()!.title"
-              [hasCompletedAnalysis]="hasCompletedAnalysis()"
-              (viewToolsRequested)="scrollToDecisionTools()">
-            </app-conclusions-section>
+            <!-- F-267 SF-267-01 : le module conclusions a déménagé sur une page
+                 dédiée pleine largeur (/case-files/:id/conclusions). L'onglet
+                 Décision se désencombre : ne reste ici qu'une carte CTA soignée
+                 qui mène au projet de conclusions. -->
+            <section class="conclusions-cta" data-testid="conclusions-cta">
+              <div class="conclusions-cta__icon-wrap">
+                <mat-icon class="conclusions-cta__icon">description</mat-icon>
+              </div>
+              <div class="conclusions-cta__body">
+                <h3 class="conclusions-cta__title">Projet de conclusions</h3>
+                <p class="conclusions-cta__text">
+                  Rédigez, éditez et exportez vos conclusions à partir de la synthèse,
+                  du stade procédural et des outils décisionnels — sur une page dédiée,
+                  pleine largeur.
+                </p>
+                <a
+                  mat-flat-button
+                  color="primary"
+                  class="conclusions-cta__action"
+                  data-testid="open-conclusions"
+                  [routerLink]="['/case-files', caseFile()!.id, 'conclusions']">
+                  <mat-icon>open_in_new</mat-icon>
+                  Ouvrir le projet de conclusions
+                </a>
+              </div>
+            </section>
           </div>
 
         </div>
