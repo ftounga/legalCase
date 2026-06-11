@@ -16,69 +16,88 @@
         </mat-card-content>
       </mat-card>
     } @else {
-      <!-- SF-268-01 — un thème à la fois (onglets). Un mat-tab par thème NON
-           vide ; le contenu de chaque onglet = la grille de tuiles du thème
-           (logique de thématisation inchangée, cf. themedTools()). -->
-      @let themes = visibleThemes();
-      @if (themes.length > 0) {
-        <mat-tab-group
-          class="theme-tabs"
-          animationDuration="0ms"
-          [selectedIndex]="selectedThemeIndex()"
-          (selectedIndexChange)="selectedThemeIndex.set($event)">
-          @for (theme of themes; track theme.key) {
-            <mat-tab [label]="theme.label + ' (' + theme.count + ')'">
-              <section class="theme-section" [attr.data-theme]="theme.key">
-                <div class="theme-grid">
-                  @for (item of theme.items; track item.toolId) {
-                    @let meta = cardMetadataFor(item.entry, item.toolId);
-                    <div class="theme-grid-item">
-                      <app-decision-tool-card
-                        [toolId]="item.toolId"
-                        [theme]="theme.key"
-                        [icon]="meta.icon"
-                        [title]="meta.label"
-                        [prefillCount]="prefillCountFor(item.toolId)"
-                        [retainedPistesBadge]="retainedPistesBadgeFor(item.toolId)"
-                        [piecesBadge]="piecesBadgeFor(item.toolId)"
-                        [risquesBadge]="risquesBadgeFor(item.toolId)"
-                        [risquesACreuserCount]="risquesACreuserCountFor(item.toolId)"
-                        [flashing]="(progressService?.flashedToolIds()?.has(item.toolId)) ?? false"
-                        (open)="openTool(item.toolId, item.entry)">
-                      </app-decision-tool-card>
-                    </div>
-                  }
-                </div>
-              </section>
-            </mat-tab>
+      <!-- SF-268-02 — outils VISIBLES : sections empilées, visibles par défaut
+           (les outils pré-remplis restent à portée de vue, demande PO). Le
+           désencombrement « catalogue » porte UNIQUEMENT sur la section
+           Catalogue ci-dessous (outils à activation manuelle). -->
+      @let themed = themedTools();
+      @for (theme of themesOrdered; track theme.key) {
+        @if (themed.get(theme.key); as items) {
+          @if (items.length > 0) {
+            <section class="theme-section" [attr.data-theme]="theme.key">
+              <h2 class="theme-title">{{ theme.label }}</h2>
+              <div class="theme-grid">
+                @for (item of items; track item.toolId) {
+                  @let meta = cardMetadataFor(item.entry, item.toolId);
+                  <div class="theme-grid-item">
+                    <app-decision-tool-card
+                      [toolId]="item.toolId"
+                      [theme]="theme.key"
+                      [icon]="meta.icon"
+                      [title]="meta.label"
+                      [prefillCount]="prefillCountFor(item.toolId)"
+                      [retainedPistesBadge]="retainedPistesBadgeFor(item.toolId)"
+                      [piecesBadge]="piecesBadgeFor(item.toolId)"
+                      [risquesBadge]="risquesBadgeFor(item.toolId)"
+                      [risquesACreuserCount]="risquesACreuserCountFor(item.toolId)"
+                      [flashing]="(progressService?.flashedToolIds()?.has(item.toolId)) ?? false"
+                      (open)="openTool(item.toolId, item.entry)">
+                    </app-decision-tool-card>
+                  </div>
+                }
+              </div>
+            </section>
           }
-        </mat-tab-group>
+        }
       }
 
       @if (visibility()!.catalog.length > 0) {
+        <!-- SF-268-02 — Catalogue REPLIABLE (replié par défaut) + chips GROUPÉS
+             par thème. Désencombre l'écran : la longue liste d'outils à
+             activation manuelle n'apparaît qu'à la demande, organisée. -->
         <section class="tool-section catalog-section">
-          <h2 class="section-title">Catalogue</h2>
-          <p class="catalog-description">
-            Outils disponibles selon la situation détectée. Cliquer pour activer manuellement.
-          </p>
-          <div class="catalog-chips">
-            @for (toolId of visibility()!.catalog; track toolId) {
-              <button
-                type="button"
-                class="catalog-chip"
-                [class.is-loading]="isActivating(toolId)"
-                [disabled]="isActivating(toolId)"
-                matTooltip="Activer cet outil manuellement"
-                (click)="activateManually(toolId)">
-                @if (isActivating(toolId)) {
-                  <mat-spinner diameter="14"></mat-spinner>
-                } @else {
-                  <mat-icon>extension</mat-icon>
-                }
-                <span>{{ resolveDisplayLabel(toolId) }}</span>
-              </button>
+          <button
+            type="button"
+            class="catalog-toggle"
+            [class.is-open]="catalogExpanded()"
+            [attr.aria-expanded]="catalogExpanded()"
+            (click)="catalogExpanded.set(!catalogExpanded())">
+            <mat-icon class="catalog-toggle__chevron">
+              {{ catalogExpanded() ? 'expand_less' : 'expand_more' }}
+            </mat-icon>
+            <span class="catalog-toggle__title">Catalogue</span>
+            <span class="catalog-toggle__count">
+              {{ visibility()!.catalog.length }} outils disponibles
+            </span>
+          </button>
+          @if (catalogExpanded()) {
+            <p class="catalog-description">
+              Outils complémentaires selon la situation. Cliquer pour activer manuellement.
+            </p>
+            @for (group of themedCatalog(); track group.key) {
+              <div class="catalog-group" [attr.data-theme]="group.key">
+                <h3 class="catalog-group__title">{{ group.label }}</h3>
+                <div class="catalog-chips">
+                  @for (toolId of group.toolIds; track toolId) {
+                    <button
+                      type="button"
+                      class="catalog-chip"
+                      [class.is-loading]="isActivating(toolId)"
+                      [disabled]="isActivating(toolId)"
+                      matTooltip="Activer cet outil manuellement"
+                      (click)="activateManually(toolId)">
+                      @if (isActivating(toolId)) {
+                        <mat-spinner diameter="14"></mat-spinner>
+                      } @else {
+                        <mat-icon>extension</mat-icon>
+                      }
+                      <span>{{ resolveDisplayLabel(toolId) }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
             }
-          </div>
+          }
         </section>
       }
     }

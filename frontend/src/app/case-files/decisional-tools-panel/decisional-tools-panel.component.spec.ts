@@ -598,9 +598,9 @@ describe('DecisionToolsPanelComponent', () => {
     warnSpy.mockRestore();
   });
 
-  // ── SF-268-01 — onglets par thème (désencombrement) ──────────────────────
+  // ── SF-268-02 — outils visibles empilés + Catalogue repliable/groupé ──────
 
-  it('SF-268-01 : rend un mat-tab-group avec un onglet par thème non vide', () => {
+  it('SF-268-02 : les outils VISIBLES restent en sections empilées (pas d\'onglet)', () => {
     fixture.detectChanges();
     // F-DT-25 → INDEMNITES ; F-DT-08 → VALIDITE ; F-DT-04 → DOCUMENTS.
     httpMock.expectOne(API_URL).flush({
@@ -610,51 +610,17 @@ describe('DecisionToolsPanelComponent', () => {
     });
     fixture.detectChanges();
 
-    const tabGroup = fixture.debugElement.query(By.css('mat-tab-group'));
-    expect(tabGroup).toBeTruthy();
-
-    // 3 thèmes non vides → 3 onglets (INDEMNITES, VALIDITE, DOCUMENTS).
-    const labels = fixture.debugElement
-      .queryAll(By.css('.mdc-tab__text-label'))
+    // Aucun onglet : les 3 thèmes non vides sont des sections visibles d'emblée.
+    expect(fixture.debugElement.query(By.css('mat-tab-group'))).toBeNull();
+    const sections = fixture.debugElement.queryAll(By.css('.theme-section'));
+    expect(sections.length).toBe(3);
+    const titles = fixture.debugElement
+      .queryAll(By.css('.theme-title'))
       .map((d) => (d.nativeElement.textContent as string).trim());
-    expect(labels).toEqual([
-      'Indemnités & calculs (1)',
-      'Validité & contestation (1)',
-      'Documents (1)',
-    ]);
+    expect(titles).toEqual(['Indemnités & calculs', 'Validité & contestation', 'Documents']);
   });
 
-  it('SF-268-01 : visibleThemes() ne retient que les thèmes non vides, dans l\'ordre canonique, avec compteur', () => {
-    fixture.detectChanges();
-    httpMock.expectOne(API_URL).flush({
-      alwaysOn: ['F-DT-04-fiche-prudhomale', 'F-DT-25-indemnite-preavis'],
-      contextual: ['F-DT-08-licenciement-validity'],
-      catalog: [],
-    });
-
-    const themes = component.visibleThemes();
-    // Ordre canonique THEMES_ORDERED : INDEMNITES avant VALIDITE avant DOCUMENTS.
-    expect(themes.map((t) => t.key)).toEqual(['INDEMNITES', 'VALIDITE', 'DOCUMENTS']);
-    expect(themes.map((t) => t.count)).toEqual([1, 1, 1]);
-  });
-
-  it('SF-268-01 : le 1er onglet (1er thème non vide) est actif par défaut', () => {
-    fixture.detectChanges();
-    httpMock.expectOne(API_URL).flush({
-      alwaysOn: ['F-DT-25-indemnite-preavis'],
-      contextual: ['F-DT-08-licenciement-validity'],
-      catalog: [],
-    });
-    fixture.detectChanges();
-
-    expect(component.selectedThemeIndex()).toBe(0);
-    const activeLabel = fixture.debugElement
-      .query(By.css('.mdc-tab--active .mdc-tab__text-label'))
-      .nativeElement.textContent.trim();
-    expect(activeLabel).toBe('Indemnités & calculs (1)');
-  });
-
-  it('SF-268-01 : le catalogue est rendu sous les onglets quand il est non vide', () => {
+  it('SF-268-02 : le Catalogue est REPLIÉ par défaut (toggle visible, aucune chip)', () => {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush({
       alwaysOn: ['F-DT-25-indemnite-preavis'],
@@ -663,47 +629,72 @@ describe('DecisionToolsPanelComponent', () => {
     });
     fixture.detectChanges();
 
-    const catalog = fixture.debugElement.query(By.css('.catalog-section'));
-    expect(catalog).toBeTruthy();
-    const chips = fixture.debugElement.queryAll(By.css('.catalog-chip'));
-    expect(chips.length).toBe(2);
+    // L'en-tête repliable existe et annonce le nombre d'outils…
+    const toggle = fixture.debugElement.query(By.css('.catalog-toggle'));
+    expect(toggle).toBeTruthy();
+    expect(component.catalogExpanded()).toBe(false);
+    expect(
+      (fixture.debugElement.query(By.css('.catalog-toggle__count')).nativeElement.textContent as string).trim(),
+    ).toBe('2 outils disponibles');
+    // …mais aucune chip n'est rendue tant que c'est replié (désencombrement).
+    expect(fixture.debugElement.queryAll(By.css('.catalog-chip')).length).toBe(0);
   });
 
-  it('SF-268-01 : selectThemeForTool active l\'onglet du thème ciblé (navigation entrante)', () => {
-    fixture.detectChanges();
-    httpMock.expectOne(API_URL).flush({
-      alwaysOn: ['F-DT-25-indemnite-preavis'], // INDEMNITES (onglet 0)
-      contextual: ['F-DT-08-licenciement-validity'], // VALIDITE (onglet 1)
-      catalog: [],
-    });
-
-    // Cible un outil du 2ᵉ thème (VALIDITE) → onglet 1 activé.
-    const activated = component.selectThemeForTool('F-DT-08-licenciement-validity');
-    expect(activated).toBe(true);
-    expect(component.selectedThemeIndex()).toBe(1);
-
-    // Outil d'un thème non visible → no-op, l'onglet ne bouge pas.
-    expect(component.selectThemeForTool('F-DT-04-fiche-prudhomale')).toBe(false);
-    expect(component.selectedThemeIndex()).toBe(1);
-  });
-
-  it('SF-268-01 : selectedThemeIndex est remis à 0 au rechargement de la visibilité', () => {
+  it('SF-268-02 : déplier le Catalogue affiche les chips groupées par thème', () => {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush({
       alwaysOn: ['F-DT-25-indemnite-preavis'],
-      contextual: ['F-DT-08-licenciement-validity'],
-      catalog: [],
+      contextual: [],
+      catalog: ['F-DT-10-rupture-conv-validity', 'F-132-rupture-conv-indemnite'],
     });
-    component.selectedThemeIndex.set(1);
+    fixture.detectChanges();
 
-    // Un nouveau chargement (ex. fin d'analyse) réinitialise la sélection.
+    fixture.debugElement.query(By.css('.catalog-toggle')).nativeElement.click();
+    fixture.detectChanges();
+
+    expect(component.catalogExpanded()).toBe(true);
+    // Les chips apparaissent, réparties en groupes de thème.
+    expect(fixture.debugElement.queryAll(By.css('.catalog-chip')).length).toBe(2);
+    expect(fixture.debugElement.queryAll(By.css('.catalog-group')).length).toBeGreaterThan(0);
+  });
+
+  it('SF-268-02 : themedCatalog() groupe le catalogue par thème dans l\'ordre canonique', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'],
+      contextual: [],
+      catalog: ['F-DT-10-rupture-conv-validity', 'F-132-rupture-conv-indemnite'],
+    });
+
+    const groups = component.themedCatalog();
+    // Tous les outils du catalogue sont répartis, sans perte ni doublon.
+    const flat = groups.flatMap((g) => g.toolIds);
+    expect(flat.sort()).toEqual(
+      ['F-132-rupture-conv-indemnite', 'F-DT-10-rupture-conv-validity'].sort(),
+    );
+    // L'ordre des groupes suit THEMES_ORDERED (index croissant).
+    const order = component.themesOrdered.map((t) => t.key);
+    const indices = groups.map((g) => order.indexOf(g.key));
+    expect(indices).toEqual([...indices].sort((a, b) => a - b));
+  });
+
+  it('SF-268-02 : le Catalogue est replié au rechargement de la visibilité', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'],
+      contextual: [],
+      catalog: ['F-DT-10-rupture-conv-validity'],
+    });
+    component.catalogExpanded.set(true);
+
+    // Un nouveau chargement (ex. fin d'analyse) replie le catalogue.
     (component as any).loadVisibility(false);
     httpMock.expectOne(API_URL).flush({
       alwaysOn: ['F-DT-25-indemnite-preavis'],
-      contextual: ['F-DT-08-licenciement-validity'],
-      catalog: [],
+      contextual: [],
+      catalog: ['F-DT-10-rupture-conv-validity'],
     });
-    expect(component.selectedThemeIndex()).toBe(0);
+    expect(component.catalogExpanded()).toBe(false);
   });
 });
 
