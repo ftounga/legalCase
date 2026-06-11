@@ -61,15 +61,12 @@ log(`CSV Lemlist prêt: ${merged ? merged.count : '?'} contacts personnalisés`)
 // ───────────────── Phase 3 : PUSH ─────────────────
 phase('Push')
 const push = await agent(
-  `Pousse les leads dans la campagne Lemlist SI l'API est disponible. Étapes :\n` +
-  `1) Dry-run : cd ${DIR} && python3 lemlist_push.py --csv avocat-wave-lemlist.csv --dry-run\n` +
-  `2) Test API : python3 -c "import base64,urllib.request,urllib.error; k=open('${DIR}/.lemlist_key').read().strip(); ` +
-  `a=base64.b64encode((':'+k).encode()).decode();\\n` +
-  `r=urllib.request.Request('https://api.lemlist.com/api/team',headers={'Authorization':'Basic '+a});\\n` +
-  `import sys;\\ntry:\\n urllib.request.urlopen(r,timeout=20); print('API_OK')\\nexcept urllib.error.HTTPError as e: print('API_KO',e.code)" \n` +
-  `3) Si « API_OK » : relance SANS --dry-run pour pousser réellement (python3 lemlist_push.py --csv avocat-wave-lemlist.csv). ` +
-  `Si « API_KO » (ex. 403/1010 = plan sans API) : NE PAS pousser, indiquer que le CSV ${DIR}/avocat-wave-lemlist.csv est prêt pour import manuel dans Lemlist. ` +
-  `Retourne {pushed: true/false, note: "..."}.`,
+  `Pousse les leads dans la campagne Lemlist. Étapes :\n` +
+  `1) Dry-run (valide le CSV, ne pousse rien) : cd ${DIR} && python3 lemlist_push.py --csv avocat-wave-lemlist.csv --dry-run\n` +
+  `2) Push réel : cd ${DIR} && python3 lemlist_push.py --csv avocat-wave-lemlist.csv\n` +
+  `   (NB : lemlist_push.py envoie déjà un User-Agent — indispensable, sinon Cloudflare renvoie 403/1010.)\n` +
+  `Si des HTTP 4xx/5xx apparaissent dans la sortie, rapporte-les. ` +
+  `Retourne {pushed: true/false, note: "<nb poussés / erreurs éventuelles>"}.`,
   { label: 'push', phase: 'Push',
     schema: { type: 'object', properties: { pushed: { type: 'boolean' }, note: { type: 'string' } }, required: ['pushed'] } }
 )

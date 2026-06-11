@@ -35,6 +35,8 @@ import urllib.error
 API_BASE = "https://api.lemlist.com/api"
 CAMPAIGN_ID = "cam_ZhtYzZwA6H8kXZmjz"  # « Avocats — 3 domaines » (team tea_k3RLqZqghX5Kq7BAX)
 KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".lemlist_key")
+# User-Agent OBLIGATOIRE : sans lui, Cloudflare bloque (HTTP 403 / error 1010), pas un pb de plan/auth.
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 
 # Champs custom envoyés à Lemlist (deviennent des variables {{...}})
 CUSTOM_FIELDS = ["firstName", "companyName", "linkedinUrl", "introPerso",
@@ -60,7 +62,7 @@ def push_lead(key, campaign_id, row):
     auth = base64.b64encode(f":{key}".encode()).decode()
     req = urllib.request.Request(
         url, data=data,
-        headers={"Content-Type": "application/json", "Authorization": f"Basic {auth}"},
+        headers={"Content-Type": "application/json", "Authorization": f"Basic {auth}", "User-Agent": USER_AGENT},
         method="POST",
     )
     try:
