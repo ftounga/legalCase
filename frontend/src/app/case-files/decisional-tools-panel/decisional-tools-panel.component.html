@@ -16,35 +16,43 @@
         </mat-card-content>
       </mat-card>
     } @else {
-      @let themed = themedTools();
-      @for (theme of themesOrdered; track theme.key) {
-        @if (themed.get(theme.key); as items) {
-          @if (items.length > 0) {
-            <section class="theme-section" [attr.data-theme]="theme.key">
-              <h2 class="theme-title">{{ theme.label }}</h2>
-              <div class="theme-grid">
-                @for (item of items; track item.toolId) {
-                  @let meta = cardMetadataFor(item.entry, item.toolId);
-                  <div class="theme-grid-item">
-                    <app-decision-tool-card
-                      [toolId]="item.toolId"
-                      [theme]="theme.key"
-                      [icon]="meta.icon"
-                      [title]="meta.label"
-                      [prefillCount]="prefillCountFor(item.toolId)"
-                      [retainedPistesBadge]="retainedPistesBadgeFor(item.toolId)"
-                      [piecesBadge]="piecesBadgeFor(item.toolId)"
-                      [risquesBadge]="risquesBadgeFor(item.toolId)"
-                      [risquesACreuserCount]="risquesACreuserCountFor(item.toolId)"
-                      [flashing]="(progressService?.flashedToolIds()?.has(item.toolId)) ?? false"
-                      (open)="openTool(item.toolId, item.entry)">
-                    </app-decision-tool-card>
-                  </div>
-                }
-              </div>
-            </section>
+      <!-- SF-268-01 — un thème à la fois (onglets). Un mat-tab par thème NON
+           vide ; le contenu de chaque onglet = la grille de tuiles du thème
+           (logique de thématisation inchangée, cf. themedTools()). -->
+      @let themes = visibleThemes();
+      @if (themes.length > 0) {
+        <mat-tab-group
+          class="theme-tabs"
+          animationDuration="0ms"
+          [selectedIndex]="selectedThemeIndex()"
+          (selectedIndexChange)="selectedThemeIndex.set($event)">
+          @for (theme of themes; track theme.key) {
+            <mat-tab [label]="theme.label + ' (' + theme.count + ')'">
+              <section class="theme-section" [attr.data-theme]="theme.key">
+                <div class="theme-grid">
+                  @for (item of theme.items; track item.toolId) {
+                    @let meta = cardMetadataFor(item.entry, item.toolId);
+                    <div class="theme-grid-item">
+                      <app-decision-tool-card
+                        [toolId]="item.toolId"
+                        [theme]="theme.key"
+                        [icon]="meta.icon"
+                        [title]="meta.label"
+                        [prefillCount]="prefillCountFor(item.toolId)"
+                        [retainedPistesBadge]="retainedPistesBadgeFor(item.toolId)"
+                        [piecesBadge]="piecesBadgeFor(item.toolId)"
+                        [risquesBadge]="risquesBadgeFor(item.toolId)"
+                        [risquesACreuserCount]="risquesACreuserCountFor(item.toolId)"
+                        [flashing]="(progressService?.flashedToolIds()?.has(item.toolId)) ?? false"
+                        (open)="openTool(item.toolId, item.entry)">
+                      </app-decision-tool-card>
+                    </div>
+                  }
+                </div>
+              </section>
+            </mat-tab>
           }
-        }
+        </mat-tab-group>
       }
 
       @if (visibility()!.catalog.length > 0) {
