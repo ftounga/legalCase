@@ -3,11 +3,13 @@ package fr.ailegalcase.casefile.conclusion;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.casefile.DashboardTile;
+import fr.ailegalcase.casefile.ProcedureStageCatalog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * F-98 — assemble le prompt système et le message utilisateur du générateur de
@@ -118,6 +120,53 @@ public class CaseConclusionPromptBuilder {
                     + "Respecte la formulation et le style des passages que l'avocat a rédigés. Cette "
                     + "section est une matière première INTERNE : ne la cite ni ne la commente, consolide-la.";
 
+    /**
+     * F-272 / SF-272-01 — positions de <strong>défense</strong> pour lesquelles l'ordre
+     * <em>in limine litis</em> de l'article 74 CPC s'applique : le défendeur de première
+     * instance, l'intimé en appel et le défendeur au pourvoi. Un demandeur / appelant /
+     * requérant ne soulève pas d'exception de procédure <em>in limine litis</em> (il forme
+     * une demande), donc la garde ne s'applique qu'à ces positions.
+     */
+    private static final Set<String> DEFENCE_POSITIONS =
+            Set.of("DEFENDEUR", "INTIME", "DEFENDEUR_POURVOI");
+
+    /**
+     * F-272 / SF-272-01 — garde d'ossature procédurale du défendeur, conditionnée à la
+     * <strong>France</strong> et à une <strong>position de défense</strong>
+     * ({@link #DEFENCE_POSITIONS}). Elle impose l'ordre <em>in limine litis</em> de
+     * l'article 74 du Code de procédure civile : les exceptions de procédure doivent être
+     * soulevées AVANT toute défense au fond et toute fin de non-recevoir, sous peine
+     * d'irrecevabilité (forclusion). Les vices de procédure / nullités déjà fournis par les
+     * outils décisionnels (matière première INTERNE — non-régression anti-jargon SF-98-55)
+     * sont positionnés au bon rang de l'acte, sans rubrique vide quand rien n'est fondé.
+     *
+     * <p>Mécanisme symétrique de {@link #JURISPRUDENCE_GUARD} et
+     * {@link #REDACTION_QUALITY_GUARD} : une garde transverse appliquée par-dessus le
+     * prompt de base, jamais dupliquée provider par provider. Transverse aux 3 domaines FR
+     * (l'art. 74 CPC ne dépend pas du domaine).</p>
+     */
+    static final String PROCEDURE_ORDER_GUARD =
+            "Ordre des moyens de procédure (impératif — défendeur, procédure civile française) :\n"
+                    + "1. In limine litis (article 74 du Code de procédure civile). Si une exception "
+                    + "de procédure est fondée (incompétence, nullité de forme ou de fond, litispendance, "
+                    + "connexité, exception dilatoire — articles 73 et suivants), soulève-la dans une "
+                    + "section « EXCEPTIONS DE PROCÉDURE » placée AVANT toute fin de non-recevoir et AVANT "
+                    + "toute défense au fond : à défaut, l'exception est irrecevable (forclusion).\n"
+                    + "2. Fins de non-recevoir (article 122 du Code de procédure civile). Place ensuite, "
+                    + "dans une section « FINS DE NON-RECEVOIR », les moyens tirés de la prescription, du "
+                    + "défaut de qualité ou d'intérêt à agir, de l'autorité de la chose jugée, lorsqu'ils "
+                    + "sont fondés.\n"
+                    + "3. Défense au fond. Ne discute le fond (réfutation moyen par moyen, demandes "
+                    + "reconventionnelles) qu'APRÈS ces deux étapes.\n"
+                    + "4. Tissage des vices de procédure. Les éventuels vices de procédure ou cas de "
+                    + "nullité qui te sont fournis comme verdicts d'outils doivent être positionnés au "
+                    + "bon rang ci-dessus (exception de procédure ou nullité de l'acte attaqué), traduits "
+                    + "en moyens de droit visant l'article applicable — jamais sous leur libellé interne.\n"
+                    + "5. Signalement si non applicable. N'ajoute les sections « EXCEPTIONS DE PROCÉDURE » "
+                    + "et « FINS DE NON-RECEVOIR » QUE si une exception ou une fin de non-recevoir est "
+                    + "réellement fondée par les faits, les pièces ou les verdicts fournis. À défaut, "
+                    + "n'ajoute pas de rubrique vide et n'invente aucun moyen de procédure.";
+
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
 
@@ -153,6 +202,10 @@ public class CaseConclusionPromptBuilder {
         sb.append('\n').append(JURISPRUDENCE_GUARD).append('\n');
         // SF-98-55 — garde de qualité rédactionnelle commune (anti-jargon, syllogisme, dispositif).
         sb.append('\n').append(REDACTION_QUALITY_GUARD).append('\n');
+        // SF-272-01 — ossature in limine litis (art. 74 CPC), uniquement défendeur FR.
+        if (appliesProcedureOrderGuard(key)) {
+            sb.append('\n').append(PROCEDURE_ORDER_GUARD).append('\n');
+        }
         List<String> usable = sanitizeSignatures(styleSignatures);
         if (!usable.isEmpty()) {
             sb.append(STYLE_INSTRUCTION_HEADER).append('\n');
@@ -161,6 +214,24 @@ public class CaseConclusionPromptBuilder {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * F-272 / SF-272-01 — détermine si la garde {@link #PROCEDURE_ORDER_GUARD} s'applique
+     * à la cellule {@code key} : uniquement les conclusions du <strong>défendeur en
+     * procédure française</strong> ({@code country == FRANCE} et position de défense). Le
+     * régime belge (Code judiciaire) a sa propre logique et reste hors périmètre (« 3
+     * domaines FR » de la directive).
+     *
+     * @param key cellule de matrice (jamais {@code null})
+     * @return {@code true} si la garde d'ordre in limine litis doit être injectée
+     */
+    static boolean appliesProcedureOrderGuard(CombinationKey key) {
+        if (key == null) {
+            return false;
+        }
+        return ProcedureStageCatalog.FRANCE.equals(key.country())
+                && DEFENCE_POSITIONS.contains(key.position());
     }
 
     /** Filtre les signatures de style exploitables (non nulles, non vides). */
