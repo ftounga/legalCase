@@ -56,3 +56,5 @@ tools/prospection-apollo/batches/
 # Artefacts Python (outils prospection)
 __pycache__/
 *.pyc
+tools/prospection-apollo/drh-wave-*.csv
+tools/prospection-apollo/drh_batches/

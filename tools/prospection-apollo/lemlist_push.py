@@ -40,7 +40,7 @@ USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 
 # Champs custom envoyés à Lemlist (deviennent des variables {{...}})
 CUSTOM_FIELDS = ["firstName", "companyName", "linkedinUrl", "introPerso",
-                 "subject", "valueProp", "domainNoun", "domaine"]
+                 "subject", "valueProp", "domainNoun", "domaine", "secteur"]
 
 
 def get_key():
