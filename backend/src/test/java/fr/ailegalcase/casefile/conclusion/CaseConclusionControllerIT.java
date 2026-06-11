@@ -120,11 +120,12 @@ class CaseConclusionControllerIT {
         noAnalysisCf = saveCf(uA, wsA, "CF noanalysis " + ts, "DROIT_DU_TRAVAIL",
                 "CPH", "FOND", "DEMANDEUR");
 
-        // Combinaison volontairement hors registre F-98 : le bureau de conciliation et
-        // d'orientation (BCO) est un stade de conciliation, jamais couvert par la matrice
-        // F-98 (même à 53/53) — combinaison « non supportée » stable pour ce test.
+        // Combinaison volontairement hors registre F-98 : stade synthétique qui n'existe
+        // dans aucune cellule ni dans le catalogue F-243 — combinaison « non supportée »
+        // stable pour ce test. (Le BCO, anciennement utilisé ici, est désormais couvert —
+        // SF-98-62 — ; ce test cible donc un stade fictif garanti non couvert.)
         unsupportedCf = saveCf(uA, wsA, "CF unsupported " + ts, "DROIT_DU_TRAVAIL",
-                "CPH", "BCO", "DEMANDEUR");
+                "CPH", "STADE_NON_COUVERT_TEST", "DEMANDEUR");
         saveDoneAnalysis(unsupportedCf);
 
         // ── Workspace B (isolation) ──────────────────────────────────────────

@@ -66,4 +66,15 @@ public class ConclusionPromptRegistry {
     public int size() {
         return providersByKey.size();
     }
+
+    /**
+     * @return l'ensemble immuable des combinaisons couvertes par une cellule.
+     *         Utilisé par le test d'intégrité {@code ConclusionCombinationCoverageIT}
+     *         qui croise les combinaisons sélectionnables (catalogue F-243) avec les
+     *         cellules génératrices (registre F-98) pour empêcher tout trou de
+     *         couverture muet (cf. signal terrain BCO, SF-98-62).
+     */
+    public java.util.Set<CombinationKey> registeredCombinations() {
+        return providersByKey.keySet();
+    }
 }

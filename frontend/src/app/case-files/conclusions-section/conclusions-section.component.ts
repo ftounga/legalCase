@@ -145,6 +145,13 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly loading = signal(true);
   /** Vrai si le GET initial a échoué — section indisponible. */
   readonly unavailable = signal(false);
+  /**
+   * SF-98-62 — Message persistant affiché quand la génération est refusée par une
+   * garde `409` (ex. `COMBINATION_NOT_SUPPORTED` : combinaison procédurale non
+   * couverte). Remplace le snackbar fugace pour qu'aucun refus ne soit invisible.
+   * `null` = aucun refus en cours.
+   */
+  readonly unsupportedMessage = signal<string | null>(null);
   /** Déclenchement de génération en cours (POST). */
   readonly generating = signal(false);
   /** Copie du texte dans le presse-papier en cours. */
@@ -364,6 +371,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       return;
     }
     this.generating.set(true);
+    // Un nouvel essai efface tout refus précédent (SF-98-62).
+    this.unsupportedMessage.set(null);
     this.conclusionsService.generate(this.caseFileId).subscribe({
       next: (res) => {
         this.generating.set(false);
@@ -397,10 +406,17 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         const msg =
           err?.error?.message ||
           'Impossible de lancer la génération des conclusions.';
-        this.snackBar.open(msg, 'Fermer', {
-          duration: 6000,
-          panelClass: ['snack-error'],
-        });
+        // SF-98-62 : une garde 409 (ex. combinaison procédurale non couverte)
+        // est un refus actionnable → message PERSISTANT dans la section, pas un
+        // snackbar fugace. Les autres erreurs restent en snackbar.
+        if (err?.status === 409) {
+          this.unsupportedMessage.set(msg);
+        } else {
+          this.snackBar.open(msg, 'Fermer', {
+            duration: 6000,
+            panelClass: ['snack-error'],
+          });
+        }
         this.cdr.markForCheck();
       },
     });

@@ -369,4 +369,43 @@ public final class ProcedureStageCatalog {
     public static Set<String> allCombinationKeys() {
         return new LinkedHashSet<>(CATALOG.keySet());
     }
+
+    /**
+     * Énumère toutes les combinaisons procédurales <strong>sélectionnables</strong> par
+     * l'utilisateur, au format {@code domain|country|jurisdiction|stage|position}.
+     *
+     * <p>Une combinaison est sélectionnable lorsqu'une {@link Position} d'un sous-référentiel
+     * {@code (domain, country)} est valide pour un {@link Stage} donné ; la juridiction est
+     * celle du stade. C'est le produit cartésien réellement offert par les écrans F-243.</p>
+     *
+     * <p>Sert au test d'intégrité {@code ConclusionCombinationCoverageIT} qui garantit que
+     * chaque combinaison offerte a soit une cellule de génération F-98, soit une entrée
+     * explicite de liste blanche — afin qu'aucun stade sélectionnable ne mène à un blocage
+     * muet de génération (cf. signal terrain BCO, SF-98-62).</p>
+     *
+     * @return l'ensemble des combinaisons sélectionnables, encodées en chaînes
+     */
+    public static Set<String> allSelectableCombinations() {
+        Set<String> combinations = new LinkedHashSet<>();
+        for (Map.Entry<String, CatalogEntry> e : CATALOG.entrySet()) {
+            String[] dc = e.getKey().split("\\|", 2);
+            String domain = dc[0];
+            String country = dc[1];
+            CatalogEntry entry = e.getValue();
+            Map<String, String> jurisdictionByStage = new LinkedHashMap<>();
+            for (Stage s : entry.stages()) {
+                jurisdictionByStage.put(s.code(), s.jurisdictionCode());
+            }
+            for (Position p : entry.positions()) {
+                for (String stageCode : p.stageCodes()) {
+                    String jurisdiction = jurisdictionByStage.get(stageCode);
+                    if (jurisdiction == null) {
+                        continue; // incohérence interne déjà détectée par selfCheck()
+                    }
+                    combinations.add(String.join("|", domain, country, jurisdiction, stageCode, p.code()));
+                }
+            }
+        }
+        return combinations;
+    }
 }

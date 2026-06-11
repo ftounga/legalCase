@@ -51,7 +51,7 @@ class ConclusionPromptRegistryTest {
      */
     private static final CombinationKey UNKNOWN_KEY = new CombinationKey(
             ProcedureStageCatalog.DROIT_DU_TRAVAIL, ProcedureStageCatalog.FRANCE,
-            "CPH", "BCO", "DEMANDEUR");
+            "CPH", "STADE_INEXISTANT_TEST", "DEMANDEUR");
 
     @Test
     void supports_knownCombination_isTrue() {
