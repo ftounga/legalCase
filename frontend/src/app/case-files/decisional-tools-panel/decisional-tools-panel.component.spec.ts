@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { By } from '@angular/platform-browser';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DecisionToolsPanelComponent } from './decisional-tools-panel.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
@@ -595,6 +596,114 @@ describe('DecisionToolsPanelComponent', () => {
 
     getSpy.mockRestore();
     warnSpy.mockRestore();
+  });
+
+  // ── SF-268-01 — onglets par thème (désencombrement) ──────────────────────
+
+  it('SF-268-01 : rend un mat-tab-group avec un onglet par thème non vide', () => {
+    fixture.detectChanges();
+    // F-DT-25 → INDEMNITES ; F-DT-08 → VALIDITE ; F-DT-04 → DOCUMENTS.
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis', 'F-DT-04-fiche-prudhomale'],
+      contextual: ['F-DT-08-licenciement-validity'],
+      catalog: [],
+    });
+    fixture.detectChanges();
+
+    const tabGroup = fixture.debugElement.query(By.css('mat-tab-group'));
+    expect(tabGroup).toBeTruthy();
+
+    // 3 thèmes non vides → 3 onglets (INDEMNITES, VALIDITE, DOCUMENTS).
+    const labels = fixture.debugElement
+      .queryAll(By.css('.mdc-tab__text-label'))
+      .map((d) => (d.nativeElement.textContent as string).trim());
+    expect(labels).toEqual([
+      'Indemnités & calculs (1)',
+      'Validité & contestation (1)',
+      'Documents (1)',
+    ]);
+  });
+
+  it('SF-268-01 : visibleThemes() ne retient que les thèmes non vides, dans l\'ordre canonique, avec compteur', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-04-fiche-prudhomale', 'F-DT-25-indemnite-preavis'],
+      contextual: ['F-DT-08-licenciement-validity'],
+      catalog: [],
+    });
+
+    const themes = component.visibleThemes();
+    // Ordre canonique THEMES_ORDERED : INDEMNITES avant VALIDITE avant DOCUMENTS.
+    expect(themes.map((t) => t.key)).toEqual(['INDEMNITES', 'VALIDITE', 'DOCUMENTS']);
+    expect(themes.map((t) => t.count)).toEqual([1, 1, 1]);
+  });
+
+  it('SF-268-01 : le 1er onglet (1er thème non vide) est actif par défaut', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'],
+      contextual: ['F-DT-08-licenciement-validity'],
+      catalog: [],
+    });
+    fixture.detectChanges();
+
+    expect(component.selectedThemeIndex()).toBe(0);
+    const activeLabel = fixture.debugElement
+      .query(By.css('.mdc-tab--active .mdc-tab__text-label'))
+      .nativeElement.textContent.trim();
+    expect(activeLabel).toBe('Indemnités & calculs (1)');
+  });
+
+  it('SF-268-01 : le catalogue est rendu sous les onglets quand il est non vide', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'],
+      contextual: [],
+      catalog: ['F-DT-10-rupture-conv-validity', 'F-132-rupture-conv-indemnite'],
+    });
+    fixture.detectChanges();
+
+    const catalog = fixture.debugElement.query(By.css('.catalog-section'));
+    expect(catalog).toBeTruthy();
+    const chips = fixture.debugElement.queryAll(By.css('.catalog-chip'));
+    expect(chips.length).toBe(2);
+  });
+
+  it('SF-268-01 : selectThemeForTool active l\'onglet du thème ciblé (navigation entrante)', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'], // INDEMNITES (onglet 0)
+      contextual: ['F-DT-08-licenciement-validity'], // VALIDITE (onglet 1)
+      catalog: [],
+    });
+
+    // Cible un outil du 2ᵉ thème (VALIDITE) → onglet 1 activé.
+    const activated = component.selectThemeForTool('F-DT-08-licenciement-validity');
+    expect(activated).toBe(true);
+    expect(component.selectedThemeIndex()).toBe(1);
+
+    // Outil d'un thème non visible → no-op, l'onglet ne bouge pas.
+    expect(component.selectThemeForTool('F-DT-04-fiche-prudhomale')).toBe(false);
+    expect(component.selectedThemeIndex()).toBe(1);
+  });
+
+  it('SF-268-01 : selectedThemeIndex est remis à 0 au rechargement de la visibilité', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'],
+      contextual: ['F-DT-08-licenciement-validity'],
+      catalog: [],
+    });
+    component.selectedThemeIndex.set(1);
+
+    // Un nouveau chargement (ex. fin d'analyse) réinitialise la sélection.
+    (component as any).loadVisibility(false);
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'],
+      contextual: ['F-DT-08-licenciement-validity'],
+      catalog: [],
+    });
+    expect(component.selectedThemeIndex()).toBe(0);
   });
 });
 
