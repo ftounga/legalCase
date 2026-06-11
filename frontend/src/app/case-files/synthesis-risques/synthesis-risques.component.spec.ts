@@ -136,7 +136,9 @@ describe('SynthesisRisquesComponent (F-162 SF-162-05)', () => {
 
     const reserve = fixture.nativeElement.querySelector('[data-testid="risk-reserve"]');
     expect(reserve).toBeTruthy();
-    expect(reserve.textContent).toContain('indicative');
+    // F-270-02 : durcissement — le niveau de risque n'est pas une chance de gagner.
+    expect(reserve.textContent).toContain('pas');
+    expect(reserve.textContent).toContain('probabilité de gagner');
   });
 
   // U-6 : riskLabel humanise l'enum
