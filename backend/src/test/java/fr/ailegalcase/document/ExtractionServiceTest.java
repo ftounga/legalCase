@@ -43,6 +43,7 @@ class ExtractionServiceTest {
     @Mock private DocumentRepository documentRepository;
     @Mock private DocumentExtractionRepository extractionRepository;
     @Mock private DocumentPieceRepository documentPieceRepository;
+    @Mock private fr.ailegalcase.casefile.CaseFileRepository caseFileRepository;
     @Mock private StorageService storageService;
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private OcrService ocrService;
@@ -63,7 +64,7 @@ class ExtractionServiceTest {
     @BeforeEach
     void setUp() {
         service = new ExtractionService(documentRepository, extractionRepository, documentPieceRepository,
-                storageService, eventPublisher, ocrService, workspaceRepository,
+                caseFileRepository, storageService, eventPublisher, ocrService, workspaceRepository,
                 ocrRunningFlagService, videoFrameExtractor, videoProps, anthropicService, visionProps);
         // SF-122-01 : par défaut, OCR indisponible — les tests existants SF-121-01
         // continuent de valider le comportement "texte vide → FAILED EMPTY_TEXT" sur non-PDF

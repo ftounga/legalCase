@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="601-repair-piece-number-collisions" author="legalcase" dbms="postgresql">
+        <comment>
+            F-260 / SF-260-02 — réparation des collisions de `piece_number`.
+            Le bordereau affichait « 1, 1, 1, 2, 3… » : plusieurs documents d'un même
+            dossier, dont la détection de pièces s'exécutait concurremment
+            (@TransactionalEventListener AFTER_COMMIT par document), lisaient le même
+            max(piece_number) avant commit et s'attribuaient le même numéro.
+            Le verrou pessimiste (SF-260-02) empêche les NOUVELLES collisions ; cette
+            migration ASSAINIT l'existant en renumérotant 1..N par dossier de façon
+            déterministe (même ordre que le backfill 598 : piece_number ASC NULLS LAST,
+            documents.created_at ASC, order_index ASC, id ASC). Idempotente : sur des
+            données déjà saines (numéros distincts 1..N), ROW_NUMBER reproduit la même
+            numérotation → no-op fonctionnel. PostgreSQL uniquement : H2 (tests) part de
+            données fraîches sans collision, ce changeSet y est simplement ignoré.
+        </comment>
+
+        <sql dbms="postgresql"><![CDATA[
+            WITH ranked AS (
+                SELECT dp.id, ROW_NUMBER() OVER (
+                    PARTITION BY d.case_file_id
+                    ORDER BY dp.piece_number ASC NULLS LAST, d.created_at ASC, dp.order_index ASC, dp.id ASC
+                ) AS rn
+                FROM document_pieces dp
+                JOIN documents d ON d.id = dp.document_id
+            )
+            UPDATE document_pieces dp
+               SET piece_number = ranked.rn
+              FROM ranked
+             WHERE dp.id = ranked.id;
+        ]]></sql>
+
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

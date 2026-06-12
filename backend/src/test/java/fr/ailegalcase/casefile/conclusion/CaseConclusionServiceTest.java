@@ -290,6 +290,44 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.getContent()).contains("7. CDI Dupont (Contrat)");
     }
 
+    // SF-260-02 : filet de lecture. Des piece_number en collision (1, 1, 2) hérités
+    // d'une race d'écriture passée → loadNumberedPieces renumérote positionnellement
+    // 1..N (ordre de la requête conservé), donc plus aucun doublon au prompt ni au bordereau.
+    @Test
+    void generate_collidingPieceNumbers_renumberedPositionally() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        // collision : deux pièces au n° 1 puis une au n° 2 (ordre déjà trié par la requête)
+        when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any()))
+                .thenReturn(List.of(
+                        documentPiece(1, "CDI Dupont",
+                                fr.ailegalcase.document.DocumentPieceType.CONTRAT),
+                        documentPiece(1, "Lettre de licenciement",
+                                fr.ailegalcase.document.DocumentPieceType.LETTRE),
+                        documentPiece(2, "Bulletin de paie",
+                                fr.ailegalcase.document.DocumentPieceType.BULLETIN_PAIE)));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        // bordereau renuméroté 1, 2, 3 — aucun doublon, ordre préservé
+        String bordereau = conclusion.getContent().substring(
+                conclusion.getContent().indexOf("## BORDEREAU"));
+        assertThat(bordereau)
+                .contains("1. CDI Dupont")
+                .contains("2. Lettre de licenciement")
+                .contains("3. Bulletin de paie");
+        // prompt : numéros distincts également (même source loadNumberedPieces)
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                contains("Pièce n° 3 — Bulletin de paie"), anyInt());
+    }
+
     @Test
     void generate_bordereau_antiJargon_noRawEnumTokenWhenLabelPresent() {
         UUID conclusionId = UUID.randomUUID();

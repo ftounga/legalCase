@@ -2,9 +2,11 @@ package fr.ailegalcase.casefile;
 
 import fr.ailegalcase.analysis.CaseFileContext;
 import fr.ailegalcase.workspace.Workspace;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,6 +23,18 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
     List<CaseFile> findByWorkspace_Id(UUID workspaceId);
 
     Optional<CaseFile> findByIdAndDeletedAtIsNull(UUID id);
+
+    /**
+     * SF-260-02 : verrou pessimiste sur la ligne {@code CaseFile} pour sérialiser
+     * l'attribution du {@code piece_number} par dossier. Acquis avant le calcul de
+     * {@code max(piece_number)+1} dans la détection de pièces (multi-documents
+     * concurrents via {@code @TransactionalEventListener AFTER_COMMIT}) → empêche
+     * la course lecture-puis-écriture qui produisait des collisions (« 1, 1, 1 »
+     * dans le bordereau). Portable H2 (lock table) + PostgreSQL ({@code FOR UPDATE}).
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from CaseFile c where c.id = :id")
+    Optional<CaseFile> findByIdForUpdate(@Param("id") UUID id);
 
     @Query("SELECT c.createdBy.id FROM CaseFile c WHERE c.id = :id")
     Optional<UUID> findCreatedByUserIdById(@Param("id") UUID id);
