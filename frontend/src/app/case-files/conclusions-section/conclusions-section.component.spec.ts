@@ -1715,6 +1715,125 @@ describe('ConclusionsSectionComponent', () => {
       expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).toBeNull();
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // F-280 / SF-280-01 — Comparaison de versions (diff)
+  // ---------------------------------------------------------------------------
+
+  describe('F-280 — comparaison de versions (diff)', () => {
+    function loadWithVersions(): void {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList());
+      fixture.detectChanges();
+    }
+
+    it('canCompare faux avec une seule version, vrai avec deux', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), [versionSummary({ id: 'conc-2', versionNumber: 2 })]);
+      fixture.detectChanges();
+      expect(component.canCompare()).toBe(false);
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="compare-versions-btn"]',
+      );
+      expect(btn).toBeNull();
+    });
+
+    it('bouton « Comparer » visible avec ≥ 2 versions', () => {
+      loadWithVersions();
+      expect(component.canCompare()).toBe(true);
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="compare-versions-btn"]',
+      );
+      expect(btn).not.toBeNull();
+    });
+
+    it('openCompare charge base=précédente, cible=sélectionnée et masque l\'acte', () => {
+      loadWithVersions();
+      // selectedVersionId = conc-2 (la plus récente).
+      component.openCompare();
+      // forkJoin → deux GET (base conc-1, cible conc-2).
+      httpMock
+        .expectOne(versionUrl('conc-1'))
+        .flush(doneResponse({ id: 'conc-1', versionNumber: 1, content: 'a\nb' }));
+      httpMock
+        .expectOne(versionUrl('conc-2'))
+        .flush(doneResponse({ id: 'conc-2', versionNumber: 2, content: 'a\nb\nc' }));
+      fixture.detectChanges();
+
+      expect(component.comparing()).toBe(true);
+      expect(component.diffBaseId()).toBe('conc-1');
+      expect(component.diffTargetId()).toBe('conc-2');
+      const panel = fixture.nativeElement.querySelector('[data-testid="diff-panel"]');
+      expect(panel).not.toBeNull();
+      // ligne ajoutée « c » présente, ligne supprimée absente (que des ajouts).
+      const added = fixture.nativeElement.querySelectorAll(
+        '[data-testid="diff-line-added"]',
+      );
+      expect(added.length).toBe(1);
+      const summary = fixture.nativeElement.querySelector(
+        '[data-testid="diff-summary"]',
+      );
+      expect(summary.textContent).toContain('1 ajout');
+    });
+
+    it('changer la borne base recalcule le diff', () => {
+      loadWithVersions();
+      component.openCompare();
+      httpMock.expectOne(versionUrl('conc-1')).flush(doneResponse({ id: 'conc-1', content: 'x' }));
+      httpMock.expectOne(versionUrl('conc-2')).flush(doneResponse({ id: 'conc-2', content: 'y' }));
+      fixture.detectChanges();
+
+      // Re-choisir conc-1 comme cible → forkJoin recharge les deux bornes
+      // (base conc-1, cible conc-1) ⇒ deux GET vers la même URL.
+      component.setDiffTarget('conc-1');
+      const reqs = httpMock.match(versionUrl('conc-1'));
+      expect(reqs.length).toBe(2);
+      reqs.forEach((r) => r.flush(doneResponse({ id: 'conc-1', content: 'x' })));
+      fixture.detectChanges();
+      expect(component.diffTargetId()).toBe('conc-1');
+      expect(component.diffSummary()).toEqual({ added: 0, removed: 0 });
+    });
+
+    it('closeCompare restaure l\'acte sans changer la version sélectionnée', () => {
+      loadWithVersions();
+      const selectedBefore = component.selectedVersionId();
+      component.openCompare();
+      httpMock.expectOne(versionUrl('conc-1')).flush(doneResponse({ id: 'conc-1', content: 'a' }));
+      httpMock.expectOne(versionUrl('conc-2')).flush(doneResponse({ id: 'conc-2', content: 'b' }));
+      fixture.detectChanges();
+
+      component.closeCompare();
+      fixture.detectChanges();
+      expect(component.comparing()).toBe(false);
+      expect(component.selectedVersionId()).toBe(selectedBefore);
+      const panel = fixture.nativeElement.querySelector('[data-testid="diff-panel"]');
+      expect(panel).toBeNull();
+      const doc = fixture.nativeElement.querySelector('app-conclusion-document');
+      expect(doc).not.toBeNull();
+    });
+
+    it('échec de chargement affiche un message sans casser le panneau', () => {
+      loadWithVersions();
+      component.openCompare();
+      // forkJoin : la première erreur fait échouer l'observable ; la seconde
+      // requête est annulée (on ne flush donc qu'une seule des deux).
+      httpMock
+        .expectOne(versionUrl('conc-1'))
+        .flush('boom', { status: 500, statusText: 'Server Error' });
+      const pending = httpMock.match(versionUrl('conc-2'));
+      pending.forEach((r) => {
+        if (!r.cancelled) {
+          r.flush('boom', { status: 500, statusText: 'Server Error' });
+        }
+      });
+      fixture.detectChanges();
+      expect(component.diffError()).not.toBeNull();
+      const err = fixture.nativeElement.querySelector('[data-testid="diff-error"]');
+      expect(err).not.toBeNull();
+      // le panneau reste ouvert (bouton Fermer accessible).
+      expect(component.comparing()).toBe(true);
+    });
+  });
 });
 
 // ── F-279 / SF-279-01 — stockage local du brouillon (helpers purs) ──────────

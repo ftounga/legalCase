@@ -713,3 +713,113 @@ $divider: #e0e4ea;
     gap: 10px;
   }
 }
+
+// ── F-280 / SF-280-01 — Comparaison de versions (diff lisible) ──────────────
+.cs-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cs-diff-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.cs-diff-field {
+  min-width: 160px;
+}
+
+.cs-diff-arrow {
+  color: #6b7a8d;
+}
+
+.cs-diff-close {
+  margin-left: auto;
+}
+
+.cs-diff-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #43505f;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.cs-diff-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+
+  &--added {
+    background: #e8f5e9;
+    border: 1px solid #27ae60;
+  }
+
+  &--removed {
+    background: #ffebee;
+    border: 1px solid #c0392b;
+  }
+}
+
+.cs-diff-summary {
+  margin-left: auto;
+  font-weight: 600;
+  color: #1a2330;
+}
+
+.cs-diff-body {
+  border: 1px solid #e0e4ea;
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cs-diff-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 2px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  &--added {
+    background: #e8f5e9;
+    color: #1e7e44;
+  }
+
+  &--removed {
+    background: #ffebee;
+    color: #a33125;
+  }
+
+  &--unchanged {
+    color: #43505f;
+  }
+}
+
+.cs-diff-sign {
+  flex: 0 0 auto;
+  width: 12px;
+  font-weight: 700;
+  text-align: center;
+  user-select: none;
+}
+
+.cs-diff-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
