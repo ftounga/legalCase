@@ -1,11 +1,36 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   Input,
   computed,
+  inject,
   signal,
 } from '@angular/core';
 import { marked } from 'marked';
+import {
+  type ConclusionSection,
+  parseMarkdownSections,
+} from '../conclusions-section/conclusion-sections.util';
+
+/**
+ * F-276 — Sélecteur des titres de section rendus dans la feuille. `marked`
+ * produit `##` → `<h2>` et `###` → `<h3>` **dans l'ordre du markdown**, le même
+ * ordre que `parseMarkdownSections`. La i-ème entrée du sommaire correspond donc
+ * au i-ème de ces titres dans le DOM — on cible la cible du saut **par index**
+ * (et non par `id`, qu'Angular retire à la sanitization du `[innerHTML]`).
+ */
+export const SECTION_HEADING_SELECTOR = '.cd-content h2, .cd-content h3';
+
+/**
+ * F-276 — Entrée du sommaire : libellé (titre de section), niveau (2/3, pour
+ * l'indentation) et `index` du titre cible dans l'ordre du document.
+ */
+export interface SummaryEntry {
+  title: string;
+  level: number;
+  index: number;
+}
 
 /**
  * F-266 / SF-266-01 — Référence minimale d'une pièce numérotée du dossier,
@@ -110,6 +135,8 @@ export function annotatePieceReferences(
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConclusionDocumentComponent {
+  /** Hôte du composant — sert à retrouver les titres rendus pour le saut F-276. */
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly _content = signal<string | null | undefined>(null);
   private readonly _pieces = signal<readonly PieceRef[]>([]);
 
@@ -148,10 +175,19 @@ export class ConclusionDocumentComponent {
   });
 
   /**
+   * F-276 — Sections de l'acte (titres `##`/`###`) par parsing **déterministe**
+   * et partagé (`parseMarkdownSections`, même source que la co-rédaction F-265).
+   * Sert à la fois à injecter les ancres dans le HTML et à bâtir le sommaire.
+   */
+  private readonly sections = computed<ConclusionSection[]>(() =>
+    parseMarkdownSections(this._content() ?? ''),
+  );
+
+  /**
    * HTML issu du parsing Markdown (`marked`, mode synchrone). Rendu via
    * `[innerHTML]` → Angular sanitize la sortie (suppression des `<script>`,
-   * handlers inline, etc.). Vide ⇒ rien n'est rendu (état vide géré par le
-   * parent).
+   * handlers inline, etc. ; l'attribut `id` est conservé). Vide ⇒ rien n'est
+   * rendu (état vide géré par le parent).
    */
   readonly html = computed<string>(() => {
     const content = this._content();
@@ -167,4 +203,40 @@ export class ConclusionDocumentComponent {
 
   /** Vrai s'il y a quelque chose à rendre. */
   readonly hasContent = computed<boolean>(() => this.html().length > 0);
+
+  /**
+   * F-276 — Entrées du sommaire cliquable, dans l'ordre du document. **Affiché
+   * seulement si l'acte a au moins 2 sections** (sinon la navigation n'apporte
+   * rien — invariant anti-surcharge 0bis) : en deçà, liste vide ⇒ le bloc
+   * sommaire n'est pas rendu. L'`index` désigne le i-ème titre `<h2>`/`<h3>`
+   * rendu, cible du saut.
+   */
+  readonly summary = computed<SummaryEntry[]>(() => {
+    const secs = this.sections();
+    if (secs.length < 2) {
+      return [];
+    }
+    return secs.map((s, i) => ({
+      title: s.title,
+      level: s.level,
+      index: i,
+    }));
+  });
+
+  /**
+   * F-276 — Fait défiler la feuille jusqu'au i-ème titre de section rendu.
+   *
+   * <p>On cible le titre **par index** dans le DOM (et non par `id`, qu'Angular
+   * retire à la sanitization du `[innerHTML]`). L'ordre des titres rendus par
+   * `marked` est celui de `parseMarkdownSections`, donc l'index du sommaire
+   * pointe le bon titre. Suit la convention produit (`scrollIntoView`
+   * smooth/start ; cf. `case-file-detail`, `synthesis`). Sans effet si le titre
+   * est absent (jamais d'erreur). Saut intra-page : aucun changement d'URL.</p>
+   */
+  jumpTo(index: number): void {
+    const headings = this.host.nativeElement.querySelectorAll<HTMLElement>(
+      SECTION_HEADING_SELECTOR,
+    );
+    headings.item(index)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }

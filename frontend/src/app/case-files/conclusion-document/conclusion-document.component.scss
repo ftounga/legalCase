@@ -231,3 +231,74 @@ $divider: #e0e4ea;
   color: $muted;
   text-align: right;
 }
+
+// ── F-276 — Sommaire cliquable de l'acte (en tête de feuille) ──────────────
+//    Élément du template Angular (pas du innerHTML) → encapsulation normale,
+//    pas de ::ng-deep. Compact, discret, n'élargit pas la feuille. Affiché
+//    seulement si ≥ 2 sections (logique côté composant).
+.cd-summary {
+  margin: 0 0 24px;
+  padding: 12px 16px;
+  border: 1px solid $divider;
+  border-left: 3px solid $gold;
+  border-radius: 6px;
+  background: #f7f9fb;
+  font-family: 'Inter', sans-serif;
+
+  &__heading {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $muted;
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    margin: 0;
+
+    // Indentation des sous-sections (### → niveau 3).
+    &--sub {
+      padding-left: 16px;
+    }
+  }
+
+  &__link {
+    display: block;
+    width: 100%;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.4;
+    color: $navy;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(26, 58, 92, 0.06);
+      color: $gold;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $gold;
+      outline-offset: 1px;
+    }
+  }
+
+  // Les sous-sections (niveau 3) sont visuellement plus discrètes.
+  &__item--sub &__link {
+    font-size: 13px;
+    color: $muted;
+  }
+}

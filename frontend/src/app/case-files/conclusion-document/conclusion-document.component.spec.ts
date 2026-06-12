@@ -279,4 +279,95 @@ describe('ConclusionDocumentComponent', () => {
       expect(component.content).toBe(src);
     });
   });
+
+  // ── F-276 — Sommaire / navigation cliquable par section ──────────────────
+  describe('F-276 — sommaire de navigation', () => {
+    const SUMMARY = '[data-testid="conclusions-summary"]';
+    const ITEM = '[data-testid="summary-item"]';
+
+    function summaryEl(): HTMLElement | null {
+      return fixture.nativeElement.querySelector(SUMMARY);
+    }
+    function items(): HTMLButtonElement[] {
+      return Array.from(
+        fixture.nativeElement.querySelectorAll(ITEM),
+      ) as HTMLButtonElement[];
+    }
+
+    const TWO_SECTIONS =
+      '# Tribunal\n\n## FAITS\n\nExposé des faits.\n\n## DISCUSSION\n\nArgumentation.';
+
+    it('≥ 2 sections → un sommaire avec une entrée par section, dans l\'ordre', () => {
+      setContent(TWO_SECTIONS);
+      expect(summaryEl()).not.toBeNull();
+      const labels = items().map((b) => b.textContent?.trim());
+      expect(labels).toEqual(['FAITS', 'DISCUSSION']);
+    });
+
+    it('0 section (que du texte) → aucun sommaire', () => {
+      setContent('Un simple paragraphe sans titre de section.');
+      expect(summaryEl()).toBeNull();
+    });
+
+    it('1 seule section → aucun sommaire (navigation inutile)', () => {
+      setContent('# Tribunal\n\n## FAITS\n\nExposé.');
+      expect(summaryEl()).toBeNull();
+    });
+
+    it('le sommaire est aligné, dans l\'ordre, sur les titres <h2>/<h3> rendus', () => {
+      setContent('## FAITS\n\nx\n\n### Sous-point\n\ny\n\n## DISCUSSION\n\nz');
+      // 3 entrées de sommaire = 3 titres rendus dans le corps, même ordre.
+      const labels = items().map((b) => b.textContent?.trim());
+      const headings = Array.from(
+        contentEl().querySelectorAll('h2, h3'),
+      ) as HTMLElement[];
+      expect(labels).toEqual(['FAITS', 'Sous-point', 'DISCUSSION']);
+      expect(headings.map((h) => h.textContent?.trim())).toEqual(labels);
+    });
+
+    it('clic sur une entrée → scrollIntoView smooth/start sur le BON titre (par index)', () => {
+      setContent(TWO_SECTIONS);
+      const headings = Array.from(
+        contentEl().querySelectorAll('h2, h3'),
+      ) as HTMLElement[];
+      // jsdom n'implémente pas scrollIntoView → on l'installe sur chaque titre.
+      const spy0 = jest.fn();
+      const spy1 = jest.fn();
+      headings[0].scrollIntoView = spy0;
+      headings[1].scrollIntoView = spy1;
+
+      items()[1].click();
+
+      expect(spy1).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+      expect(spy0).not.toHaveBeenCalled();
+    });
+
+    it('clic alors que le titre cible est absent → aucune erreur', () => {
+      setContent(TWO_SECTIONS);
+      // jumpTo(index) hors bornes ne doit jamais lever (item?.scrollIntoView).
+      expect(() => component.jumpTo(99)).not.toThrow();
+    });
+
+    it('une entrée de niveau ### est marquée sous-section (indentation)', () => {
+      setContent('## FAITS\n\nx\n\n### Détail\n\ny');
+      const subItem = items()[1];
+      expect(subItem.getAttribute('data-level')).toBe('3');
+      expect(
+        subItem.closest('.cd-summary__item')?.classList.contains(
+          'cd-summary__item--sub',
+        ),
+      ).toBe(true);
+    });
+
+    it('le content (markdown) n\'est pas muté par le sommaire', () => {
+      setContent(TWO_SECTIONS);
+      expect(component.content).toBe(TWO_SECTIONS);
+    });
+
+    it('le sommaire ne casse pas le rendu du corps (titres toujours présents)', () => {
+      setContent(TWO_SECTIONS);
+      expect(contentEl().querySelectorAll('h2').length).toBe(2);
+      expect(contentEl().textContent).toContain('Exposé des faits.');
+    });
+  });
 });

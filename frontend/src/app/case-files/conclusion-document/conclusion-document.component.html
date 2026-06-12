@@ -1,6 +1,34 @@
 @if (hasContent()) {
   <article class="cd-sheet" data-testid="conclusions-content">
     <!--
+      F-276 — Sommaire cliquable de l'acte. Affiché en tête de la feuille
+      uniquement si l'acte a au moins 2 sections (sinon liste vide ⇒ non rendu).
+      Au clic, saut intra-page vers le titre via scrollIntoView (smooth/start).
+      Identique en lecture et en aperçu d'édition (même composant hôte).
+    -->
+    @if (summary().length > 0) {
+      <nav class="cd-summary"
+           data-testid="conclusions-summary"
+           aria-label="Sommaire des conclusions">
+        <p class="cd-summary__heading">Sommaire</p>
+        <ul class="cd-summary__list">
+          @for (entry of summary(); track entry.index) {
+            <li class="cd-summary__item"
+                [class.cd-summary__item--sub]="entry.level >= 3">
+              <button type="button"
+                      class="cd-summary__link"
+                      data-testid="summary-item"
+                      [attr.data-level]="entry.level"
+                      (click)="jumpTo(entry.index)">
+                {{ entry.title }}
+              </button>
+            </li>
+          }
+        </ul>
+      </nav>
+    }
+
+    <!--
       Contenu Markdown rendu en HTML. Le binding [innerHTML] est sanitizé par
       Angular (DomSanitizer SecurityContext.HTML) : aucun script ni handler
       inline n'est exécuté. Le style vient du SCSS scopé (::ng-deep sous
