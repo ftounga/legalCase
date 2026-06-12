@@ -581,21 +581,15 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * SF-271-02 — « Actualiser » (action SÛRE, sans confirmation) : régénère en
-   * PRÉSERVANT le texte de l'avocat comme socle. Le worker n'ajoute/ne corrige
-   * que le manquant (`fromScratch=false`). Aucune perte des retouches → pas de
-   * confirmation destructive.
+   * SF-271-03 — « Régénérer » (action unique et HONNÊTE) : réécrit l'acte via
+   * l'IA, AVEC confirmation obligatoire. Une régénération IA ne peut pas
+   * préserver de façon fiable les retouches manuelles (les gardes anti-invention
+   * écartent ce qui n'est pas fondé dans les pièces) — pour conserver son texte,
+   * l'avocat l'édite/enregistre et ne régénère pas. La régénération repart de
+   * l'analyse et des conclusions actuelles (consolidation art. 768) puis
+   * REMPLACE le texte courant.
    */
-  actualiser(): void {
-    this.generate(false);
-  }
-
-  /**
-   * SF-271-02 — « Régénérer de zéro » (action DESTRUCTIVE) : régénère SANS socle
-   * (`fromScratch=true`), donc REMPLACE le texte actuel par une réécriture depuis
-   * l'analyse. Confirmation honnête obligatoire avant de lancer.
-   */
-  regenerateFromScratch(): void {
+  regenerate(): void {
     if (this.generating()) {
       return;
     }
@@ -603,18 +597,19 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       .open(ConfirmDialogComponent, {
         width: '480px',
         data: {
-          title: 'Régénérer de zéro',
+          title: 'Régénérer les conclusions',
           message:
-            'Réécrit l\'acte à partir de l\'analyse et REMPLACE votre texte ' +
-            'actuel. Continuer ?',
-          confirmLabel: 'Régénérer de zéro',
+            'La régénération réécrit l\'acte via l\'IA (à partir de l\'analyse et ' +
+            'de vos conclusions actuelles) et REMPLACE votre texte. Vos retouches ' +
+            'manuelles ne sont pas garanties. Continuer ?',
+          confirmLabel: 'Régénérer',
           confirmColor: 'warn',
         },
       })
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.generate(true);
+          this.generate(false);
         }
         this.cdr.markForCheck();
       });
