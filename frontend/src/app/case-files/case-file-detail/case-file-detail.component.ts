@@ -56,6 +56,7 @@ import { CasePhasesTimelineComponent } from '../case-phases-timeline/case-phases
 import { EcheancierProactifComponent } from '../echeancier-proactif/echeancier-proactif.component';
 import { PiecesWaveCardComponent } from '../pieces-wave-card/pieces-wave-card.component';
 import { ProcedureStageSectionComponent } from '../procedure-stage-section/procedure-stage-section.component';
+import { CaseIntakeSectionComponent } from '../case-intake-section/case-intake-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
@@ -167,6 +168,7 @@ export const TAB_SUIVI = 3;
     CasePhasesTimelineComponent, EcheancierProactifComponent,
     PiecesWaveCardComponent,
     ProcedureStageSectionComponent,
+    CaseIntakeSectionComponent,
     TimerWidgetComponent,
     CaseDashboardComponent, AnalysisPipelineComponent,
     DecisionToolsPanelComponent,

@@ -1,0 +1,159 @@
+<section class="intake-card" data-testid="case-intake-section">
+  <!-- En-tête -->
+  <div class="intake-head">
+    <span class="intake-title">
+      <mat-icon class="intake-title-icon">fact_check</mat-icon>
+      Qualification d’entrée
+    </span>
+    @if (!unavailable() && !loading() && !editing() && qualified()) {
+      <button mat-stroked-button class="intake-edit-btn" (click)="startEdit()"
+              data-testid="intake-edit-btn">
+        <mat-icon>edit</mat-icon>
+        Modifier
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="intake-muted">Chargement de la qualification…</p>
+  } @else if (unavailable()) {
+    <p class="intake-muted intake-unavailable">
+      Qualification temporairement indisponible. Rechargez la page pour réessayer.
+    </p>
+  } @else if (editing()) {
+    <!-- ── Édition (champs natifs) ─────────────────────────────────────── -->
+    <form class="intake-form" [formGroup]="form" (ngSubmit)="save()" data-testid="intake-form">
+      <label class="intake-field intake-field--full">
+        <span class="intake-field-label">Type de litige</span>
+        <input class="intake-input" type="text" formControlName="disputeType"
+               maxlength="120" placeholder="ex. Contestation de licenciement" />
+      </label>
+
+      <div class="intake-form-grid">
+        <label class="intake-field">
+          <span class="intake-field-label">Recevabilité / compétence</span>
+          <select class="intake-select" formControlName="admissibility" aria-label="Recevabilité">
+            <option value="">— À qualifier —</option>
+            <option value="A_VERIFIER">À vérifier</option>
+            <option value="RECEVABLE">Recevable</option>
+            <option value="IRRECEVABLE">Irrecevable</option>
+          </select>
+        </label>
+
+        <label class="intake-field">
+          <span class="intake-field-label">Juridiction compétente</span>
+          <input class="intake-input" type="text" formControlName="jurisdiction"
+                 maxlength="120" placeholder="ex. Conseil de prud’hommes" />
+        </label>
+
+        <label class="intake-field">
+          <span class="intake-field-label">Statut de prescription</span>
+          <select class="intake-select" formControlName="prescriptionStatus" aria-label="Statut de prescription">
+            <option value="">— À vérifier —</option>
+            <option value="A_VERIFIER">À vérifier</option>
+            <option value="DANS_LES_DELAIS">Dans les délais</option>
+            <option value="RISQUE_FORCLUSION">Risque de forclusion</option>
+            <option value="PRESCRIT">Prescrit</option>
+          </select>
+        </label>
+
+        <label class="intake-field">
+          <span class="intake-field-label">Date limite de prescription</span>
+          <input class="intake-input" type="date" lang="fr-FR"
+                 formControlName="prescriptionDeadline" aria-label="Date limite de prescription" />
+        </label>
+
+        <label class="intake-field">
+          <span class="intake-field-label">Valeur estimée du litige</span>
+          <span class="intake-money">
+            <input class="intake-input intake-input--money" type="number" min="0" step="1"
+                   formControlName="estimatedValueEuros" placeholder="0"
+                   aria-label="Valeur estimée en euros" />
+            <span class="intake-money-suffix">€</span>
+          </span>
+        </label>
+      </div>
+
+      <label class="intake-field intake-field--full">
+        <span class="intake-field-label">Note (optionnelle)</span>
+        <textarea class="intake-textarea" formControlName="notes" rows="2" maxlength="1000"
+                  placeholder="Premiers éléments de qualification…"></textarea>
+      </label>
+
+      <div class="intake-form-actions">
+        <button mat-button type="button" (click)="cancelEdit()" [disabled]="saving()">Annuler</button>
+        <button mat-flat-button color="primary" type="submit"
+                [disabled]="form.invalid || saving()" data-testid="intake-save-btn">
+          <mat-icon>save</mat-icon>
+          Enregistrer la qualification
+        </button>
+      </div>
+    </form>
+  } @else if (qualified()) {
+    <!-- ── Verdict compact ─────────────────────────────────────────────── -->
+    <div class="intake-verdict" data-testid="intake-verdict">
+      <span class="intake-badge"
+            [class.intake-badge--ok]="intake()?.admissibility === 'RECEVABLE'"
+            [class.intake-badge--ko]="intake()?.admissibility === 'IRRECEVABLE'"
+            [class.intake-badge--neutral]="!intake()?.admissibility || intake()?.admissibility === 'A_VERIFIER'">
+        <mat-icon class="intake-badge-icon">{{
+          intake()?.admissibility === 'RECEVABLE' ? 'verified'
+            : intake()?.admissibility === 'IRRECEVABLE' ? 'gavel' : 'help_outline'
+        }}</mat-icon>
+        {{ admissibilityLabel(intake()?.admissibility ?? null) }}
+      </span>
+
+      <div class="intake-pills">
+        @if (intake()?.disputeType) {
+          <span class="intake-pill" data-testid="intake-pill-type">
+            <mat-icon class="intake-pill-icon">topic</mat-icon>
+            {{ intake()?.disputeType }}
+          </span>
+        }
+
+        <span class="intake-pill intake-pill--prescription"
+              [class.intake-pill--warn]="intake()?.prescriptionStatus === 'RISQUE_FORCLUSION'"
+              [class.intake-pill--danger]="intake()?.prescriptionStatus === 'PRESCRIT'"
+              [class.intake-pill--ok]="intake()?.prescriptionStatus === 'DANS_LES_DELAIS'"
+              data-testid="intake-pill-prescription">
+          <mat-icon class="intake-pill-icon">schedule</mat-icon>
+          {{ prescriptionLabel(intake()?.prescriptionStatus ?? null) }}
+          @if (intake()?.prescriptionDeadline) {
+            · <span class="intake-pill-date">{{ intake()?.prescriptionDeadline | date:'dd/MM/yyyy' }}</span>
+          }
+        </span>
+
+        @if (intake()?.jurisdiction) {
+          <span class="intake-pill" data-testid="intake-pill-jurisdiction">
+            <mat-icon class="intake-pill-icon">account_balance</mat-icon>
+            {{ intake()?.jurisdiction }}
+          </span>
+        }
+
+        @if (estimatedValueDisplay(); as value) {
+          <span class="intake-pill intake-pill--value" data-testid="intake-pill-value">
+            <mat-icon class="intake-pill-icon">payments</mat-icon>
+            <span class="intake-value">{{ value }}</span>
+          </span>
+        }
+      </div>
+
+      @if (intake()?.notes) {
+        <p class="intake-notes">{{ intake()?.notes }}</p>
+      }
+    </div>
+  } @else {
+    <!-- ── État vide : invite légère + CTA (non bloquant) ──────────────── -->
+    <div class="intake-empty" data-testid="intake-empty">
+      <p class="intake-empty-text">
+        Qualifiez ce dossier d’un coup d’œil : type de litige, prescription,
+        recevabilité et valeur estimée — avant d’investir dans l’analyse.
+      </p>
+      <button mat-flat-button color="primary" (click)="startEdit()"
+              data-testid="intake-qualify-btn">
+        <mat-icon>fact_check</mat-icon>
+        Qualifier ce dossier
+      </button>
+    </div>
+  }
+</section>

@@ -1,0 +1,225 @@
+/* F-285 — carte de qualification d'entrée du dossier. Gabarit frise F-282 +
+   charte DESIGN_SYSTEM.md : navy #1A3A5C / or #C9973A, Merriweather (titres) /
+   Inter (corps) / JetBrains Mono (valeur, dates), espacements multiples de 4px. */
+
+:host {
+  --intake-navy: var(--color-primary, #1A3A5C);
+  --intake-gold: var(--color-accent, #C9973A);
+  --intake-text: var(--color-text, #1C2B3A);
+  --intake-muted: var(--color-text-secondary, #6B7A8D);
+  --intake-divider: var(--color-divider, #E0E4EA);
+  --intake-bg: var(--color-background, #F5F6FA);
+  --intake-error: var(--color-error, #C0392B);
+  --intake-success: var(--color-success, #27AE60);
+  display: block;
+}
+
+.intake-card {
+  padding: 20px 24px;
+  border-radius: 12px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--intake-divider);
+  /* Colonne « document » : pas d'étirement plein écran qui laisse un vide à droite. */
+  max-width: 760px;
+  /* Accent de tête sobre rappelant le groupe identité. */
+  border-top: 3px solid var(--intake-gold);
+}
+
+/* ── En-tête ───────────────────────────────────────────────────────────── */
+.intake-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.intake-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Merriweather', Georgia, serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--intake-navy);
+}
+.intake-title-icon { color: var(--intake-gold); }
+
+.intake-edit-btn { line-height: 32px; }
+
+.intake-muted { color: var(--intake-muted); font-size: 14px; margin: 8px 0; }
+.intake-unavailable { color: var(--intake-error); }
+
+/* ── Verdict compact ───────────────────────────────────────────────────── */
+.intake-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intake-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.intake-badge-icon { font-size: 18px; width: 18px; height: 18px; }
+.intake-badge--ok {
+  background: rgba(39, 174, 96, 0.12);
+  border-color: var(--intake-success);
+  color: #1d7a45;
+}
+.intake-badge--ko {
+  background: rgba(192, 57, 43, 0.1);
+  border-color: var(--intake-error);
+  color: var(--intake-error);
+}
+.intake-badge--neutral {
+  background: var(--intake-bg);
+  border-color: var(--intake-divider);
+  color: var(--intake-muted);
+}
+
+.intake-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.intake-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--intake-bg);
+  border: 1px solid var(--intake-divider);
+  color: var(--intake-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+.intake-pill-icon { font-size: 16px; width: 16px; height: 16px; color: var(--intake-navy); }
+.intake-pill-date { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+/* Pastille prescription — sémantique */
+.intake-pill--ok { background: rgba(39, 174, 96, 0.1); border-color: rgba(39, 174, 96, 0.4); }
+.intake-pill--ok .intake-pill-icon { color: #1d7a45; }
+.intake-pill--warn {
+  background: rgba(201, 151, 58, 0.14);
+  border-color: var(--intake-gold);
+  color: #8a6a1f;
+  font-weight: 600;
+}
+.intake-pill--warn .intake-pill-icon { color: #8a6a1f; }
+.intake-pill--danger {
+  background: rgba(192, 57, 43, 0.1);
+  border-color: var(--intake-error);
+  color: var(--intake-error);
+  font-weight: 600;
+}
+.intake-pill--danger .intake-pill-icon { color: var(--intake-error); }
+
+/* Pastille valeur — montant en JetBrains Mono */
+.intake-pill--value { border-color: rgba(26, 58, 92, 0.3); }
+.intake-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--intake-navy);
+}
+
+.intake-notes {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--intake-muted);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* ── État vide ─────────────────────────────────────────────────────────── */
+.intake-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.intake-empty-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--intake-muted);
+  line-height: 1.55;
+}
+
+/* ── Formulaire d'édition ──────────────────────────────────────────────── */
+.intake-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.intake-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.intake-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.intake-field--full { grid-column: 1 / -1; }
+.intake-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--intake-muted);
+  letter-spacing: 0.02em;
+}
+
+.intake-input,
+.intake-select,
+.intake-textarea {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--intake-text);
+  padding: 8px 10px;
+  border: 1px solid var(--intake-divider);
+  border-radius: 8px;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+.intake-input:focus,
+.intake-select:focus,
+.intake-textarea:focus {
+  outline: none;
+  border-color: var(--intake-navy);
+  box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.12);
+}
+.intake-textarea { resize: vertical; min-height: 44px; }
+
+.intake-money { position: relative; display: flex; align-items: center; }
+.intake-input--money { font-family: 'JetBrains Mono', monospace; padding-right: 28px; }
+.intake-money-suffix {
+  position: absolute;
+  right: 10px;
+  color: var(--intake-muted);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.intake-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Responsive : 1 colonne en étroit */
+@media (max-width: 640px) {
+  .intake-form-grid { grid-template-columns: 1fr; }
+  .intake-card { padding: 16px; }
+}
