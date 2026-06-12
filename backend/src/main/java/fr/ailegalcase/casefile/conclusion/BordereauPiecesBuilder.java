@@ -24,7 +24,15 @@ import java.util.stream.Collectors;
  */
 final class BordereauPiecesBuilder {
 
-    static final String HEADER = "\n\n## BORDEREAU DE PIÈCES COMMUNIQUÉES\n\n";
+    /**
+     * SF-271-02 — titre de la section bordereau, exposé comme marqueur réutilisable.
+     * Sert à couper le bordereau de la base récapitulative avant réinjection
+     * ({@code CaseConclusionService.loadPreviousRecapContent}) : le bordereau est
+     * ré-ajouté de façon déterministe par {@code finalize}, jamais recopié par le LLM.
+     */
+    static final String SECTION_TITLE = "## BORDEREAU DE PIÈCES COMMUNIQUÉES";
+
+    static final String HEADER = "\n\n" + SECTION_TITLE + "\n\n";
 
     /** Libellé neutre lisible quand une pièce n'a ni label ni type exploitable. */
     private static final String NEUTRAL_LABEL = "Pièce communiquée";

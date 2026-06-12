@@ -124,16 +124,17 @@ public class CaseConclusionPromptBuilder {
                     + "pourcentage chiffré de succès ou d'issue favorable, ni une « chance de gagner ». "
                     + "L'appréciation de l'aléa judiciaire reste qualitative et assortie de la réserve "
                     + "que l'issue dépend de la juridiction saisie et de la formation de jugement.\n"
-                    + "10. Conclusions récapitulatives (F-271, art. 768 CPC). Lorsqu'une section "
-                    + "« BASE À CONSOLIDER (jeu de conclusions précédent) » est fournie, ce texte est le "
-                    + "dernier jeu de conclusions de l'avocat (ses éditions manuelles incluses) : tu "
-                    + "produis un jeu RÉCAPITULATIF qui REPREND l'intégralité de ses chefs de demande et "
-                    + "de ses moyens, puis les enrichit et les actualise au vu des éléments nouveaux "
-                    + "(synthèse, moyens et jurisprudence adverses, pièces). N'ABANDONNE aucun chef de "
-                    + "demande ni moyen présent dans la base sans qu'un élément du dossier ne le justifie "
-                    + "explicitement — en procédure écrite, un chef non repris est réputé abandonné. "
-                    + "Respecte la formulation et le style des passages que l'avocat a rédigés. Cette "
-                    + "section est une matière première INTERNE : ne la cite ni ne la commente, consolide-la.";
+                    + "10. Conclusions récapitulatives — préservation du texte de l'avocat (F-271 / "
+                    + "SF-271-02, art. 768 CPC). Lorsqu'une section « TEXTE ACTUEL À PRÉSERVER (jeu de "
+                    + "conclusions de l'avocat) » est fournie, ce texte est le dernier jeu de conclusions "
+                    + "de l'avocat (ses éditions manuelles incluses) : PRÉSERVE-le tel quel. N'AJOUTE/ne "
+                    + "corrige QUE les chefs, moyens ou éléments d'analyse manquants ou nouveaux au vu des "
+                    + "éléments du dossier (synthèse, moyens et jurisprudence adverses, pièces). Ne "
+                    + "REFORMULE PAS ce qui existe : reprends la formulation et le style des passages que "
+                    + "l'avocat a rédigés. N'ABANDONNE aucun chef de demande ni moyen présent dans ce "
+                    + "texte sans qu'un élément du dossier ne le justifie explicitement — en procédure "
+                    + "écrite, un chef non repris est réputé abandonné. Cette section est une matière "
+                    + "première INTERNE : ne la cite ni ne la commente.";
 
     /**
      * F-272 / SF-272-01 — positions de <strong>défense</strong> pour lesquelles l'ordre
@@ -406,21 +407,27 @@ public class CaseConclusionPromptBuilder {
     }
 
     /**
-     * F-271 — section « BASE À CONSOLIDER » : le {@code content} de la dernière version
-     * DONE des conclusions du dossier (éditions manuelles de l'avocat incluses). Sert de
-     * socle au jeu récapitulatif (art. 768 CPC). La section est <strong>absente</strong>
-     * (no-op) à la première génération, ou si le content précédent est nul / vide.
+     * F-271 / SF-271-02 — section « TEXTE ACTUEL À PRÉSERVER » : le {@code content} de la
+     * dernière version DONE des conclusions du dossier (éditions manuelles de l'avocat
+     * incluses), <strong>bordereau retiré</strong> (le bordereau est ré-assemblé
+     * déterministe par {@code finalize}). Mode « Actualiser » : l'IA PRÉSERVE ce texte tel
+     * quel et n'ajoute/ne corrige QUE le manquant, sans reformuler l'existant. La section
+     * est <strong>absente</strong> (no-op) à la première génération, en mode « Régénérer
+     * de zéro », ou si le content précédent est nul / vide.
      */
     private void appendPreviousRecap(StringBuilder sb, String previousRecapContent) {
         if (previousRecapContent == null || previousRecapContent.isBlank()) {
             return;
         }
-        sb.append("\n=== BASE À CONSOLIDER (jeu de conclusions précédent) ===\n");
+        sb.append("\n=== TEXTE ACTUEL À PRÉSERVER (jeu de conclusions de l'avocat) ===\n");
         sb.append("Le texte ci-dessous est le DERNIER jeu de conclusions de l'avocat sur ce "
-                + "dossier (ses éditions manuelles incluses). Produis un jeu RÉCAPITULATIF qui "
-                + "REPREND tous ses chefs de demande et moyens, puis les enrichit et les actualise "
-                + "au vu des éléments nouveaux. N'abandonne aucun chef sans justification (art. 768 "
-                + "CPC). Ne recopie pas servilement : consolide.\n");
+                + "dossier (ses éditions manuelles incluses). Ce texte est celui de l'avocat : "
+                + "PRÉSERVE-le tel quel. N'AJOUTE/ne corrige QUE les chefs, moyens ou éléments "
+                + "d'analyse manquants ou nouveaux (au vu de la synthèse, des moyens et "
+                + "jurisprudence adverses, des pièces). Ne reformule PAS ce qui existe. "
+                + "N'abandonne aucun chef de demande ni moyen présent dans ce texte (art. 768 "
+                + "CPC). Cette section est une matière première INTERNE : ne la cite ni ne la "
+                + "commente.\n");
         sb.append(previousRecapContent.strip()).append('\n');
     }
 

@@ -77,6 +77,16 @@ public class CaseConclusion {
     @Column(name = "style_applied", nullable = false)
     private boolean styleApplied;
 
+    /**
+     * SF-271-02 — mode de génération de la version. {@code false} (défaut) =
+     * « Actualiser » : le worker repart de la dernière version DONE (bordereau
+     * retiré) comme texte à préserver. {@code true} = « Régénérer de zéro » : le
+     * worker ignore la base récapitulative (génération from-scratch depuis
+     * l'analyse). Posé au déclenchement, lu par {@code prepare()}.
+     */
+    @Column(name = "generated_from_scratch", nullable = false)
+    private boolean generatedFromScratch;
+
     @Column(name = "prompt_tokens")
     private Integer promptTokens;
 

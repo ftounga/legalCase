@@ -156,6 +156,26 @@ class CaseConclusionControllerIT {
                 .isEqualTo(CaseConclusionStatus.PENDING);
         org.assertj.core.api.Assertions.assertThat(versions.get(0).getLifecycleStatus())
                 .isEqualTo(ConclusionLifecycleStatus.DRAFT);
+        // SF-271-02 — sans query param = défaut « Actualiser ».
+        org.assertj.core.api.Assertions.assertThat(versions.get(0).isGeneratedFromScratch())
+                .isFalse();
+    }
+
+    // SF-271-02 — « Régénérer de zéro » : ?fromScratch=true → flag persisté.
+    @Test
+    void POST_generate_fromScratchTrue_persistsFlag() throws Exception {
+        mockMvc.perform(post("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/generate")
+                        .param("fromScratch", "true")
+                        .with(authentication(authA)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.versionNumber").value(1));
+
+        List<CaseConclusion> versions = caseConclusionRepository
+                .findByCaseFileIdOrderByVersionNumberDesc(supportedCf.getId());
+        org.assertj.core.api.Assertions.assertThat(versions).hasSize(1);
+        org.assertj.core.api.Assertions.assertThat(versions.get(0).isGeneratedFromScratch())
+                .isTrue();
     }
 
     @Test
