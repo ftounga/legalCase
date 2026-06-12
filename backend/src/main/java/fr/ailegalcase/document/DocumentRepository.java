@@ -16,6 +16,12 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     List<Document> findByCaseFile_IdOrderByCreatedAtDesc(UUID caseFileId);
 
+    /**
+     * F-283 / SF-283-02 — pièces ajoutées après un horodatage (vague de pièces
+     * en attente d'analyse), les plus récentes d'abord.
+     */
+    List<Document> findByCaseFile_IdAndCreatedAtAfterOrderByCreatedAtDesc(UUID caseFileId, Instant since);
+
     long countByCaseFileId(UUID caseFileId);
 
     List<Document> findByCaseFileIdIn(Collection<UUID> caseFileIds);
