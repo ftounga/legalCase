@@ -1,0 +1,40 @@
+<!-- Visible uniquement s'il y a une vague (pendingCount > 0). Sinon : DOM vide. -->
+@if (!loading() && pendingCount() > 0) {
+  <mat-card class="wave-card" data-testid="pieces-wave-card">
+    <div class="wave-head">
+      <span class="wave-badge" data-testid="wave-count">{{ pendingCount() }}</span>
+      <div class="wave-head-text">
+        <span class="wave-title">
+          {{ pendingCount() === 1 ? 'Nouvelle pièce' : 'Nouvelles pièces' }}
+          depuis votre dernière analyse
+        </span>
+        @if (analyzedAt(); as a) {
+          <span class="wave-sub">
+            Analyse du <span class="wave-date">{{ a | date:'dd/MM/yyyy' }}</span>
+            — ces pièces n’y sont pas encore prises en compte.
+          </span>
+        }
+      </div>
+    </div>
+
+    <ul class="wave-list" data-testid="wave-list">
+      @for (p of visible(); track p.documentId) {
+        <li class="wave-item">
+          <mat-icon class="wave-item-icon">description</mat-icon>
+          <span class="wave-item-name">{{ p.filename }}</span>
+          <span class="wave-item-date">{{ p.createdAt | date:'dd/MM/yyyy' }}</span>
+        </li>
+      }
+      @if (overflow() > 0) {
+        <li class="wave-more">et {{ overflow() }} autre{{ overflow() > 1 ? 's' : '' }}…</li>
+      }
+    </ul>
+
+    <div class="wave-actions">
+      <button mat-flat-button color="primary" data-testid="wave-analyze-btn" (click)="onAnalyze()">
+        <mat-icon>autorenew</mat-icon>
+        Relancer l’analyse
+      </button>
+    </div>
+  </mat-card>
+}

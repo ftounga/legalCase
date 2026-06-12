@@ -1,0 +1,104 @@
+/* F-283 / SF-283-02 — carte « vague de pièces ». Charte DESIGN_SYSTEM.md :
+   navy #1A3A5C / or #C9973A, Merriweather (titre) / Inter (corps) /
+   JetBrains Mono (dates), espacements multiples de 4px. */
+
+:host {
+  --wave-navy: var(--color-primary, #1A3A5C);
+  --wave-gold: var(--color-accent, #C9973A);
+  --wave-muted: var(--color-text-secondary, #6B7A8D);
+  --wave-divider: var(--color-divider, #E0E4EA);
+  --wave-bg: var(--color-background, #F5F6FA);
+  display: block;
+}
+
+.wave-card {
+  padding: 20px 24px;
+  border-radius: 12px;
+  /* Liseré or à gauche : signale un appel à action sans crier. */
+  border-left: 4px solid var(--wave-gold);
+  max-width: 760px;
+  margin-bottom: 16px;
+}
+
+/* ── En-tête : badge compteur + texte ──────────────────────── */
+.wave-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.wave-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--wave-gold);
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.wave-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.wave-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--wave-navy);
+}
+
+.wave-sub { font-size: 13px; color: var(--wave-muted); }
+.wave-date { font-family: 'JetBrains Mono', monospace; }
+
+/* ── Liste des pièces récentes ─────────────────────────────── */
+.wave-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--wave-divider);
+}
+
+.wave-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.wave-item-icon { font-size: 18px; width: 18px; height: 18px; color: var(--wave-muted); }
+.wave-item-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--color-text, #1C2B3A);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wave-item-date {
+  flex: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--wave-muted);
+}
+.wave-more {
+  margin-top: 4px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--wave-muted);
+}
+
+/* ── Action ────────────────────────────────────────────────── */
+.wave-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .wave-card { padding: 16px; }
+}

@@ -53,6 +53,7 @@ import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-sect
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
 import { ContradictoireTimelineComponent } from '../contradictoire-timeline/contradictoire-timeline.component';
 import { CasePhasesTimelineComponent } from '../case-phases-timeline/case-phases-timeline.component';
+import { PiecesWaveCardComponent } from '../pieces-wave-card/pieces-wave-card.component';
 import { ProcedureStageSectionComponent } from '../procedure-stage-section/procedure-stage-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
@@ -163,6 +164,7 @@ export const TAB_SUIVI = 3;
     MatDialogModule, MatMenuModule, MatTooltipModule, MatTabsModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent, ContradictoireTimelineComponent,
     CasePhasesTimelineComponent,
+    PiecesWaveCardComponent,
     ProcedureStageSectionComponent,
     TimerWidgetComponent,
     CaseDashboardComponent, AnalysisPipelineComponent,
@@ -178,6 +180,8 @@ export const TAB_SUIVI = 3;
 })
 export class CaseFileDetailComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  // F-283 / SF-283-02 — carte « vague de pièces » (onglet Dossier).
+  @ViewChild('piecesWaveCard') piecesWaveCard?: PiecesWaveCardComponent;
 
   caseFile = signal<CaseFile | null>(null);
   documents = signal<Document[]>([]);
@@ -1232,6 +1236,16 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     } else {
       this.triggerAnalysis();
     }
+  }
+
+  /**
+   * F-283 / SF-283-02 — CTA « Relancer l'analyse » de la carte « vague de pièces »
+   * (onglet Dossier). Route vers l'onglet Analyse et déclenche l'action d'analyse
+   * existante : aucune nouvelle pipeline introduite (cf. mini-spec SF-283-02).
+   */
+  onWaveAnalyzeRequested(): void {
+    this.selectedTabIndex.set(TAB_ANALYSE);
+    this.onAnalysisButtonClick();
   }
 
   /**
