@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="603-add-case-intake-fields" author="legalcase">
+        <comment>
+            F-285 / SF-285-01 — qualification d'entrée du dossier (intake guidé).
+            Colonnes additives (toutes nullable) sur case_files : type de litige,
+            recevabilité, statut + date limite de prescription, juridiction
+            compétente, valeur estimée (centimes EUR), note, horodatage de
+            qualification. Aucune modification de colonne existante (non destructif).
+        </comment>
+
+        <addColumn tableName="case_files">
+            <column name="intake_dispute_type" type="varchar(120)"/>
+            <column name="intake_admissibility" type="varchar(20)"/>
+            <column name="intake_prescription_status" type="varchar(24)"/>
+            <column name="intake_prescription_deadline" type="date"/>
+            <column name="intake_jurisdiction" type="varchar(120)"/>
+            <column name="intake_estimated_value_cents" type="bigint"/>
+            <column name="intake_notes" type="varchar(1000)"/>
+            <column name="intake_qualified_at" type="timestamptz"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="case_files" columnName="intake_dispute_type"/>
+            <dropColumn tableName="case_files" columnName="intake_admissibility"/>
+            <dropColumn tableName="case_files" columnName="intake_prescription_status"/>
+            <dropColumn tableName="case_files" columnName="intake_prescription_deadline"/>
+            <dropColumn tableName="case_files" columnName="intake_jurisdiction"/>
+            <dropColumn tableName="case_files" columnName="intake_estimated_value_cents"/>
+            <dropColumn tableName="case_files" columnName="intake_notes"/>
+            <dropColumn tableName="case_files" columnName="intake_qualified_at"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

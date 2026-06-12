@@ -63,6 +63,42 @@ public class CaseFile {
     @Column(name = "procedure_position", length = 50)
     private String procedurePosition;
 
+    // ── F-285 : qualification d'entrée du dossier (intake guidé). Tous nullable. ──
+
+    /** Type de litige (texte libre court, ex. « Contestation de licenciement »). */
+    @Column(name = "intake_dispute_type", length = 120)
+    private String intakeDisputeType;
+
+    /** Verdict de recevabilité / compétence. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "intake_admissibility", length = 20)
+    private AdmissibilityStatus intakeAdmissibility;
+
+    /** Statut de prescription / forclusion. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "intake_prescription_status", length = 24)
+    private PrescriptionStatus intakePrescriptionStatus;
+
+    /** Date limite de prescription / forclusion (optionnelle). */
+    @Column(name = "intake_prescription_deadline")
+    private java.time.LocalDate intakePrescriptionDeadline;
+
+    /** Juridiction compétente (texte libre court, ex. « Conseil de prud'hommes »). */
+    @Column(name = "intake_jurisdiction", length = 120)
+    private String intakeJurisdiction;
+
+    /** Valeur estimée du litige, en centimes d'EUR (optionnelle, ≥ 0). */
+    @Column(name = "intake_estimated_value_cents")
+    private Long intakeEstimatedValueCents;
+
+    /** Note de qualification libre (optionnelle). */
+    @Column(name = "intake_notes", length = 1000)
+    private String intakeNotes;
+
+    /** Horodatage de la 1ʳᵉ qualification (null tant que jamais qualifié, préservé ensuite). */
+    @Column(name = "intake_qualified_at")
+    private Instant intakeQualifiedAt;
+
     @PrePersist
     void onPrePersist() {
         Instant now = Instant.now();
