@@ -480,17 +480,17 @@ class CaseConclusionServiceTest {
         return doc;
     }
 
-    // ── F-271 — conclusions récapitulatives (reprise de la dernière version) ──
+    // ── F-271 / SF-271-02 — conclusions récapitulatives (texte de l'avocat préservé) ──
 
     @Test
-    void generate_withPreviousDoneVersion_injectsRecapBaseIntoPrompt() {
+    void generate_withPreviousDoneVersion_injectsPreservationBaseIntoPrompt() {
         UUID conclusionId = UUID.randomUUID();
         CaseConclusion conclusion = pendingConclusion(conclusionId);
         UUID caseFileId = conclusion.getCaseFile().getId();
         stubGenerationStubs(conclusionId, conclusion);
         when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
                 .thenReturn(List.of());
-        // Dernière version DONE avec content édité par l'avocat = base récapitulative.
+        // Dernière version DONE avec content édité par l'avocat = texte à préserver.
         CaseConclusion previous = new CaseConclusion();
         previous.setId(UUID.randomUUID());
         previous.setStatus(CaseConclusionStatus.DONE);
@@ -506,14 +506,14 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
         verify(anthropicService).analyzeWithSystemCache(
                 any(AiCallContext.class), any(),
-                contains("BASE À CONSOLIDER"), anyInt());
+                contains("TEXTE ACTUEL À PRÉSERVER"), anyInt());
         verify(anthropicService).analyzeWithSystemCache(
                 any(AiCallContext.class), any(),
                 contains("Condamner à 18 000 € (édition avocat)."), anyInt());
     }
 
     @Test
-    void generate_firstVersion_noRecapBaseInPrompt() {
+    void generate_firstVersion_noPreservationBaseInPrompt() {
         UUID conclusionId = UUID.randomUUID();
         CaseConclusion conclusion = pendingConclusion(conclusionId);
         stubGenerationStubs(conclusionId, conclusion);
@@ -529,11 +529,11 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
         verify(anthropicService).analyzeWithSystemCache(
                 any(AiCallContext.class), any(),
-                argThat(userMessage -> !userMessage.contains("BASE À CONSOLIDER")), anyInt());
+                argThat(userMessage -> !userMessage.contains("TEXTE ACTUEL À PRÉSERVER")), anyInt());
     }
 
     @Test
-    void generate_previousDoneVersionWithBlankContent_noRecapBaseInPrompt() {
+    void generate_previousDoneVersionWithBlankContent_noPreservationBaseInPrompt() {
         UUID conclusionId = UUID.randomUUID();
         CaseConclusion conclusion = pendingConclusion(conclusionId);
         UUID caseFileId = conclusion.getCaseFile().getId();
@@ -554,7 +554,75 @@ class CaseConclusionServiceTest {
 
         verify(anthropicService).analyzeWithSystemCache(
                 any(AiCallContext.class), any(),
-                argThat(userMessage -> !userMessage.contains("BASE À CONSOLIDER")), anyInt());
+                argThat(userMessage -> !userMessage.contains("TEXTE ACTUEL À PRÉSERVER")), anyInt());
+    }
+
+    // ── SF-271-02 — bordereau retiré de la base + flag fromScratch ──
+
+    @Test
+    void generate_withPreviousDoneVersion_stripsBordereauFromInjectedBase() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        // Version DONE précédente = corps de l'acte SUIVI du bordereau (assemblé par
+        // finalize). La base réinjectée doit garder le corps et COUPER le bordereau.
+        CaseConclusion previous = new CaseConclusion();
+        previous.setId(UUID.randomUUID());
+        previous.setStatus(CaseConclusionStatus.DONE);
+        previous.setContent("## PAR CES MOTIFS\nCondamner à 18 000 €."
+                + "\n\n## BORDEREAU DE PIÈCES COMMUNIQUÉES\n\n1. Contrat de travail");
+        when(caseConclusionRepository.findFirstByCaseFileIdAndStatusOrderByVersionNumberDesc(
+                caseFileId, CaseConclusionStatus.DONE)).thenReturn(Optional.of(previous));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — récapitulatif", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        // Le corps est conservé dans la base injectée.
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                contains("Condamner à 18 000 €."), anyInt());
+        // Le bordereau (et sa pièce) est ABSENT de la base réinjectée → pas de doublon.
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                argThat(m -> !m.contains("BORDEREAU DE PIÈCES COMMUNIQUÉES")
+                        && !m.contains("1. Contrat de travail")), anyInt());
+    }
+
+    @Test
+    void generate_fromScratch_ignoresPreviousDoneVersion() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        // « Régénérer de zéro » : le flag est posé au déclenchement.
+        conclusion.setGeneratedFromScratch(true);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        // Même s'il existe une version DONE précédente, elle ne doit PAS être injectée.
+        CaseConclusion previous = new CaseConclusion();
+        previous.setId(UUID.randomUUID());
+        previous.setStatus(CaseConclusionStatus.DONE);
+        previous.setContent("## PAR CES MOTIFS\nCondamner à 18 000 € (édition avocat).");
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — from scratch", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        // En from-scratch, loadPreviousRecapContent n'est même pas appelé.
+        verify(caseConclusionRepository, never())
+                .findFirstByCaseFileIdAndStatusOrderByVersionNumberDesc(
+                        any(), eq(CaseConclusionStatus.DONE));
+        verify(anthropicService).analyzeWithSystemCache(
+                any(AiCallContext.class), any(),
+                argThat(m -> !m.contains("TEXTE ACTUEL À PRÉSERVER")
+                        && !m.contains("édition avocat")), anyInt());
     }
 
     private fr.ailegalcase.document.DocumentExtraction extraction(String text) {

@@ -206,8 +206,12 @@ public class CaseConclusionService {
                         toolJurisprudenceContext.collectForCaseFile(caseFileId),
                         loadAdverseJurisprudenceChecks(caseFileId),
                         loadAdverseMoyens(caseFileId, domain, country),
-                        // F-271 — base récapitulative : content de la dernière version DONE.
-                        loadPreviousRecapContent(caseFileId, conclusion.getId()));
+                        // F-271 / SF-271-02 — base récapitulative (texte de l'avocat à
+                        // préserver) : content de la dernière version DONE, bordereau retiré.
+                        // En mode « Régénérer de zéro » (generatedFromScratch), aucune base.
+                        conclusion.isGeneratedFromScratch()
+                                ? null
+                                : loadPreviousRecapContent(caseFileId, conclusion.getId()));
 
         List<String> styleSignatures = loadActiveStyleSignatures(conclusion.getWorkspace().getId());
         CombinationKey key = new CombinationKey(domain, country, conclusion.getJurisdictionCode(),
@@ -304,9 +308,15 @@ public class CaseConclusionService {
      * {@code currentId} lui-même (jamais sa propre base). <strong>Fail-open</strong> :
      * toute exception est avalée (log warn) et la génération se poursuit sans base.</p>
      *
+     * <p>SF-271-02 — le <strong>bordereau de pièces</strong> est <em>retiré</em> de la
+     * base avant réinjection : {@code finalize} l'ajoute de façon déterministe (hors-LLM)
+     * à chaque version, donc le réinjecter inviterait le modèle à le recopier puis un
+     * second bordereau serait concaténé → doublon à chaque régénération. On coupe au
+     * premier marqueur {@link BordereauPiecesBuilder#SECTION_TITLE}.</p>
+     *
      * @param caseFileId dossier
      * @param currentId  id de la version en cours de génération (à exclure)
-     * @return le content précédent à consolider, ou {@code null}
+     * @return le content précédent à consolider (bordereau retiré), ou {@code null}
      */
     private String loadPreviousRecapContent(UUID caseFileId, UUID currentId) {
         try {
@@ -315,6 +325,7 @@ public class CaseConclusionService {
                             caseFileId, CaseConclusionStatus.DONE)
                     .filter(c -> !c.getId().equals(currentId))
                     .map(CaseConclusion::getContent)
+                    .map(CaseConclusionService::stripBordereau)
                     .filter(content -> content != null && !content.isBlank())
                     .orElse(null);
         } catch (RuntimeException ex) {
@@ -322,6 +333,23 @@ public class CaseConclusionService {
                     + "fail-open: génération sans base", caseFileId, currentId, ex);
             return null;
         }
+    }
+
+    /**
+     * SF-271-02 — retire la section bordereau du content : coupe au premier marqueur
+     * {@link BordereauPiecesBuilder#SECTION_TITLE} (le bordereau étant toujours en fin
+     * d'acte, assemblé par {@code finalize}). {@code null} en entrée → {@code null}.
+     * Sans marqueur, le content est rendu inchangé (puis re-trimé en aval).
+     */
+    private static String stripBordereau(String content) {
+        if (content == null) {
+            return null;
+        }
+        int marker = content.indexOf(BordereauPiecesBuilder.SECTION_TITLE);
+        if (marker < 0) {
+            return content;
+        }
+        return content.substring(0, marker).stripTrailing();
     }
 
     /** JSON brut de la synthèse {@code DONE} la plus récente, ou {@code null}. */

@@ -86,6 +86,23 @@ public class CaseConclusionCommandService {
     @Transactional
     public ConclusionGenerationResponse triggerGeneration(UUID caseFileId, OidcUser oidcUser,
                                                           String provider, Principal principal) {
+        // SF-271-02 — défaut « Actualiser » (préserve le contrat des appelants existants).
+        return triggerGeneration(caseFileId, false, oidcUser, provider, principal);
+    }
+
+    /**
+     * SF-271-02 — variante avec sélection du mode de génération.
+     *
+     * @param fromScratch {@code false} = « Actualiser » (base récapitulative, bordereau
+     *                    retiré, texte de l'avocat préservé) ; {@code true} = « Régénérer
+     *                    de zéro » (base ignorée, génération from-scratch). Persisté sur la
+     *                    nouvelle version ({@code generated_from_scratch}) et lu par le
+     *                    worker ({@code prepare()}).
+     */
+    @Transactional
+    public ConclusionGenerationResponse triggerGeneration(UUID caseFileId, boolean fromScratch,
+                                                          OidcUser oidcUser, String provider,
+                                                          Principal principal) {
         User user = currentUserResolver.resolve(oidcUser, provider, principal);
         Workspace workspace = resolvePrimaryWorkspace(user);
         CaseFile caseFile = resolveCaseFileInWorkspace(caseFileId, workspace);
@@ -133,6 +150,9 @@ public class CaseConclusionCommandService {
         conclusion.setJurisdictionCode(jurisdiction);
         conclusion.setStageCode(stage);
         conclusion.setPositionCode(position);
+        // SF-271-02 — figé au déclenchement, lu par le worker (prepare()) pour décider
+        // d'injecter ou non la base récapitulative.
+        conclusion.setGeneratedFromScratch(fromScratch);
         conclusion = caseConclusionRepository.save(conclusion);
 
         UUID conclusionId = conclusion.getId();

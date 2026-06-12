@@ -16,7 +16,9 @@ describe('ConclusionsService', () => {
   const CASE_ID = 'case-1';
   const VERSION_ID = 'conc-2';
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
-  const GENERATE_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate`;
+  // SF-271-02 — la génération porte ?fromScratch=… (défaut false = « Actualiser »).
+  const GENERATE_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate?fromScratch=false`;
+  const GENERATE_SCRATCH_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate?fromScratch=true`;
   const VERSIONS_URL = `/api/v1/case-files/${CASE_ID}/conclusions/versions`;
   const VERSION_URL = `${VERSIONS_URL}/${VERSION_ID}`;
   const LIFECYCLE_URL = `${VERSION_URL}/lifecycle`;
@@ -64,7 +66,7 @@ describe('ConclusionsService', () => {
     expect(received!.content).toContain('FAITS ET PROCÉDURE');
   });
 
-  it('generate → POST sur l\'URL /generate avec un corps vide', () => {
+  it('generate → POST /generate?fromScratch=false (défaut) avec un corps vide', () => {
     let received: { status: string; versionNumber: number } | undefined;
     service.generate(CASE_ID).subscribe((res) => (received = res));
 
@@ -75,6 +77,15 @@ describe('ConclusionsService', () => {
 
     expect(received!.status).toBe('PENDING');
     expect(received!.versionNumber).toBe(2);
+  });
+
+  it('SF-271-02 — generate(_, true) → POST /generate?fromScratch=true', () => {
+    service.generate(CASE_ID, true).subscribe();
+
+    const req = httpMock.expectOne(GENERATE_SCRATCH_URL);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    req.flush({ status: 'PENDING', versionNumber: 2 });
   });
 
   // ── SF-98-52 — versioning ───────────────────────────────────────────────

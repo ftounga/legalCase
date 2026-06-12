@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="602-add-generated-from-scratch-to-case-conclusions" author="legalcase">
+        <comment>
+            SF-271-02 — mode de génération d'une version de conclusions.
+            `generated_from_scratch = false` (défaut) = « Actualiser » : le worker
+            repart de la dernière version DONE (bordereau retiré) comme TEXTE À
+            PRÉSERVER. `true` = « Régénérer de zéro » : le worker IGNORE la base
+            récapitulative (génération from-scratch depuis l'analyse). Posé au
+            déclenchement (triggerGeneration), lu par prepare(). NOT NULL avec défaut
+            false → versions historiques rétro-compatibles (= comportement Actualiser).
+        </comment>
+
+        <addColumn tableName="case_conclusions">
+            <column name="generated_from_scratch" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="case_conclusions" columnName="generated_from_scratch"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

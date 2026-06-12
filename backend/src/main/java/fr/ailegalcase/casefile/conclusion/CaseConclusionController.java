@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
@@ -22,8 +23,9 @@ import java.util.UUID;
  *
  * <p>Contrat figé :
  * <ul>
- *   <li>{@code POST .../conclusions/generate} → {@code 202 {"status":"PENDING","versionNumber":N}}
- *       ; {@code 409} ; {@code 404} ; {@code 401}.</li>
+ *   <li>{@code POST .../conclusions/generate?fromScratch={bool}} → {@code 202 {"status":"PENDING","versionNumber":N}}
+ *       ; {@code 409} ; {@code 404} ; {@code 401}. {@code fromScratch} défaut {@code false}
+ *       (« Actualiser ») ; {@code true} = « Régénérer de zéro » (SF-271-02).</li>
  *   <li>{@code GET .../conclusions} → {@code 200 ConclusionResponse} (version la plus récente)
  *       ; {@code 404} ; {@code 401}.</li>
  *   <li>{@code GET .../conclusions/versions} → {@code 200 ConclusionVersionSummary[]}
@@ -51,13 +53,26 @@ public class CaseConclusionController {
         this.sectionRegenerationService = sectionRegenerationService;
     }
 
+    /**
+     * SF-271-02 — déclenche une nouvelle version de conclusions.
+     *
+     * <p>{@code fromScratch} (défaut {@code false}) sélectionne le mode :
+     * <ul>
+     *   <li>{@code false} = « Actualiser » : le worker repart de la dernière version
+     *       DONE (bordereau retiré) comme texte à préserver ;</li>
+     *   <li>{@code true} = « Régénérer de zéro » : le worker ignore la base
+     *       récapitulative (génération from-scratch depuis l'analyse).</li>
+     * </ul>
+     * Le défaut préserve le contrat des appelants existants.</p>
+     */
     @PostMapping("/generate")
     public ResponseEntity<ConclusionGenerationResponse> generate(
             @PathVariable UUID caseFileId,
+            @RequestParam(defaultValue = "false") boolean fromScratch,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         ConclusionGenerationResponse body = caseConclusionCommandService.triggerGeneration(
-                caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
+                caseFileId, fromScratch, oidcUser, OAuthProviderResolver.resolve(principal), principal);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(body);
     }
 

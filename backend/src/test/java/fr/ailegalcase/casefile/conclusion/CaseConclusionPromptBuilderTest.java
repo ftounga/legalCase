@@ -759,19 +759,22 @@ class CaseConclusionPromptBuilderTest {
         assertThat(CaseConclusionPromptBuilder.humanizeToolId("  ")).isEmpty();
     }
 
-    // ===== F-271 — conclusions récapitulatives (base à consolider) =====
+    // ===== F-271 / SF-271-02 — conclusions récapitulatives (texte à préserver) =====
 
     @Test
     void buildSystemPrompt_containsRecapitulatifGuard() {
         String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
         assertThat(system).contains("Conclusions récapitulatives");
         assertThat(system).contains("art. 768 CPC");
-        assertThat(system).contains("BASE À CONSOLIDER");
+        // SF-271-02 — section renommée + consigne de préservation.
+        assertThat(system).contains("TEXTE ACTUEL À PRÉSERVER");
+        assertThat(system).contains("PRÉSERVE");
+        assertThat(system).contains("Ne REFORMULE PAS");
         assertThat(system).contains("réputé abandonné");
     }
 
     @Test
-    void buildUserMessage_withPreviousRecap_includesBaseSection() {
+    void buildUserMessage_withPreviousRecap_includesPreservationSection() {
         ConclusionPromptInput input = new ConclusionPromptInput(
                 "Dossier Dupont c/ SARL Martin",
                 "Conseil de prud'hommes",
@@ -783,13 +786,16 @@ class CaseConclusionPromptBuilderTest {
 
         String message = builder.buildUserMessage(input);
 
-        assertThat(message).contains("=== BASE À CONSOLIDER (jeu de conclusions précédent) ===");
+        // SF-271-02 — section renommée + consigne « PRÉSERVE … Ne reformule PAS ».
+        assertThat(message).contains("=== TEXTE ACTUEL À PRÉSERVER (jeu de conclusions de l'avocat) ===");
+        assertThat(message).contains("PRÉSERVE-le tel quel");
+        assertThat(message).contains("Ne reformule PAS");
         assertThat(message).contains("Condamner la SARL Martin à 18 000 €");
         assertThat(message).contains("art. 768");
     }
 
     @Test
-    void buildUserMessage_withoutPreviousRecap_omitsBaseSection() {
+    void buildUserMessage_withoutPreviousRecap_omitsPreservationSection() {
         // Constructeur back-compat (pré-F-271) → previousRecapContent == null.
         ConclusionPromptInput input = new ConclusionPromptInput(
                 "Dossier minimal",
@@ -801,11 +807,11 @@ class CaseConclusionPromptBuilderTest {
 
         String message = builder.buildUserMessage(input);
 
-        assertThat(message).doesNotContain("BASE À CONSOLIDER");
+        assertThat(message).doesNotContain("TEXTE ACTUEL À PRÉSERVER");
     }
 
     @Test
-    void buildUserMessage_blankPreviousRecap_omitsBaseSection() {
+    void buildUserMessage_blankPreviousRecap_omitsPreservationSection() {
         ConclusionPromptInput input = new ConclusionPromptInput(
                 "Dossier blanc",
                 "Conseil de prud'hommes",
@@ -817,7 +823,7 @@ class CaseConclusionPromptBuilderTest {
 
         String message = builder.buildUserMessage(input);
 
-        assertThat(message).doesNotContain("BASE À CONSOLIDER");
+        assertThat(message).doesNotContain("TEXTE ACTUEL À PRÉSERVER");
     }
 
     // ===== F-273 / SF-273-01 — actualisation « sauf à parfaire » des montants & intérêts =====

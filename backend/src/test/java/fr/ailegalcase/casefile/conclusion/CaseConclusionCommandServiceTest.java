@@ -84,10 +84,39 @@ class CaseConclusionCommandServiceTest {
         assertThat(saved.getJurisdictionCode()).isEqualTo("CPH");
         assertThat(saved.getStageCode()).isEqualTo("FOND");
         assertThat(saved.getPositionCode()).isEqualTo("DEMANDEUR");
+        // SF-271-02 — overload sans flag = défaut « Actualiser ».
+        assertThat(saved.isGeneratedFromScratch()).isFalse();
         verify(rabbitTemplate).convertAndSend(
                 eq(CaseConclusionRabbitMQConfig.CASE_CONCLUSION_EXCHANGE),
                 eq(CaseConclusionRabbitMQConfig.CASE_CONCLUSION_ROUTING_KEY),
                 any(CaseConclusionMessage.class));
+    }
+
+    // SF-271-02 — le flag fromScratch est figé sur la nouvelle version.
+    @Test
+    void triggerGeneration_fromScratchTrue_persistsGeneratedFromScratch() {
+        Ctx ctx = supportedCase();
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.empty());
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(new CaseAnalysis()));
+        when(caseConclusionRepository.existsByCaseFileIdAndStatusIn(eq(ctx.caseFileId), any()))
+                .thenReturn(false);
+        when(caseConclusionRepository.save(any())).thenAnswer(inv -> {
+            CaseConclusion c = inv.getArgument(0);
+            if (c.getId() == null) {
+                c.setId(UUID.randomUUID());
+            }
+            return c;
+        });
+
+        ConclusionGenerationResponse response =
+                service.triggerGeneration(ctx.caseFileId, true, null, null, null);
+
+        assertThat(response.status()).isEqualTo("PENDING");
+        var captor = org.mockito.ArgumentCaptor.forClass(CaseConclusion.class);
+        verify(caseConclusionRepository).save(captor.capture());
+        assertThat(captor.getValue().isGeneratedFromScratch()).isTrue();
     }
 
     @Test
