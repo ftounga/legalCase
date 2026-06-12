@@ -28,11 +28,13 @@ whenToUse, phases) en tête de chaque fichier.
 ## 1. `avocat-wave`  (acquisition)
 - **Rôle** : vague de prospection avocat de bout en bout — sourcing Apollo (travail/famille/immigration) + filtre domaine-fit → accroches personnalisées (fan-out) → **push direct dans la campagne Lemlist**.
 - **Fichier** : `.claude/workflows/avocat-wave.js` · **Support** : `tools/prospection-apollo/{avocat_pipeline,split_batches,merge_intros,lemlist_push}.py`
-- **Args** : `perDomain` (nb de cabinets/domaine, défaut **100**).
-- **Pré-requis** : `.apollo_key` + `.lemlist_key` dans `tools/prospection-apollo/`.
+- **Args** : `perDomain` (nb de cabinets/domaine, défaut **100**) · `country` (`FR` défaut ou `BE` = Belgique francophone → localisation Apollo Belgium + messaging droit belge + campagne Lemlist BE).
+- **Pré-requis** : `.apollo_key` + `.lemlist_key` dans `tools/prospection-apollo/`. **BE** : créer d'abord la campagne Lemlist avocat BE et remplacer `cam_REMPLACER_AVOCAT_BE` dans `avocat-wave.js`. Run BE **gaté** post-signal 24/06.
 - **Lancer** :
   ```
   Workflow({ name: "avocat-wave", args: { perDomain: 100 } })
+  // Belgique francophone :
+  Workflow({ name: "avocat-wave", args: { perDomain: 50, country: "BE" } })
   // essai à petit volume :
   Workflow({ scriptPath: ".claude/workflows/avocat-wave.js", args: { perDomain: 5 } })
   ```
@@ -41,10 +43,13 @@ whenToUse, phases) en tête de chaque fichier.
 ## 2. `drh-wave`  (acquisition)
 - **Rôle** : vague de prospection DRH (employeur) de bout en bout — sourcing Apollo (5 secteurs : sécurité, propreté, transport, restauration, médico-social privé), exclut hôpitaux publics + déjà-contactés, enrich → accroches secteur-aware (fan-out) → **push direct dans la campagne Lemlist DRH** (`cam_sikMYuuPxpjoYysSa`).
 - **Fichier** : `.claude/workflows/drh-wave.js` · **Support** : `tools/prospection-apollo/{apollo_drh_pipeline,drh_split_batches,drh_merge_intros,lemlist_push}.py`
-- **Args** : `perSector` (nb d'entreprises/secteur, défaut **20**).
+- **Args** : `perSector` (nb d'entreprises/secteur, défaut **20**) · `country` (`FR` défaut ou `BE` → localisation Apollo Belgium + accroches droit social belge (tribunal du travail / CCT 109 / CCT 32bis) + campagne Lemlist DRH BE). Séquence BE dédiée : `sequence-drh-BE-lemlist.md`.
+- **Pré-requis BE** : créer la campagne Lemlist DRH BE et remplacer `cam_REMPLACER_DRH_BE` dans `drh-wave.js`. Run BE **gaté** post-signal 24/06.
 - **Lancer** :
   ```
   Workflow({ name: "drh-wave", args: { perSector: 20 } })
+  // Belgique francophone :
+  Workflow({ name: "drh-wave", args: { perSector: 15, country: "BE" } })
   ```
 - **Coût** : crédits Apollo + tokens → réservé à une vraie vague (post-signal).
 
