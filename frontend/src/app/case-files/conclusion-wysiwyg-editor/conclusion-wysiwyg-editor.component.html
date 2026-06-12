@@ -1,0 +1,87 @@
+<!--
+  SF-277-01 — Surface d'édition WYSIWYG de l'acte. Barre d'outils (mêmes gestes
+  que F-264) + surface ProseMirror montée dans `#host`. En cas de parse-error,
+  l'hôte (`conclusions-section`) masque ce composant et réaffiche le textarea
+  markdown brut — on n'affiche ici qu'un repli minimal de sécurité.
+-->
+<div class="cwe" data-testid="wysiwyg-editor">
+  @if (!hasParseError) {
+    <!-- Barre d'outils WYSIWYG : gras / italique / titres / liste / citation. -->
+    <div class="cwe-toolbar" role="toolbar"
+         aria-label="Mise en forme de l'acte"
+         data-testid="wysiwyg-toolbar">
+      <button mat-icon-button type="button"
+              class="cwe-btn"
+              data-testid="wy-h2"
+              [disabled]="disabled || loadingEditor"
+              matTooltip="Titre (niveau 2)"
+              aria-label="Titre de niveau 2"
+              (click)="applyAction('h2')">
+        <mat-icon>title</mat-icon>
+      </button>
+      <button mat-icon-button type="button"
+              class="cwe-btn"
+              data-testid="wy-h3"
+              [disabled]="disabled || loadingEditor"
+              matTooltip="Sous-titre (niveau 3)"
+              aria-label="Sous-titre de niveau 3"
+              (click)="applyAction('h3')">
+        <mat-icon>subtitles</mat-icon>
+      </button>
+
+      <span class="cwe-sep" aria-hidden="true"></span>
+
+      <button mat-icon-button type="button"
+              class="cwe-btn"
+              data-testid="wy-bold"
+              [disabled]="disabled || loadingEditor"
+              matTooltip="Gras"
+              aria-label="Gras"
+              (click)="applyAction('bold')">
+        <mat-icon>format_bold</mat-icon>
+      </button>
+      <button mat-icon-button type="button"
+              class="cwe-btn"
+              data-testid="wy-italic"
+              [disabled]="disabled || loadingEditor"
+              matTooltip="Italique"
+              aria-label="Italique"
+              (click)="applyAction('italic')">
+        <mat-icon>format_italic</mat-icon>
+      </button>
+
+      <span class="cwe-sep" aria-hidden="true"></span>
+
+      <button mat-icon-button type="button"
+              class="cwe-btn"
+              data-testid="wy-list"
+              [disabled]="disabled || loadingEditor"
+              matTooltip="Liste à puces"
+              aria-label="Liste à puces"
+              (click)="applyAction('list')">
+        <mat-icon>format_list_bulleted</mat-icon>
+      </button>
+      <button mat-icon-button type="button"
+              class="cwe-btn"
+              data-testid="wy-quote"
+              [disabled]="disabled || loadingEditor"
+              matTooltip="Citation"
+              aria-label="Citation"
+              (click)="applyAction('quote')">
+        <mat-icon>format_quote</mat-icon>
+      </button>
+    </div>
+  }
+
+  @if (loadingEditor && !hasParseError) {
+    <p class="cwe-loading" data-testid="wysiwyg-loading">Chargement de l'éditeur…</p>
+  }
+
+  <!-- Surface ProseMirror : rendue comme l'acte (Merriweather titres, justifié).
+       Toujours présente dans le DOM (montée par le composant) ; masquée si
+       parse-error pour laisser place au fallback de l'hôte. -->
+  <div #host
+       class="cwe-surface cd-content"
+       data-testid="wysiwyg-surface"
+       [class.cwe-surface--hidden]="hasParseError"></div>
+</div>
