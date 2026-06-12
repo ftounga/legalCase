@@ -352,7 +352,32 @@ public class CaseConclusionService {
                     piece.getType() != null ? piece.getType().name() : null));
             fallback++;
         }
+        // SF-260-02 : filet de lecture. Si des numéros en collision subsistent dans la
+        // liste chargée (bordereau « 1, 1, 1, … » hérité d'une race d'écriture passée
+        // non encore réparée), renuméroter POSITIONNELLEMENT 1..N. La requête est déjà
+        // triée (piece_number NULLS LAST, createdAt, orderIndex) → ordre déterministe.
+        // No-op sur données saines : numéros déjà distincts 1..N ⇒ aucune modification.
+        if (hasDuplicateNumbers(pieces)) {
+            List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> renumbered =
+                    new ArrayList<>(pieces.size());
+            int n = 1;
+            for (CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece p : pieces) {
+                renumbered.add(new CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece(
+                        n++, p.label(), p.type()));
+            }
+            return renumbered;
+        }
         return pieces;
+    }
+
+    /** SF-260-02 : vrai si deux pièces partagent le même numéro (collision résiduelle). */
+    private static boolean hasDuplicateNumbers(
+            List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> pieces) {
+        java.util.Set<Integer> seen = new java.util.HashSet<>();
+        for (CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece p : pieces) {
+            if (!seen.add(p.number())) return true;
+        }
+        return false;
     }
 
     /**
