@@ -9,16 +9,22 @@ export const meta = {
   ],
 }
 
-// Lancer : Workflow({ name: "drh-wave", args: { perSector: 20 } })
+// Lancer : Workflow({ name: "drh-wave", args: { perSector: 20, country: "FR" } })
 const DIR = 'tools/prospection-apollo'
-const DRH_CAMPAIGN = 'cam_sikMYuuPxpjoYysSa' // « DRH — 5 secteurs »
 const perSector = (args && args.perSector) || 20
+const country = (args && args.country) || 'FR'   // FR (défaut) ou BE (Belgique francophone)
+const DRH_CAMPAIGN = country === 'BE' ? 'cam_REMPLACER_DRH_BE' : 'cam_sikMYuuPxpjoYysSa'
+// cadrage juridique de l'accroche selon le pays
+const expo = country === 'BE'
+  ? "l'exposition devant le tribunal du travail (indemnité de préavis — loi 2013 — et licenciement manifestement déraisonnable — CCT 109)"
+  : "l'exposition prud'homale"
+const transfert = country === 'BE' ? "transferts de personnel (CCT 32bis)" : "transferts annexe 7 / L.1224-1"
 
 // ───────────────── Phase 1 : SOURCE ─────────────────
 phase('Source')
 const src = await agent(
   `Sourcing DRH 5 secteurs. Exécute :\n` +
-  `cd ${DIR} && python3 apollo_drh_pipeline.py --per-sector ${perSector} --out drh-wave-domfit.csv 2>&1 | tail -25\n` +
+  `cd ${DIR} && python3 apollo_drh_pipeline.py --per-sector ${perSector} --country ${country} --out drh-wave-domfit.csv 2>&1 | tail -25\n` +
   `Puis: wc -l ${DIR}/drh-wave-domfit.csv\n` +
   `Retourne le nombre de DRH (lignes - 1).`,
   { label: 'source', phase: 'Source',
@@ -40,11 +46,11 @@ log(`Personnalisation: ${N} lots`)
 
 await parallel(Array.from({ length: N }, (_, i) => () => agent(
   `Génère les accroches DRH du lot ${i + 1}. Lis ${DIR}/drh_batches/batch_${i + 1}.tsv ` +
-  `(lignes : gid<TAB>secteur<TAB>entreprise<TAB>specialites). Contexte : LegalCase chiffre l'exposition ` +
-  `prud'homale d'une rupture cote EMPLOYEUR ; ton = avis d'expert, PAS de vente. ` +
+  `(lignes : gid<TAB>secteur<TAB>entreprise<TAB>specialites). Contexte : LegalCase chiffre ${expo} ` +
+  `d'une rupture cote EMPLOYEUR ; ton = avis d'expert, PAS de vente. ` +
   `Pour CHAQUE ligne, UNE accroche introPerso FR : s'insere apres « Bonjour [Prenom], » (minuscule, sans « Bonjour »), ` +
-  `≤ 28 mots, factuel, jamais flagorneur, JAMAIS « IA », cite l'entreprise, et evoque l'angle prud'homal du SECTEUR : ` +
-  `securite privee = abandons de poste/fautes/turnover ; proprete = transferts annexe 7 / L.1224-1 ; ` +
+  `≤ 28 mots, factuel, jamais flagorneur, JAMAIS « IA », cite l'entreprise, et evoque l'angle social/RH du SECTEUR : ` +
+  `securite privee = abandons de poste/fautes/turnover ; proprete = ${transfert} ; ` +
   `transport = inaptitudes/AT/licenciements ; restauration = turnover/periode d'essai/saisonnalite ; ` +
   `medico-social prive = disciplinaire/inaptitude/tension RH. Si l'entreprise est manifestement d'un autre secteur ` +
   `que son etiquette, cale l'angle sur son activite reelle. Varie la formulation. ` +

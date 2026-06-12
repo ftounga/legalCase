@@ -8,12 +8,23 @@ Sortie : CSV (email, firstName, companyName, linkedinUrl, introPerso, subject, v
 """
 import argparse, csv, os
 
-SUBJ = {"Droit du travail": "Analyse de dossier prud'homal, du dépôt aux conclusions",
+# Messages par PAYS puis par domaine. FR = droit français ; BE = droit belge francophone.
+SUBJ_BY = {
+ "FR": {"Droit du travail": "Analyse de dossier prud'homal, du dépôt aux conclusions",
         "Droit de la famille": "Préparation de dossier de divorce : liquidation, pension, prestation compensatoire",
-        "Immigration / droit des étrangers": "Qualification de dossier en droit des étrangers, délais sécurisés"}
-VP = {"Droit du travail": "LegalCase analyse les pièces d'un dossier prud'homal pour chiffrer l'exposition (indemnités, barème), repérer les vices de procédure et préparer des conclusions argumentées, jurisprudence à l'appui — un gain de temps concret sur la préparation, au service de votre jugement.",
-      "Droit de la famille": "LegalCase analyse les pièces d'un dossier familial pour structurer la liquidation de communauté, chiffrer les fourchettes de prestation compensatoire et de pension alimentaire (barèmes), et cadrer la procédure de divorce — un gain de temps concret sur la préparation, au service de votre jugement.",
-      "Immigration / droit des étrangers": "LegalCase analyse les pièces d'un dossier de droit des étrangers pour qualifier la situation (titre de séjour, recours), vérifier les conditions de validité et sécuriser les délais (CESEDA), puis préparer des écritures argumentées — un gain de temps concret sur des dossiers volumineux et répétitifs."}
+        "Immigration / droit des étrangers": "Qualification de dossier en droit des étrangers, délais sécurisés"},
+ "BE": {"Droit du travail": "Analyse de dossier devant le tribunal du travail, du dépôt aux conclusions",
+        "Droit de la famille": "Préparation de dossier de divorce : liquidation, pension, contribution alimentaire",
+        "Immigration / droit des étrangers": "Qualification de dossier en droit des étrangers (loi du 15/12/1980), délais sécurisés"},
+}
+VP_BY = {
+ "FR": {"Droit du travail": "LegalCase analyse les pièces d'un dossier prud'homal pour chiffrer l'exposition (indemnités, barème), repérer les vices de procédure et préparer des conclusions argumentées, jurisprudence à l'appui — un gain de temps concret sur la préparation, au service de votre jugement.",
+        "Droit de la famille": "LegalCase analyse les pièces d'un dossier familial pour structurer la liquidation de communauté, chiffrer les fourchettes de prestation compensatoire et de pension alimentaire (barèmes), et cadrer la procédure de divorce — un gain de temps concret sur la préparation, au service de votre jugement.",
+        "Immigration / droit des étrangers": "LegalCase analyse les pièces d'un dossier de droit des étrangers pour qualifier la situation (titre de séjour, recours), vérifier les conditions de validité et sécuriser les délais (CESEDA), puis préparer des écritures argumentées — un gain de temps concret sur des dossiers volumineux et répétitifs."},
+ "BE": {"Droit du travail": "LegalCase analyse les pièces d'un dossier porté devant le tribunal du travail pour chiffrer l'exposition (indemnité de préavis — loi du 26/12/2013 — et indemnité pour licenciement manifestement déraisonnable — CCT 109), repérer les fragilités de procédure et préparer des conclusions argumentées — un gain de temps concret sur la préparation, au service de votre jugement.",
+        "Droit de la famille": "LegalCase analyse les pièces d'un dossier familial pour structurer la liquidation du régime matrimonial, chiffrer les fourchettes de contribution alimentaire et de prestations, et cadrer la procédure devant le tribunal de la famille — un gain de temps concret sur la préparation, au service de votre jugement.",
+        "Immigration / droit des étrangers": "LegalCase analyse les pièces d'un dossier de droit des étrangers pour qualifier la situation (séjour, recours au CCE), vérifier les conditions de validité et sécuriser les délais (loi du 15/12/1980), puis préparer des écritures argumentées — un gain de temps concret sur des dossiers volumineux et répétitifs."},
+}
 NOUN = {"Droit du travail": "droit social", "Droit de la famille": "droit de la famille",
         "Immigration / droit des étrangers": "droit des étrangers"}
 FIX = {"Aurelie": "Aurélie", "Frederic": "Frédéric", "Sebastien": "Sébastien", "Andrea": "Andréa",
@@ -27,7 +38,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", default="avocat-wave-domfit.csv")
     ap.add_argument("--out", default="avocat-wave-lemlist.csv")
+    ap.add_argument("--country", default="FR", choices=["FR", "BE"])
     args = ap.parse_args()
+    SUBJ = SUBJ_BY[args.country]
+    VP = VP_BY[args.country]
     here = os.path.dirname(os.path.abspath(__file__))
     bdir = os.path.join(here, "batches")
     cpath = args.csv if os.path.isabs(args.csv) else os.path.join(here, args.csv)

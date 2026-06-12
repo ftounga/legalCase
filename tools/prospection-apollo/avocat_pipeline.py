@@ -9,6 +9,7 @@ en capturant les org keywords (= spécialités) qui servent au filtre domaine-fi
 """
 import argparse, csv, json, os, sys, time, urllib.request, urllib.error
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import apollo_avocat_search  # pour pouvoir surcharger LOCATIONS selon le pays
 from apollo_avocat_search import get_api_key, search_domain, DOMAINS, MATCH_URL
 
 FIT_TERMS = {
@@ -49,8 +50,12 @@ def fit(domaine, spec):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-domain", type=int, default=100)
+    ap.add_argument("--country", default="FR", choices=["FR", "BE"])
     ap.add_argument("--out", default="avocat-wave-domfit.csv")
     args = ap.parse_args()
+    # le pays pilote la localisation Apollo (BE = Belgique francophone)
+    apollo_avocat_search.LOCATIONS = ["Belgium"] if args.country == "BE" else ["France"]
+    print(f"Pays : {args.country} (localisation {apollo_avocat_search.LOCATIONS})")
     key = get_api_key()
     if not key:
         print("ERREUR clé Apollo absente (.apollo_key)", file=sys.stderr); sys.exit(1)

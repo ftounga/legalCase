@@ -36,9 +36,12 @@ EXCLUDE_PUBLIC = ["centre hospitalier", "chu ", "chu de", "chs ", "hôpital", "h
                   "assistance publique", "ap-hp", "aphp", "groupe hospitalier", "ght "]
 
 
+LOCATION = ["France"]  # surchargé par --country (BE = Belgique francophone)
+
+
 def fetch(key, sector, page):
     payload = {"person_titles": TITLES, "organization_num_employees_ranges": RANGES,
-               "person_locations": ["France"], "q_organization_keyword_tags": sector["keywords"],
+               "person_locations": LOCATION, "q_organization_keyword_tags": sector["keywords"],
                "q_keywords": "ressources humaines", "page": page, "per_page": 100}
     req = urllib.request.Request(API_URL, data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "X-Api-Key": key, "User-Agent": UA}, method="POST")
@@ -98,9 +101,13 @@ def enrich(key, apollo_id):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-sector", type=int, default=20)
+    ap.add_argument("--country", default="FR", choices=["FR", "BE"])
     ap.add_argument("--no-enrich", action="store_true")
     ap.add_argument("--out", default="drh-wave-domfit.csv")
     args = ap.parse_args()
+    global LOCATION
+    LOCATION = ["Belgium"] if args.country == "BE" else ["France"]
+    print(f"Pays : {args.country} (localisation {LOCATION})")
     key = get_api_key()
     if not key:
         print("clé Apollo absente", file=sys.stderr); sys.exit(1)
