@@ -1,0 +1,97 @@
+<!-- F-284 / SF-284-02 — échéancier proactif. Gabarit F-282 : carte colonne document,
+     charte navy/or, Merriweather/Inter/JetBrains Mono, espacements ×4px. -->
+@if (!failed()) {
+<mat-card class="eche-card" data-testid="echeancier-proactif">
+  <!-- En-tête + pilule résumé -->
+  <div class="eche-head">
+    <span class="eche-title">
+      <mat-icon class="eche-title-icon">event_available</mat-icon>
+      Échéancier
+    </span>
+
+    @if (data(); as d) {
+      @if (d.counts.overdue + d.counts.critical > 0) {
+        <span class="eche-pill eche-pill--alert" data-testid="eche-alert-pill">
+          <mat-icon class="eche-pill-icon">notifications_active</mat-icon>
+          @if (d.counts.overdue > 0) { {{ d.counts.overdue }} en retard }
+          @if (d.counts.overdue > 0 && d.counts.critical > 0) { · }
+          @if (d.counts.critical > 0) { {{ d.counts.critical }} urgent{{ d.counts.critical > 1 ? 's' : '' }} }
+        </span>
+      } @else if (!isEmpty()) {
+        <span class="eche-pill eche-pill--calm" data-testid="eche-calm-pill">
+          <mat-icon class="eche-pill-icon">check_circle</mat-icon>
+          Sous contrôle
+        </span>
+      }
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="eche-muted" data-testid="eche-loading">Chargement de l’échéancier…</p>
+  } @else if (isEmpty()) {
+    <!-- État vide soigné -->
+    <div class="eche-empty" data-testid="eche-empty">
+      <mat-icon class="eche-empty-icon">event_available</mat-icon>
+      <p class="eche-empty-title">Aucune échéance enregistrée</p>
+      <p class="eche-muted">
+        Les délais détectés à l’analyse et vos échéances de réponse apparaîtront ici, du plus urgent au plus lointain.
+      </p>
+      <button mat-stroked-button (click)="onViewAll()" data-testid="eche-empty-cta">
+        <mat-icon>add</mat-icon>
+        Ajouter un délai
+      </button>
+    </div>
+  } @else {
+    <!-- Hero : le prochain couperet -->
+    @if (hero(); as h) {
+      <div class="eche-hero" [ngClass]="urgencyClass(h.urgency)" data-testid="eche-hero">
+        <span class="eche-hero-dot"
+              [class.eche-hero-dot--pulse]="h.urgency === 'OVERDUE' || h.urgency === 'CRITICAL'">
+          <mat-icon class="eche-hero-icon">{{ urgencyIcon(h.urgency) }}</mat-icon>
+        </span>
+        <div class="eche-hero-body">
+          <span class="eche-hero-count" data-testid="eche-hero-count">{{ daysLabel(h.daysUntil) }}</span>
+          <span class="eche-hero-label">{{ h.label }}</span>
+          <span class="eche-hero-meta">
+            <span class="eche-kind">
+              <mat-icon class="eche-kind-icon">{{ kindIcon(h.kind) }}</mat-icon>
+              {{ kindLabel(h.kind) }}
+            </span>
+            <span class="eche-hero-date">{{ h.dueDate | date:'dd/MM/yyyy' }}</span>
+          </span>
+        </div>
+      </div>
+    }
+
+    <!-- Échéances suivantes (max 3) -->
+    @if (secondary().length > 0) {
+      <ul class="eche-list" data-testid="eche-secondary">
+        @for (item of secondary(); track item.id) {
+          <li class="eche-row" [ngClass]="urgencyClass(item.urgency)">
+            <span class="eche-row-dot"></span>
+            <span class="eche-row-label">{{ item.label }}</span>
+            <span class="eche-row-spacer"></span>
+            <span class="eche-row-kind">
+              <mat-icon class="eche-kind-icon">{{ kindIcon(item.kind) }}</mat-icon>
+            </span>
+            <span class="eche-row-count">{{ daysLabel(item.daysUntil) }}</span>
+            <span class="eche-row-date">{{ item.dueDate | date:'dd/MM/yyyy' }}</span>
+          </li>
+        }
+      </ul>
+    }
+
+    <!-- Renvoi vers la liste détaillée F-69 -->
+    <div class="eche-foot">
+      <button mat-button class="eche-view-all" (click)="onViewAll()" data-testid="eche-view-all">
+        @if (hiddenCount() > 0) {
+          Voir tous les délais (+{{ hiddenCount() }})
+        } @else {
+          Gérer les délais
+        }
+        <mat-icon>arrow_downward</mat-icon>
+      </button>
+    </div>
+  }
+</mat-card>
+}

@@ -757,6 +757,14 @@
     <!-- Onglet 4 : Suivi -->
     <section class="tab-panel" [hidden]="selectedTabIndex() !== 3" data-tab-panel="suivi">
       <div class="tab-panel-inner">
+        <!-- F-284 / SF-284-02 : échéancier proactif — en tête de Suivi (prochain couperet) -->
+        <div id="section-echeancier">
+          <app-echeancier-proactif
+            [caseFileId]="caseFile()!.id"
+            (viewAllRequested)="scrollToDeadlines()">
+          </app-echeancier-proactif>
+        </div>
+
         <!-- F-283 / SF-283-01 : phases procédurales (progression datée) — coiffe le cycle d'échanges -->
         <div id="section-phases">
           <app-case-phases-timeline [caseFileId]="caseFile()!.id">

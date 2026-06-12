@@ -53,6 +53,7 @@ import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-sect
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
 import { ContradictoireTimelineComponent } from '../contradictoire-timeline/contradictoire-timeline.component';
 import { CasePhasesTimelineComponent } from '../case-phases-timeline/case-phases-timeline.component';
+import { EcheancierProactifComponent } from '../echeancier-proactif/echeancier-proactif.component';
 import { PiecesWaveCardComponent } from '../pieces-wave-card/pieces-wave-card.component';
 import { ProcedureStageSectionComponent } from '../procedure-stage-section/procedure-stage-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
@@ -163,7 +164,7 @@ export const TAB_SUIVI = 3;
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule, MatMenuModule, MatTooltipModule, MatTabsModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent, ContradictoireTimelineComponent,
-    CasePhasesTimelineComponent,
+    CasePhasesTimelineComponent, EcheancierProactifComponent,
     PiecesWaveCardComponent,
     ProcedureStageSectionComponent,
     TimerWidgetComponent,
@@ -772,6 +773,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
    */
   scrollToDecisionTools(): void {
     this.scrollAndHighlight('section-outils-decisionnels');
+  }
+
+  /**
+   * F-284 / SF-284-02 : depuis l'échéancier proactif (« Voir tous les délais »),
+   * ramène l'avocat à la liste détaillée des délais (F-69) dans le même onglet Suivi.
+   */
+  scrollToDeadlines(): void {
+    this.scrollAndHighlight('section-deadlines');
   }
 
   /** SF-IA-03-19 : scroll + highlight pulse 2s sur une section. Retry 3× car le rendu est async. */
