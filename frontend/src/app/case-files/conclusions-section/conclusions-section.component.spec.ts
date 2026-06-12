@@ -44,7 +44,6 @@ describe('ConclusionsSectionComponent', () => {
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
   // SF-271-02 — la génération porte ?fromScratch=… (défaut false = « Actualiser »).
   const GENERATE_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate?fromScratch=false`;
-  const GENERATE_SCRATCH_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate?fromScratch=true`;
   const VERSIONS_URL = `/api/v1/case-files/${CASE_ID}/conclusions/versions`;
   // F-258 SF-258-01 — endpoints du décompte « outils non calculés ».
   const VISIBILITY_URL = `/api/v1/case-files/${CASE_ID}/decision-tools-visibility`;
@@ -543,18 +542,28 @@ describe('ConclusionsSectionComponent', () => {
     component.ngOnDestroy();
   }));
 
-  // ── SF-271-02 — « Actualiser » (sûr) vs « Régénérer de zéro » (destructif) ──
+  // ── SF-271-03 — un seul bouton honnête « Régénérer » (confirmation obligatoire) ──
 
-  it('SF-271-02 — « Actualiser » → POST fromScratch=false SANS confirmation', fakeAsync(() => {
+  it('SF-271-03 — « Régénérer » → confirmation honnête puis POST fromScratch=false', fakeAsync(() => {
     component.hasCompletedAnalysis = true;
     fixture.detectChanges();
     flushInitialLoad(doneResponse(), versionList());
     fixture.detectChanges();
 
-    component.actualiser();
+    component.regenerate();
 
-    // Action sûre : aucune confirmation destructive.
-    expect(dialogSpy.open).not.toHaveBeenCalled();
+    // Confirmation obligatoire et honnête (réécrit, ne garantit pas les retouches).
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    const dialogData = dialogSpy.open.calls.mostRecent().args[1]?.data as {
+      title: string;
+      message: string;
+      confirmColor: string;
+    };
+    expect(dialogData.message).toContain('REMPLACE votre texte');
+    expect(dialogData.message).toContain('ne sont pas garanties');
+    expect(dialogData.confirmColor).toBe('warn');
+
+    // afterClosed → true (défaut) → POST (régénération = consolidation, fromScratch=false).
     const postReq = httpMock.expectOne(GENERATE_URL);
     expect(postReq.request.method).toBe('POST');
     postReq.flush({ status: 'PENDING', versionNumber: 3 });
@@ -563,35 +572,7 @@ describe('ConclusionsSectionComponent', () => {
     component.ngOnDestroy();
   }));
 
-  it('SF-271-02 — « Régénérer de zéro » → confirmation puis POST fromScratch=true', fakeAsync(() => {
-    component.hasCompletedAnalysis = true;
-    fixture.detectChanges();
-    flushInitialLoad(doneResponse(), versionList());
-    fixture.detectChanges();
-
-    component.regenerateFromScratch();
-
-    // Confirmation honnête « remplace votre texte actuel ».
-    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
-    const dialogData = dialogSpy.open.calls.mostRecent().args[1]?.data as {
-      title: string;
-      message: string;
-      confirmColor: string;
-    };
-    expect(dialogData.title).toContain('Régénérer de zéro');
-    expect(dialogData.message).toContain('REMPLACE votre texte');
-    expect(dialogData.confirmColor).toBe('warn');
-
-    // afterClosed → true (défaut) → POST from-scratch.
-    const postReq = httpMock.expectOne(GENERATE_SCRATCH_URL);
-    expect(postReq.request.method).toBe('POST');
-    postReq.flush({ status: 'PENDING', versionNumber: 3 });
-    httpMock.expectOne(VERSIONS_URL).flush(versionList());
-
-    component.ngOnDestroy();
-  }));
-
-  it('SF-271-02 — « Régénérer de zéro » annulé → aucun POST', fakeAsync(() => {
+  it('SF-271-03 — « Régénérer » annulé → aucun POST', fakeAsync(() => {
     dialogSpy.open.and.returnValue({
       afterClosed: () => of(false),
     } as never);
@@ -600,10 +581,10 @@ describe('ConclusionsSectionComponent', () => {
     flushInitialLoad(doneResponse(), versionList());
     fixture.detectChanges();
 
-    component.regenerateFromScratch();
+    component.regenerate();
 
     expect(dialogSpy.open).toHaveBeenCalledTimes(1);
-    httpMock.expectNone(GENERATE_SCRATCH_URL);
+    httpMock.expectNone(GENERATE_URL);
 
     component.ngOnDestroy();
   }));

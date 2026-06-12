@@ -679,26 +679,20 @@
               <mat-icon>picture_as_pdf</mat-icon>
               Télécharger en PDF
             </button>
-            <!-- SF-271-02 — deux actions distinctes : « Actualiser » (sûr, préserve
-                 le texte de l'avocat, sans confirmation) et « Régénérer de zéro »
-                 (destructif, confirmation honnête avant remplacement). -->
+            <!-- SF-271-03 — un seul bouton honnête : « Régénérer » réécrit l'acte via
+                 l'IA AVEC confirmation (une régénération IA ne peut pas préserver les
+                 retouches manuelles — pour garder son texte, l'avocat l'édite/enregistre
+                 et ne régénère pas). -->
             <button mat-stroked-button
-                    data-testid="actualiser-btn"
+                    data-testid="regenerate-btn"
                     [disabled]="generating()"
-                    (click)="actualiser()">
+                    (click)="regenerate()">
               @if (generating()) {
                 <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
               } @else {
                 <mat-icon>refresh</mat-icon>
               }
-              Actualiser
-            </button>
-            <button mat-stroked-button
-                    data-testid="regenerate-from-scratch-btn"
-                    [disabled]="generating()"
-                    (click)="regenerateFromScratch()">
-              <mat-icon>restart_alt</mat-icon>
-              Régénérer de zéro
+              Régénérer
             </button>
             <!-- F-280 / SF-280-01 — Comparer deux versions (≥ 2 versions requises). -->
             @if (canCompare()) {
