@@ -739,6 +739,14 @@
     <!-- Onglet 4 : Suivi -->
     <section class="tab-panel" [hidden]="selectedTabIndex() !== 3" data-tab-panel="suivi">
       <div class="tab-panel-inner">
+        <!-- F-282 : cycle contradictoire (frise des échanges) — élève le calendrier procédural -->
+        <div id="section-contradictoire">
+          <app-contradictoire-timeline
+            [caseFileId]="caseFile()!.id"
+            (generateReplyRequested)="selectedTabIndex.set(2)">
+          </app-contradictoire-timeline>
+        </div>
+
         <div id="section-deadlines">
           <app-case-deadlines-section [caseFileId]="caseFile()!.id">
           </app-case-deadlines-section>

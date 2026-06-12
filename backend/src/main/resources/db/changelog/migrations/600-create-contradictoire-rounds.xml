@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="600-create-contradictoire-rounds" author="legalcase">
+        <comment>
+            F-282 / SF-282-01 — cycle contradictoire du dossier. Chaque ligne = un
+            round d'échange de conclusions (nous OURS / adverse ADVERSE) daté, avec
+            son échéance de réponse éventuelle. Isolation workspace via case_file_id.
+        </comment>
+
+        <createTable tableName="contradictoire_rounds">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="round_number" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="party" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="label" type="varchar(200)"/>
+            <column name="dated_at" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="response_due_at" type="date"/>
+            <column name="source_document_id" type="uuid"/>
+            <column name="source_conclusion_id" type="uuid"/>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="contradictoire_rounds" baseColumnNames="case_file_id"
+                referencedTableName="case_files" referencedColumnNames="id"
+                constraintName="fk_contradictoire_rounds_case_file" onDelete="CASCADE"/>
+
+        <createIndex tableName="contradictoire_rounds" indexName="idx_contradictoire_rounds_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="contradictoire_rounds"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

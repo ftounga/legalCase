@@ -1,0 +1,146 @@
+<mat-card class="contra-card" data-testid="contradictoire-timeline">
+  <!-- En-tête + résumé (fil rouge) -->
+  <div class="contra-head">
+    <span class="contra-title">
+      <mat-icon class="contra-title-icon">forum</mat-icon>
+      Cycle contradictoire
+    </span>
+
+    @if (summary(); as s) {
+      <span class="contra-pill"
+            [class.contra-pill--ours]="awaitingOurs()"
+            data-testid="contra-summary">
+        <mat-icon class="contra-pill-icon">{{ awaitingOurs() ? 'edit_note' : 'hourglass_empty' }}</mat-icon>
+        @if (s.currentRoundNumber > 0) { Round {{ s.currentRoundNumber }} · }
+        {{ awaitingOurs() ? 'À vous' : 'En attente de la partie adverse' }}
+        @if (s.nextDeadline) {
+          · échéance <span class="contra-pill-date">{{ s.nextDeadline | date:'dd/MM/yyyy' }}</span>
+        }
+      </span>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="contra-muted">Chargement du cycle…</p>
+  } @else {
+    <ol class="contra-line" data-testid="contra-rounds">
+      <!-- État initial : aucun round encore -->
+      @if (rounds().length === 0) {
+        <li class="contra-node contra-node--ours contra-node--ghost">
+          <span class="contra-dot"></span>
+          <div class="contra-body">
+            <span class="contra-num">Round 1</span>
+            <span class="contra-label">Votre saisine — à déposer</span>
+          </div>
+        </li>
+      }
+
+      <!-- Les rounds déposés -->
+      @for (r of rounds(); track r.id) {
+        <li class="contra-node"
+            [class.contra-node--ours]="r.party === 'OURS'"
+            [class.contra-node--adverse]="r.party === 'ADVERSE'"
+            [attr.data-testid]="'contra-round-' + r.roundNumber">
+          <span class="contra-dot"></span>
+          <div class="contra-body">
+            <div class="contra-row">
+              <span class="contra-num">Round {{ r.roundNumber }}</span>
+              <span class="contra-party">{{ partyLabel(r.party) }}</span>
+              <span class="contra-spacer"></span>
+              <button mat-icon-button class="contra-act" (click)="openEdit(r)"
+                      [attr.aria-label]="'Modifier le round ' + r.roundNumber">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button class="contra-act" (click)="remove(r)"
+                      [attr.aria-label]="'Supprimer le round ' + r.roundNumber">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+            @if (r.label) { <span class="contra-label">{{ r.label }}</span> }
+            <div class="contra-dates">
+              <span class="contra-date">{{ r.datedAt | date:'dd/MM/yyyy' }}</span>
+              @if (r.responseDueAt) {
+                <span class="contra-due">
+                  <mat-icon class="contra-due-icon">event</mat-icon>
+                  réponse avant {{ r.responseDueAt | date:'dd/MM/yyyy' }}
+                </span>
+              }
+            </div>
+          </div>
+        </li>
+      }
+
+      <!-- Round à venir : à qui le tour -->
+      @if (rounds().length > 0) {
+        @if (awaitingOurs()) {
+          <li class="contra-node contra-node--ours contra-node--next" data-testid="contra-your-turn">
+            <span class="contra-dot contra-dot--pulse"></span>
+            <div class="contra-body">
+              <span class="contra-num">À vous de répondre</span>
+              <span class="contra-label">Générez votre réplique au dernier jeu adverse.</span>
+              <div class="contra-cta">
+                <button mat-flat-button color="primary" data-testid="generate-reply-btn"
+                        (click)="onGenerateReply()">
+                  <mat-icon>auto_fix_high</mat-icon>
+                  Générer ma réplique
+                </button>
+              </div>
+            </div>
+          </li>
+        } @else {
+          <li class="contra-node contra-node--adverse contra-node--next contra-node--ghost">
+            <span class="contra-dot"></span>
+            <div class="contra-body">
+              <span class="contra-label">En attente du prochain jeu de la partie adverse.</span>
+            </div>
+          </li>
+        }
+      }
+    </ol>
+
+    <!-- Ajouter un échange -->
+    @if (!showForm()) {
+      <div class="contra-add-row">
+        <button mat-stroked-button data-testid="add-round-btn" (click)="openAdd('ADVERSE')">
+          <mat-icon>add</mat-icon>
+          Enregistrer un échange
+        </button>
+      </div>
+    } @else {
+      <form class="contra-form" [formGroup]="form" (ngSubmit)="save()" data-testid="contra-form">
+        <div class="contra-form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Partie</mat-label>
+            <mat-select formControlName="party">
+              <mat-option value="OURS">Nous</mat-option>
+              <mat-option value="ADVERSE">Partie adverse</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="contra-form-label">
+            <mat-label>Libellé (optionnel)</mat-label>
+            <input matInput formControlName="label" maxlength="200"
+                   placeholder="ex. Conclusions en réponse n°2" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Date de l’échange</mat-label>
+            <input matInput type="date" formControlName="datedAt" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Échéance de réponse (optionnel)</mat-label>
+            <input matInput type="date" formControlName="responseDueAt" />
+          </mat-form-field>
+        </div>
+        <div class="contra-form-actions">
+          <button mat-button type="button" (click)="cancelForm()">Annuler</button>
+          <button mat-flat-button color="primary" type="submit"
+                  [disabled]="form.invalid || saving()" data-testid="contra-save-btn">
+            {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
+          </button>
+        </div>
+      </form>
+    }
+  }
+</mat-card>
