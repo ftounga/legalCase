@@ -142,6 +142,16 @@
           </mat-card>
         }
 
+        <!-- F-283 / SF-283-02 : vague de pièces — rend lisible l'ajout incrémental
+             (« N nouvelles pièces depuis la dernière analyse »). Visible uniquement
+             s'il y a une vague ; au-dessus du tableau des pièces. -->
+        <div id="section-pieces-wave">
+          <app-pieces-wave-card #piecesWaveCard
+            [caseFileId]="caseFile()!.id"
+            (analyzeRequested)="onWaveAnalyzeRequested()">
+          </app-pieces-wave-card>
+        </div>
+
         <section id="section-documents" class="td-section td-section--documents">
           <header class="td-header"
                   (click)="toggleDocsCollapsed()"
@@ -592,9 +602,17 @@
                 <span>Des documents ont été ajoutés et/ou supprimés depuis la dernière synthèse. Relancez une analyse pour la mettre à jour.</span>
               </div>
             } @else if (outdatedDocuments().length > 0) {
+              <!-- F-283 / SF-283-02 : source structurée unique = la carte « vague de pièces »
+                   (onglet Dossier). Ici, simple renvoi (anti-doublon de l'avertissement). -->
               <div class="synthesis-outdated">
                 <mat-icon class="outdated-icon">warning</mat-icon>
-                <span>Cette synthèse ne prend pas en compte {{ outdatedDocuments().length }} document(s) récent(s). Relancez une analyse pour la mettre à jour.</span>
+                <span>
+                  {{ outdatedDocuments().length }} pièce(s) ajoutée(s) depuis la dernière synthèse ne sont pas encore prises en compte.
+                  <button mat-button color="primary" type="button" class="outdated-link"
+                          data-testid="goto-pieces-wave" (click)="selectedTabIndex.set(0)">
+                    Voir les pièces récentes
+                  </button>
+                </span>
               </div>
             } @else if (deletedSinceLastAnalysis()) {
               <div class="synthesis-outdated">
