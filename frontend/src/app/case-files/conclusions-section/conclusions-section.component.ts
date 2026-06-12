@@ -64,6 +64,20 @@ import {
   diffLines,
   summarizeDiff,
 } from './conclusion-diff.util';
+// F-266 / F-281 — helpers purs du contenu exporté (en-tête cabinet, métadonnées,
+// bloc signature, garde placeholders). Module sans Angular, partagé avec la
+// modale d'aperçu d'export (F-281).
+import {
+  buildFullExportContent,
+  buildMetadataHeader,
+  buildSignatureBlock,
+  extractPlaceholders,
+} from './conclusion-export-content.util';
+// F-281 — modale d'aperçu d'export (rendu fidèle = fichier).
+import {
+  ExportPreviewDialogComponent,
+  ExportPreviewDialogData,
+} from './export-preview-dialog/export-preview-dialog.component';
 
 /**
  * Intervalle de polling de l'état des conclusions (ms).
@@ -225,6 +239,50 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly cabinetHeader = signal('');
   /** F-266 / SF-266-02 — Visibilité du champ « En-tête du cabinet » (opt-in, replié par défaut). */
   readonly showCabinetHeader = signal(false);
+
+  // ── F-281 — Métadonnées procédurales + bloc signature pour l'export ───────
+  /**
+   * F-281 — Bloc signature activé pour l'export (opt-in). Replié + désactivé par
+   * défaut. **Non persisté** (vit la session), comme l'en-tête de cabinet.
+   */
+  readonly signatureEnabled = signal(false);
+  /** F-281 — Visibilité du bloc « Bloc signature » (opt-in, replié par défaut). */
+  readonly showSignatureBlock = signal(false);
+  /** F-281 — Lieu de signature (« Fait à … »), pré-rempli à la juridiction si connue. */
+  readonly signatureLieu = signal('');
+  /** F-281 — Date de signature (« le … »), pré-remplie à aujourd'hui (JJ/MM/AAAA). */
+  readonly signatureDate = signal('');
+
+  /**
+   * F-281 — Cartouche markdown des métadonnées procédurales (juridiction /
+   * stade / position). Source = la version de conclusions affichée
+   * (`ConclusionResponse` porte déjà ces labels, F-243 → F-98) : aucune requête
+   * supplémentaire, et la métadonnée suit la version. Vide si aucune valeur
+   * renseignée (export neutre, dégradation propre).
+   */
+  readonly metadataHeader = computed<string>(() => {
+    const current = this.conclusion();
+    if (!current) {
+      return '';
+    }
+    return buildMetadataHeader({
+      jurisdictionLabel: current.jurisdictionLabel,
+      stageLabel: current.stageLabel,
+      positionLabel: current.positionLabel,
+    });
+  });
+
+  /**
+   * F-281 — Bloc signature markdown (« Fait à …, le … / [Nom et qualité de
+   * l'avocat] »). Vide si le bloc n'est pas activé.
+   */
+  readonly signatureBlock = computed<string>(() =>
+    buildSignatureBlock(
+      this.signatureEnabled(),
+      this.signatureLieu(),
+      this.signatureDate(),
+    ),
+  );
 
   /** F-265 / SF-265-02 — Régénération d'une section en cours (POST). */
   readonly regenerating = signal(false);
@@ -774,14 +832,35 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     this.guardThenExport(() => this.runWordExport());
   }
 
-  private runWordExport(): void {
+  /**
+   * F-281 — Contenu **complet d'export** de la version affichée : en-tête de
+   * cabinet (F-266) + cartouche métadonnées (juridiction/stade/position) +
+   * corps des conclusions (inchangé) + bloc signature. Source unique pour
+   * l'aperçu (F-281) ET les exports Word/PDF ⇒ aperçu fidèle = fichier. Renvoie
+   * `null` si la version n'est pas exportable (non `DONE` ou sans contenu).
+   */
+  private currentExportContent(): string | null {
     const current = this.conclusion();
     if (current?.status !== 'DONE' || !current.content) {
+      return null;
+    }
+    return buildFullExportContent(
+      this.cabinetHeader(),
+      this.metadataHeader(),
+      current.content,
+      this.signatureBlock(),
+    );
+  }
+
+  private runWordExport(): void {
+    const content = this.currentExportContent();
+    const current = this.conclusion();
+    if (content === null || !current) {
       return;
     }
     try {
       this.docxExportService.exportConclusion(
-        buildExportContent(this.cabinetHeader(), current.content),
+        content,
         this.caseTitle ?? '',
         current.versionNumber ?? 0,
       );
@@ -847,13 +926,14 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   }
 
   private runPdfExport(): void {
+    const content = this.currentExportContent();
     const current = this.conclusion();
-    if (current?.status !== 'DONE' || !current.content) {
+    if (content === null || !current) {
       return;
     }
     try {
       this.pdfExportService.exportConclusion(
-        buildExportContent(this.cabinetHeader(), current.content),
+        content,
         this.caseTitle ?? '',
         current.versionNumber ?? 0,
       );
@@ -864,6 +944,63 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         { duration: 4000, panelClass: ['snack-error'] },
       );
     }
+  }
+
+  /**
+   * F-281 — Ouvre la modale d'**aperçu avant export** : elle rend, via
+   * `<app-conclusion-document>`, le **contenu complet d'export** (en-tête
+   * cabinet + métadonnées + corps + signature) — exactement ce qui sera
+   * téléchargé. La modale propose Word / PDF (mêmes appels, même contenu) et
+   * Fermer. Sans effet si la version n'est pas exportable.
+   */
+  openExportPreview(): void {
+    const content = this.currentExportContent();
+    if (content === null) {
+      return;
+    }
+    const data: ExportPreviewDialogData = {
+      content,
+      pieces: this.pieceRefs(),
+      onDownloadWord: () => this.downloadWord(),
+      onDownloadPdf: () => this.downloadPdf(),
+    };
+    this.dialog
+      .open(ExportPreviewDialogComponent, {
+        width: '820px',
+        maxWidth: '95vw',
+        maxHeight: '90vh',
+        data,
+        panelClass: 'export-preview-dialog-panel',
+      })
+      .afterClosed()
+      .subscribe(() => this.cdr.markForCheck());
+  }
+
+  /**
+   * F-281 — Affiche / masque le bloc « Bloc signature » (opt-in). Au premier
+   * affichage, pré-remplit lieu (juridiction si connue) et date (aujourd'hui)
+   * s'ils sont encore vides — sans écraser une saisie de l'avocat.
+   */
+  toggleSignatureBlock(): void {
+    this.showSignatureBlock.update((v) => !v);
+    if (this.showSignatureBlock()) {
+      // Pré-remplissage non destructif : lieu = juridiction de la version (si
+      // connue), date = aujourd'hui. N'écrase jamais une saisie de l'avocat.
+      const jurisdiction = this.conclusion()?.jurisdictionLabel;
+      if (this.signatureLieu().trim().length === 0 && jurisdiction) {
+        this.signatureLieu.set(jurisdiction);
+      }
+      if (this.signatureDate().trim().length === 0) {
+        this.signatureDate.set(this.todayFr());
+      }
+    }
+  }
+
+  /** F-281 — Date du jour au format JJ/MM/AAAA (mention de signature). */
+  private todayFr(): string {
+    const d = new Date();
+    const pad = (n: number): string => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
   }
 
   /**
@@ -1415,78 +1552,6 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 }
 
 /**
- * F-266 / SF-266-02 — Construit le contenu **exporté** à partir d'un en-tête de
- * cabinet (libellé libre, optionnel) et du `content` markdown des conclusions.
- *
- * <p>Quand l'en-tête est non vide, on le préfixe sous forme de **markdown
- * valide** (1ʳᵉ ligne = titre `#`, lignes suivantes = paragraphes, puis un
- * filet `---`) → il est tokenisé par le même pipeline d'export que le corps
- * (aucun marqueur brut visible). L'en-tête est traité comme du **texte** : ses
- * caractères markdown (`#`, `*`, `_`, `` ` ``) sont échappés pour ne pas être
- * interprétés. Quand l'en-tête est vide, on renvoie le `content` **inchangé**
- * (export neutre, comportement historique).</p>
- *
- * <p>Le `content` d'origine n'est jamais modifié : cette fonction ne sert qu'à
- * alimenter l'argument de l'export.</p>
- */
-export function buildExportContent(header: string, content: string): string {
-  const trimmed = (header ?? '').trim();
-  if (trimmed.length === 0) {
-    return content;
-  }
-  const escape = (s: string): string =>
-    s.replace(/([\\`*_{}\[\]()#+\-.!>])/g, '\\$1');
-  const lines = trimmed
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-  const parts: string[] = [];
-  // 1ʳᵉ ligne = titre de l'en-tête ; suivantes = paragraphes.
-  parts.push(`# ${escape(lines[0])}`);
-  for (let i = 1; i < lines.length; i++) {
-    parts.push(escape(lines[i]));
-  }
-  parts.push('---');
-  return parts.join('\n\n') + '\n\n' + content;
-}
-
-/**
- * SF-266-03 — Détecte les emplacements « à compléter » laissés dans l'acte :
- * placeholders entre crochets posés par le générateur (« [Nom et qualité de
- * l'avocat] », « [à compléter] », « [Date] », « [Lieu] »…). Avant tout export
- * « déposable » (PDF/Word), on alerte l'avocat sur ces éléments non renseignés.
- *
- * <p>Heuristique générique : tout token « [ … ] » sur une seule ligne (≤ 80
- * caractères), contenant au moins une lettre, et **non immédiatement suivi de
- * `(`** (ce qui écarte les liens markdown « [libellé](url) »). Dédupliqué en
- * conservant l'ordre d'apparition. Pure fonction, sans dépendance.</p>
- *
- * @param content markdown de l'acte (le `content` stocké, pas l'export)
- * @returns liste ordonnée et dédupliquée des placeholders restants (crochets inclus)
- */
-export function extractPlaceholders(content: string): string[] {
-  if (!content) {
-    return [];
-  }
-  const seen = new Set<string>();
-  const result: string[] = [];
-  const regex = /\[[^\]\n]{1,80}\](?!\()/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(content)) !== null) {
-    const token = match[0];
-    // Au moins une lettre (écarte les renvois numériques « [1] »).
-    if (!/\p{L}/u.test(token)) {
-      continue;
-    }
-    if (!seen.has(token)) {
-      seen.add(token);
-      result.push(token);
-    }
-  }
-  return result;
-}
-
-/**
  * F-265 / F-276 — La découpe en sections (`ConclusionSection`,
  * `parseMarkdownSections`) et le remplacement en place (`replaceSectionInDraft`)
  * ont été extraits dans `./conclusion-sections.util` (module pur, sans Angular)
@@ -1513,3 +1578,19 @@ export {
   writeDraft,
   clearDraft,
 } from './conclusion-draft-storage.util';
+
+/**
+ * F-266 / F-281 — Ré-export des helpers purs de construction du contenu exporté
+ * (en-tête cabinet, cartouche métadonnées, bloc signature, garde placeholders)
+ * extraits dans `./conclusion-export-content.util`, pour préserver les
+ * importateurs existants (specs SF-266) et exposer les nouveaux helpers F-281.
+ */
+export {
+  type ProcedureMetadata,
+  escapeMarkdown,
+  buildExportContent,
+  buildMetadataHeader,
+  buildSignatureBlock,
+  buildFullExportContent,
+  extractPlaceholders,
+} from './conclusion-export-content.util';

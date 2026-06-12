@@ -933,11 +933,13 @@ describe('ConclusionsSectionComponent', () => {
     );
     btn.click();
 
-    expect(docxSpy.exportConclusion).toHaveBeenCalledWith(
-      'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
-      'Affaire Dupont',
-      2,
-    );
+    // F-281 — l'export contient le corps + le cartouche métadonnées de la
+    // version (juridiction/stade/position de doneResponse()).
+    const passed = docxSpy.exportConclusion.calls.mostRecent().args[0] as string;
+    expect(passed).toContain('POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…');
+    expect(passed).toContain("**Juridiction :** Conseil de prud'hommes");
+    expect(docxSpy.exportConclusion.calls.mostRecent().args[1]).toBe('Affaire Dupont');
+    expect(docxSpy.exportConclusion.calls.mostRecent().args[2]).toBe(2);
   });
 
   it('downloadWord → ignoré si la version n\'est pas DONE', () => {
@@ -1012,11 +1014,12 @@ describe('ConclusionsSectionComponent', () => {
     );
     btn.click();
 
-    expect(pdfSpy.exportConclusion).toHaveBeenCalledWith(
-      'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
-      'Affaire Dupont',
-      2,
-    );
+    // F-281 — corps + cartouche métadonnées de la version.
+    const passed = pdfSpy.exportConclusion.calls.mostRecent().args[0] as string;
+    expect(passed).toContain('POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…');
+    expect(passed).toContain("**Juridiction :** Conseil de prud'hommes");
+    expect(pdfSpy.exportConclusion.calls.mostRecent().args[1]).toBe('Affaire Dupont');
+    expect(pdfSpy.exportConclusion.calls.mostRecent().args[2]).toBe(2);
   });
 
   it('downloadPdf → ignoré si la version n\'est pas DONE', () => {
@@ -1047,9 +1050,13 @@ describe('ConclusionsSectionComponent', () => {
   // F-266 SF-266-02 — Export à en-tête du cabinet
   // ---------------------------------------------------------------------------
 
-  it('en-tête vide → export Word neutre (content inchangé, non-régression)', () => {
+  it('en-tête vide + aucune métadonnée + signature off → export Word neutre (content inchangé, non-régression)', () => {
     fixture.detectChanges();
-    flushInitialLoad(doneResponse(), versionList());
+    // Métadonnées nulles ⇒ aucun cartouche ⇒ export strictement neutre (F-281).
+    flushInitialLoad(
+      doneResponse({ jurisdictionLabel: null, stageLabel: null, positionLabel: null }),
+      versionList(),
+    );
     fixture.detectChanges();
 
     component.downloadWord();
@@ -1109,6 +1116,95 @@ describe('ConclusionsSectionComponent', () => {
     expect(
       fixture.nativeElement.querySelector('[data-testid="cabinet-header-input"]'),
     ).not.toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------
+  // F-281 — Aperçu avant export + métadonnées + bloc signature
+  // ---------------------------------------------------------------------------
+  describe('F-281 — export : aperçu, métadonnées, signature', () => {
+    it('métadonnées de la version réintégrées en tête de l\'export (Word)', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList());
+      fixture.detectChanges();
+
+      component.downloadWord();
+
+      const passed = docxSpy.exportConclusion.calls.mostRecent().args[0] as string;
+      expect(passed).toContain("**Juridiction :** Conseil de prud'hommes");
+      expect(passed).toContain('**Stade :** Bureau de jugement');
+      expect(passed).toContain('**Position :** Demandeur');
+      // Le content stocké de la version n'est jamais modifié.
+      expect(component.conclusion()?.content).toBe(
+        'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
+      );
+    });
+
+    it('bloc signature activé → ajouté en pied de l\'export', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList());
+      fixture.detectChanges();
+
+      component.signatureEnabled.set(true);
+      component.signatureLieu.set('Paris');
+      component.signatureDate.set('12/06/2026');
+      component.downloadPdf();
+
+      const passed = pdfSpy.exportConclusion.calls.mostRecent().args[0] as string;
+      expect(passed).toContain('Fait à Paris, le 12/06/2026');
+      expect(passed).toContain("[Nom et qualité de l'avocat]");
+    });
+
+    it('toggle bloc signature → pré-remplit lieu (juridiction) et date (aujourd\'hui)', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList());
+      fixture.detectChanges();
+
+      component.toggleSignatureBlock();
+
+      expect(component.showSignatureBlock()).toBe(true);
+      expect(component.signatureLieu()).toBe("Conseil de prud'hommes");
+      expect(component.signatureDate()).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+    });
+
+    it('openExportPreview → ouvre la modale avec le contenu augmenté', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList());
+      fixture.detectChanges();
+
+      component.signatureEnabled.set(true);
+      component.signatureLieu.set('Lyon');
+      component.signatureDate.set('01/07/2026');
+      component.openExportPreview();
+
+      expect(dialogSpy.open).toHaveBeenCalled();
+      const passedData = dialogSpy.open.calls.mostRecent().args[1]?.data as {
+        content: string;
+      };
+      expect(passedData.content).toContain("**Juridiction :** Conseil de prud'hommes");
+      expect(passedData.content).toContain('POUR : M. X');
+      expect(passedData.content).toContain('Fait à Lyon, le 01/07/2026');
+    });
+
+    it('openExportPreview → ignoré si la version n\'est pas DONE', () => {
+      fixture.detectChanges();
+      flushInitialLoad(response({ status: 'FAILED' }));
+      fixture.detectChanges();
+
+      component.openExportPreview();
+      expect(dialogSpy.open).not.toHaveBeenCalled();
+    });
+
+    it('bouton « Aperçu avant export » visible quand DONE', () => {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse(), versionList());
+      fixture.detectChanges();
+
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="export-preview-btn"]',
+      );
+      expect(btn).not.toBeNull();
+      expect(btn.textContent).toContain('Aperçu avant export');
+    });
   });
 
   // ---------------------------------------------------------------------------

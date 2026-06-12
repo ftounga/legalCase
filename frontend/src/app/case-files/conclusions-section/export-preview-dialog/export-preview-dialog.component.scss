@@ -1,0 +1,35 @@
+// F-281 — Modale d'aperçu avant export. Palette navy #1A3A5C / or #C9973A.
+$navy: #1a3a5c;
+$gold: #c9973a;
+
+.epd-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $navy;
+  font-weight: 600;
+
+  &__icon {
+    color: $gold;
+  }
+}
+
+.epd-content {
+  // Largeur de lecture confortable + scroll interne pour les actes longs.
+  max-height: 64vh;
+  padding-top: 4px;
+
+  // La feuille de rendu garde son propre style scopé ; on la laisse respirer.
+  app-conclusion-document {
+    display: block;
+  }
+}
+
+.epd-actions {
+  gap: 8px;
+  padding-top: 8px;
+
+  mat-icon {
+    margin-right: 4px;
+  }
+}
