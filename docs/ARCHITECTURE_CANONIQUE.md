@@ -297,7 +297,8 @@ case_files
 documents  
 document_extractions  
 document_chunks  
-document_pieces
+document_pieces  
+case_phases
 
 ## Analyse IA
 
@@ -599,6 +600,29 @@ BULLETIN_PAIE, LETTRE, PHOTO, AUTRE
 
 Invariant : au moins 1 entrée par document après extraction DONE (fallback AUTRE
 couvrant tout le document si la détection échoue).
+
+## case_phases
+
+Progression datée du dossier dans le cycle procédural (F-283 / SF-283-01). Chaque
+ligne = une transition datée : le dossier est entré dans la phase à `entered_at`.
+La suite ordonnée par `entered_at` forme la frise des phases (Saisine →
+Conciliation → Fond → Appel → Cassation…), affichée en tête de l'onglet Suivi.
+Isolation workspace via `case_file_id`. Distinct de `contradictoire_rounds`
+(échanges contradictoires) et de `case_files.procedure_stage` (libellé courant
+statique, F-243).
+
+Champs :
+
+id
+case_file_id (FK → case_files, ON DELETE CASCADE)
+phase (varchar(30))
+label (varchar(200), nullable)
+entered_at (date)
+note (varchar(2000), nullable)
+created_at
+updated_at
+
+Index : idx_case_phases_case_file (case_file_id).
 
 ---
 
