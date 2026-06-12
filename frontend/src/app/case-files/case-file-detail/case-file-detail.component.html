@@ -94,6 +94,14 @@
     <!-- Onglet 1 : Dossier -->
     <section class="tab-panel" [hidden]="selectedTabIndex() !== 0" data-tab-panel="dossier">
       <div class="tab-panel-inner" [@listStagger]="3">
+        <!-- F-285 / SF-285-01 : qualification d'entrée du dossier (intake guidé) —
+             en tête de l'onglet Dossier, au-dessus de l'identité (groupe « identité »,
+             avant le stade procédural F-243). Verdict de valeur immédiat, non bloquant. -->
+        <div id="section-intake" @fadeInUp>
+          <app-case-intake-section [caseFileId]="caseFile()!.id">
+          </app-case-intake-section>
+        </div>
+
         <mat-card class="detail-card" @fadeInUp>
           <mat-card-content>
             <div class="detail-field">
