@@ -1,0 +1,257 @@
+/* F-284 / SF-284-02 — échéancier proactif. Charte DESIGN_SYSTEM.md :
+   navy #1A3A5C / or #C9973A, Merriweather (titres) / Inter (corps) /
+   JetBrains Mono (dates), espacements multiples de 4px. Gabarit = frise F-282.
+   Tête de l'onglet Suivi : met en avant le prochain couperet sans surcharger. */
+
+:host {
+  --eche-navy: var(--color-primary, #1A3A5C);
+  --eche-gold: var(--color-accent, #C9973A);
+  --eche-muted: var(--color-text-secondary, #6B7A8D);
+  --eche-divider: var(--color-divider, #E0E4EA);
+  --eche-bg: var(--color-background, #F5F6FA);
+  --eche-text: var(--color-text, #1C2B3A);
+  --eche-danger: #B3261E;
+  display: block;
+}
+
+.eche-card {
+  padding: 20px 24px 12px;
+  border-radius: 12px;
+  /* Colonne « document » : on évite l'étirement plein écran. */
+  max-width: 760px;
+}
+
+/* ── En-tête + pilule résumé ───────────────────────────────── */
+.eche-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.eche-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Merriweather', Georgia, serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--eche-navy);
+}
+.eche-title-icon { color: var(--eche-gold); }
+
+.eche-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.eche-pill-icon { font-size: 18px; width: 18px; height: 18px; }
+.eche-pill--alert {
+  background: rgba(179, 38, 30, 0.1);
+  border: 1px solid rgba(179, 38, 30, 0.35);
+  color: var(--eche-danger);
+}
+.eche-pill--calm {
+  background: rgba(26, 58, 92, 0.08);
+  border: 1px solid var(--eche-divider);
+  color: var(--eche-navy);
+  font-weight: 500;
+}
+
+.eche-muted { color: var(--eche-muted); font-size: 14px; margin: 8px 0; }
+
+/* ── Hero : le prochain couperet ───────────────────────────── */
+.eche-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--eche-divider);
+  border-left: 4px solid var(--eche-muted);
+  background: var(--eche-bg);
+}
+
+.eche-hero-dot {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2px solid var(--eche-muted);
+}
+.eche-hero-icon { color: var(--eche-muted); }
+
+.eche-hero-dot--pulse {
+  box-shadow: 0 0 0 0 rgba(179, 38, 30, 0.45);
+  animation: eche-pulse 1.8s ease-out infinite;
+}
+@keyframes eche-pulse {
+  to { box-shadow: 0 0 0 10px rgba(179, 38, 30, 0); }
+}
+
+.eche-hero-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.eche-hero-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--eche-navy);
+}
+.eche-hero-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--eche-text);
+  margin-top: 2px;
+}
+.eche-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.eche-hero-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--eche-muted);
+}
+
+.eche-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--eche-muted);
+}
+.eche-kind-icon { font-size: 16px; width: 16px; height: 16px; }
+
+/* Couleurs sémantiques d'urgence (hero) */
+.eche-hero.eche--overdue,
+.eche-hero.eche--critical { border-left-color: var(--eche-danger); }
+.eche-hero.eche--overdue .eche-hero-dot,
+.eche-hero.eche--critical .eche-hero-dot { border-color: var(--eche-danger); }
+.eche-hero.eche--overdue .eche-hero-icon,
+.eche-hero.eche--critical .eche-hero-icon { color: var(--eche-danger); }
+.eche-hero.eche--overdue .eche-hero-count,
+.eche-hero.eche--critical .eche-hero-count { color: var(--eche-danger); }
+
+.eche-hero.eche--soon { border-left-color: var(--eche-gold); }
+.eche-hero.eche--soon .eche-hero-dot { border-color: var(--eche-gold); }
+.eche-hero.eche--soon .eche-hero-icon { color: var(--eche-gold); }
+
+.eche-hero.eche--upcoming { border-left-color: var(--eche-navy); }
+.eche-hero.eche--upcoming .eche-hero-dot { border-color: var(--eche-navy); }
+.eche-hero.eche--upcoming .eche-hero-icon { color: var(--eche-navy); }
+
+/* ── Échéances suivantes (max 3) ───────────────────────────── */
+.eche-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.eche-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--eche-divider);
+}
+.eche-row:last-child { border-bottom: none; }
+
+.eche-row-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--eche-muted);
+}
+.eche-row.eche--overdue .eche-row-dot,
+.eche-row.eche--critical .eche-row-dot { background: var(--eche-danger); }
+.eche-row.eche--soon .eche-row-dot { background: var(--eche-gold); }
+.eche-row.eche--upcoming .eche-row-dot { background: var(--eche-navy); }
+
+.eche-row-label {
+  font-size: 14px;
+  color: var(--eche-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eche-row-spacer { flex: 1; }
+.eche-row-kind { display: inline-flex; color: var(--eche-muted); }
+.eche-row-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--eche-navy);
+}
+.eche-row.eche--overdue .eche-row-count,
+.eche-row.eche--critical .eche-row-count { color: var(--eche-danger); }
+.eche-row-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--eche-muted);
+  min-width: 84px;
+  text-align: right;
+}
+
+/* ── Pied : renvoi vers la liste détaillée F-69 ────────────── */
+.eche-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.eche-view-all {
+  color: var(--eche-navy);
+  font-weight: 600;
+}
+.eche-view-all mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+/* ── État vide ─────────────────────────────────────────────── */
+.eche-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: 16px 8px 8px;
+}
+.eche-empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: var(--eche-divider);
+}
+.eche-empty-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--eche-navy);
+  margin: 4px 0 0;
+}
+.eche-empty .eche-muted { max-width: 420px; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .eche-card { padding: 16px; }
+  .eche-row-label { white-space: normal; }
+  .eche-row-date { min-width: auto; }
+}
