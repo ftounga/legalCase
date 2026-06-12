@@ -739,6 +739,12 @@
     <!-- Onglet 4 : Suivi -->
     <section class="tab-panel" [hidden]="selectedTabIndex() !== 3" data-tab-panel="suivi">
       <div class="tab-panel-inner">
+        <!-- F-283 / SF-283-01 : phases procédurales (progression datée) — coiffe le cycle d'échanges -->
+        <div id="section-phases">
+          <app-case-phases-timeline [caseFileId]="caseFile()!.id">
+          </app-case-phases-timeline>
+        </div>
+
         <!-- F-282 : cycle contradictoire (frise des échanges) — élève le calendrier procédural -->
         <div id="section-contradictoire">
           <app-contradictoire-timeline

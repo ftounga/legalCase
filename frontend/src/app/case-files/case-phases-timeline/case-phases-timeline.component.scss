@@ -1,0 +1,184 @@
+/* F-283 / SF-283-01 — frise des phases procédurales. Charte DESIGN_SYSTEM.md :
+   navy #1A3A5C / or #C9973A, Merriweather (titres) / Inter (corps) /
+   JetBrains Mono (dates), espacements multiples de 4px. Gabarit = frise F-282.
+   Compacte : coiffe le contradictoire sans le concurrencer. */
+
+:host {
+  --phase-navy: var(--color-primary, #1A3A5C);
+  --phase-gold: var(--color-accent, #C9973A);
+  --phase-muted: var(--color-text-secondary, #6B7A8D);
+  --phase-divider: var(--color-divider, #E0E4EA);
+  --phase-bg: var(--color-background, #F5F6FA);
+  display: block;
+}
+
+.phase-card {
+  padding: 20px 24px 16px;
+  border-radius: 12px;
+  /* Colonne « document » : on évite l'étirement plein écran. */
+  max-width: 760px;
+}
+
+/* ── En-tête + pilule phase courante ───────────────────────── */
+.phase-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.phase-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Merriweather', Georgia, serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--phase-navy);
+}
+.phase-title-icon { color: var(--phase-gold); }
+
+.phase-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(26, 58, 92, 0.08);
+  border: 1px solid var(--phase-navy);
+  color: var(--phase-navy);
+  font-size: 13px;
+  font-weight: 600;
+}
+.phase-pill-icon { font-size: 18px; width: 18px; height: 18px; color: var(--phase-gold); }
+
+.phase-muted { color: var(--phase-muted); font-size: 14px; margin: 8px 0; }
+
+/* ── Frise verticale (compacte) ────────────────────────────── */
+.phase-line {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 8px;
+  position: relative;
+}
+
+.phase-node {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding: 0 0 16px 20px;
+  border-left: 2px solid var(--phase-divider);
+}
+.phase-node:last-child { border-left-color: transparent; }
+
+.phase-dot {
+  position: absolute;
+  left: -8px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--phase-muted);
+  box-sizing: border-box;
+}
+.phase-node--current .phase-dot { border-color: var(--phase-navy); background: var(--phase-navy); }
+.phase-dot--pulse {
+  box-shadow: 0 0 0 0 rgba(26, 58, 92, 0.45);
+  animation: phase-pulse 1.8s ease-out infinite;
+}
+@keyframes phase-pulse {
+  to { box-shadow: 0 0 0 8px rgba(26, 58, 92, 0); }
+}
+
+.phase-body {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 2px;
+}
+.phase-node--ghost .phase-body { opacity: 0.7; }
+
+.phase-row { display: flex; align-items: center; gap: 8px; }
+.phase-spacer { flex: 1; }
+
+.phase-num {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--phase-navy);
+}
+.phase-node--current .phase-num { color: var(--phase-navy); }
+
+.phase-tag {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(201, 151, 58, 0.16);
+  color: #8a6a1f;
+  font-weight: 600;
+}
+
+.phase-act { width: 32px; height: 32px; line-height: 32px; color: var(--phase-muted); }
+
+.phase-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--color-text, #1C2B3A);
+}
+
+.phase-dates {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.phase-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--phase-muted);
+}
+.phase-date-icon { font-size: 16px; width: 16px; height: 16px; }
+
+.phase-note {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--phase-muted);
+}
+
+/* ── Ajouter / formulaire ──────────────────────────────────── */
+.phase-add-row { margin-top: 8px; }
+
+.phase-form {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--phase-divider);
+  border-radius: 8px;
+  background: var(--phase-bg);
+}
+.phase-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.phase-form-wide { grid-column: 1 / -1; }
+.phase-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Responsive : une colonne en étroit */
+@media (max-width: 640px) {
+  .phase-form-grid { grid-template-columns: 1fr; }
+  .phase-card { padding: 16px; }
+}
