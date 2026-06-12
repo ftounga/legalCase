@@ -1,0 +1,194 @@
+/* F-282 — frise du cycle contradictoire. Charte DESIGN_SYSTEM.md :
+   navy #1A3A5C / or #C9973A, Merriweather (titres) / Inter (corps) / JetBrains Mono (dates),
+   espacements multiples de 4px. */
+
+:host {
+  --contra-navy: var(--color-primary, #1A3A5C);
+  --contra-gold: var(--color-accent, #C9973A);
+  --contra-muted: var(--color-text-secondary, #6B7A8D);
+  --contra-divider: var(--color-divider, #E0E4EA);
+  --contra-bg: var(--color-background, #F5F6FA);
+  display: block;
+}
+
+.contra-card {
+  padding: 20px 24px 16px;
+  border-radius: 12px;
+}
+
+/* ── En-tête + pilule résumé ───────────────────────────────── */
+.contra-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.contra-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Merriweather', Georgia, serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--contra-navy);
+}
+.contra-title-icon { color: var(--contra-gold); }
+
+.contra-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--contra-bg);
+  border: 1px solid var(--contra-divider);
+  color: var(--contra-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.contra-pill--ours {
+  background: rgba(201, 151, 58, 0.12);
+  border-color: var(--contra-gold);
+  color: var(--contra-navy);
+  font-weight: 600;
+}
+.contra-pill-icon { font-size: 18px; width: 18px; height: 18px; }
+.contra-pill-date { font-family: 'JetBrains Mono', monospace; }
+
+.contra-muted { color: var(--contra-muted); font-size: 14px; margin: 8px 0; }
+
+/* ── Frise verticale ───────────────────────────────────────── */
+.contra-line {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 8px;
+  position: relative;
+}
+
+.contra-node {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding: 0 0 20px 20px;
+  /* la ligne verticale */
+  border-left: 2px solid var(--contra-divider);
+}
+.contra-node:last-child { border-left-color: transparent; }
+
+.contra-dot {
+  position: absolute;
+  left: -8px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--contra-muted);
+  box-sizing: border-box;
+}
+.contra-node--ours .contra-dot { border-color: var(--contra-navy); }
+.contra-node--adverse .contra-dot { border-color: var(--contra-gold); }
+.contra-dot--pulse {
+  border-color: var(--contra-gold);
+  box-shadow: 0 0 0 0 rgba(201, 151, 58, 0.5);
+  animation: contra-pulse 1.8s ease-out infinite;
+}
+@keyframes contra-pulse {
+  to { box-shadow: 0 0 0 8px rgba(201, 151, 58, 0); }
+}
+
+.contra-body {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 4px;
+}
+.contra-node--ghost .contra-body { opacity: 0.7; }
+
+.contra-row { display: flex; align-items: center; gap: 8px; }
+.contra-spacer { flex: 1; }
+
+.contra-num {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--contra-navy);
+}
+.contra-node--adverse .contra-num { color: var(--contra-gold); }
+
+.contra-party {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--contra-bg);
+  color: var(--contra-muted);
+}
+.contra-node--ours .contra-party { background: rgba(26, 58, 92, 0.1); color: var(--contra-navy); }
+.contra-node--adverse .contra-party { background: rgba(201, 151, 58, 0.14); color: #8a6a1f; }
+
+.contra-act { width: 32px; height: 32px; line-height: 32px; color: var(--contra-muted); }
+
+.contra-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--color-text, #1C2B3A);
+}
+
+.contra-dates {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.contra-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--contra-muted);
+}
+.contra-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--contra-gold);
+}
+.contra-due-icon { font-size: 16px; width: 16px; height: 16px; }
+
+/* ── Round « à vous » ──────────────────────────────────────── */
+.contra-node--next .contra-num { color: var(--contra-gold); }
+.contra-cta { margin-top: 10px; }
+
+/* ── Ajouter / formulaire ──────────────────────────────────── */
+.contra-add-row { margin-top: 8px; }
+
+.contra-form {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--contra-divider);
+  border-radius: 8px;
+  background: var(--contra-bg);
+}
+.contra-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.contra-form-label { grid-column: 1 / -1; }
+.contra-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Responsive : frise + form en une colonne en étroit */
+@media (max-width: 640px) {
+  .contra-form-grid { grid-template-columns: 1fr; }
+  .contra-card { padding: 16px; }
+}

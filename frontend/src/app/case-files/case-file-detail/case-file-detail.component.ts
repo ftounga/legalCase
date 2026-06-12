@@ -51,6 +51,7 @@ import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
+import { ContradictoireTimelineComponent } from '../contradictoire-timeline/contradictoire-timeline.component';
 import { ProcedureStageSectionComponent } from '../procedure-stage-section/procedure-stage-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
@@ -159,7 +160,7 @@ export const TAB_SUIVI = 3;
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule, MatMenuModule, MatTooltipModule, MatTabsModule, ShareDialogComponent, CaseNotesSectionComponent,
-    CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
+    CaseDeadlinesSectionComponent, CaseDashboardStepperComponent, ContradictoireTimelineComponent,
     ProcedureStageSectionComponent,
     TimerWidgetComponent,
     CaseDashboardComponent, AnalysisPipelineComponent,
