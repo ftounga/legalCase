@@ -1,0 +1,38 @@
+<h2 mat-dialog-title class="epd-title">
+  <mat-icon class="epd-title__icon" aria-hidden="true">visibility</mat-icon>
+  Aperçu avant export
+</h2>
+
+<mat-dialog-content class="epd-content">
+  <!--
+    F-281 — Rendu FIDÈLE de ce qui sera téléchargé : on réutilise le composant
+    de rendu des conclusions (`<app-conclusion-document>`) avec le contenu
+    complet d'export (en-tête cabinet + métadonnées + corps + signature). Aucun
+    rendu maison ⇒ aperçu = fichier par construction.
+  -->
+  <app-conclusion-document
+    [content]="data.content"
+    [pieces]="data.pieces ?? []"
+    data-testid="export-preview-document" />
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="epd-actions">
+  <button mat-stroked-button
+          mat-dialog-close
+          data-testid="export-preview-close-btn">
+    Fermer
+  </button>
+  <button mat-stroked-button
+          data-testid="export-preview-word-btn"
+          (click)="downloadWord()">
+    <mat-icon>description</mat-icon>
+    Télécharger en Word
+  </button>
+  <button mat-flat-button
+          color="primary"
+          data-testid="export-preview-pdf-btn"
+          (click)="downloadPdf()">
+    <mat-icon>picture_as_pdf</mat-icon>
+    Télécharger en PDF
+  </button>
+</mat-dialog-actions>

@@ -526,6 +526,56 @@
             }
           </div>
 
+          <!-- F-281 — Bloc signature pré-formaté (opt-in, non persisté) : ajouté
+               en pied du fichier exporté (« Fait à …, le … » + nom/qualité).
+               Même pattern repliable que l'en-tête de cabinet. -->
+          <div class="cs-cabinet-header">
+            <button mat-button
+                    type="button"
+                    data-testid="toggle-signature-btn"
+                    (click)="toggleSignatureBlock()">
+              <mat-icon>{{ showSignatureBlock() ? 'expand_less' : 'expand_more' }}</mat-icon>
+              Bloc signature (pour l'export)
+            </button>
+            @if (showSignatureBlock()) {
+              <label class="cs-signature-toggle">
+                <input type="checkbox"
+                       data-testid="signature-enabled-input"
+                       [checked]="signatureEnabled()"
+                       (change)="signatureEnabled.set($any($event.target).checked)" />
+                Ajouter un bloc signature en fin de document
+              </label>
+              @if (signatureEnabled()) {
+                <div class="cs-signature-fields">
+                  <label class="cs-signature-field">
+                    <span>Lieu</span>
+                    <input type="text"
+                           data-testid="signature-lieu-input"
+                           placeholder="Paris"
+                           [value]="signatureLieu()"
+                           (input)="signatureLieu.set($any($event.target).value)"
+                           aria-label="Lieu de signature (Fait à)" />
+                  </label>
+                  <label class="cs-signature-field">
+                    <span>Date</span>
+                    <input type="text"
+                           data-testid="signature-date-input"
+                           placeholder="JJ/MM/AAAA"
+                           [value]="signatureDate()"
+                           (input)="signatureDate.set($any($event.target).value)"
+                           aria-label="Date de signature" />
+                  </label>
+                </div>
+                <p class="cs-cabinet-header-hint">
+                  Ajouté en pied du fichier exporté :
+                  « Fait à {{ signatureLieu() || '[Lieu]' }}, le {{ signatureDate() || '[Date]' }} »,
+                  puis « [Nom et qualité de l'avocat] » à compléter. Le projet
+                  enregistré n'est pas modifié.
+                </p>
+              }
+            }
+          </div>
+
           <!-- SF-266-03 — Garde « acte déposable » : alerte sur les emplacements
                « [ … ] » encore à compléter (date, nom/qualité de l'avocat…)
                avant l'export PDF/Word. -->
@@ -571,6 +621,15 @@
                     (click)="copy()">
               <mat-icon>content_copy</mat-icon>
               Copier
+            </button>
+            <!-- F-281 — Aperçu fidèle (en-tête cabinet + métadonnées + corps +
+                 signature) avant téléchargement. Chemin additionnel : les
+                 boutons de téléchargement direct restent disponibles. -->
+            <button mat-stroked-button
+                    data-testid="export-preview-btn"
+                    (click)="openExportPreview()">
+              <mat-icon>visibility</mat-icon>
+              Aperçu avant export
             </button>
             <button mat-stroked-button
                     data-testid="download-word-btn"
