@@ -42,7 +42,9 @@ describe('ConclusionsSectionComponent', () => {
 
   const CASE_ID = 'case-1';
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
-  const GENERATE_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate`;
+  // SF-271-02 — la génération porte ?fromScratch=… (défaut false = « Actualiser »).
+  const GENERATE_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate?fromScratch=false`;
+  const GENERATE_SCRATCH_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate?fromScratch=true`;
   const VERSIONS_URL = `/api/v1/case-files/${CASE_ID}/conclusions/versions`;
   // F-258 SF-258-01 — endpoints du décompte « outils non calculés ».
   const VISIBILITY_URL = `/api/v1/case-files/${CASE_ID}/decision-tools-visibility`;
@@ -537,6 +539,71 @@ describe('ConclusionsSectionComponent', () => {
     expect(postReq.request.method).toBe('POST');
     postReq.flush({ status: 'PENDING', versionNumber: 1 });
     httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
+  // ── SF-271-02 — « Actualiser » (sûr) vs « Régénérer de zéro » (destructif) ──
+
+  it('SF-271-02 — « Actualiser » → POST fromScratch=false SANS confirmation', fakeAsync(() => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.actualiser();
+
+    // Action sûre : aucune confirmation destructive.
+    expect(dialogSpy.open).not.toHaveBeenCalled();
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 3 });
+    httpMock.expectOne(VERSIONS_URL).flush(versionList());
+
+    component.ngOnDestroy();
+  }));
+
+  it('SF-271-02 — « Régénérer de zéro » → confirmation puis POST fromScratch=true', fakeAsync(() => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.regenerateFromScratch();
+
+    // Confirmation honnête « remplace votre texte actuel ».
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    const dialogData = dialogSpy.open.calls.mostRecent().args[1]?.data as {
+      title: string;
+      message: string;
+      confirmColor: string;
+    };
+    expect(dialogData.title).toContain('Régénérer de zéro');
+    expect(dialogData.message).toContain('REMPLACE votre texte');
+    expect(dialogData.confirmColor).toBe('warn');
+
+    // afterClosed → true (défaut) → POST from-scratch.
+    const postReq = httpMock.expectOne(GENERATE_SCRATCH_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 3 });
+    httpMock.expectOne(VERSIONS_URL).flush(versionList());
+
+    component.ngOnDestroy();
+  }));
+
+  it('SF-271-02 — « Régénérer de zéro » annulé → aucun POST', fakeAsync(() => {
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of(false),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.regenerateFromScratch();
+
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    httpMock.expectNone(GENERATE_SCRATCH_URL);
 
     component.ngOnDestroy();
   }));

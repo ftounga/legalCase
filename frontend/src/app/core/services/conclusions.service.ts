@@ -36,10 +36,19 @@ export class ConclusionsService {
   /**
    * Déclenche la génération asynchrone d'une nouvelle version du projet de
    * conclusions. Réponse `202` ; le suivi se fait ensuite par polling.
+   *
+   * SF-271-02 — `fromScratch` (défaut `false`) sélectionne le mode :
+   *  - `false` = « Actualiser » : le worker repart du texte actuel de l'avocat
+   *    (bordereau retiré) qu'il préserve, n'ajoutant que le manquant ;
+   *  - `true` = « Régénérer de zéro » : le worker ignore le texte actuel
+   *    (génération from-scratch depuis l'analyse).
    */
-  generate(caseFileId: string): Observable<ConclusionGenerationResponse> {
+  generate(
+    caseFileId: string,
+    fromScratch = false,
+  ): Observable<ConclusionGenerationResponse> {
     return this.http.post<ConclusionGenerationResponse>(
-      `/api/v1/case-files/${caseFileId}/conclusions/generate`,
+      `/api/v1/case-files/${caseFileId}/conclusions/generate?fromScratch=${fromScratch}`,
       {},
     );
   }

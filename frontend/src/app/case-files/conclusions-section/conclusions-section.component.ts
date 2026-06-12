@@ -581,18 +581,61 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * SF-271-02 — « Actualiser » (action SÛRE, sans confirmation) : régénère en
+   * PRÉSERVANT le texte de l'avocat comme socle. Le worker n'ajoute/ne corrige
+   * que le manquant (`fromScratch=false`). Aucune perte des retouches → pas de
+   * confirmation destructive.
+   */
+  actualiser(): void {
+    this.generate(false);
+  }
+
+  /**
+   * SF-271-02 — « Régénérer de zéro » (action DESTRUCTIVE) : régénère SANS socle
+   * (`fromScratch=true`), donc REMPLACE le texte actuel par une réécriture depuis
+   * l'analyse. Confirmation honnête obligatoire avant de lancer.
+   */
+  regenerateFromScratch(): void {
+    if (this.generating()) {
+      return;
+    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '480px',
+        data: {
+          title: 'Régénérer de zéro',
+          message:
+            'Réécrit l\'acte à partir de l\'analyse et REMPLACE votre texte ' +
+            'actuel. Continuer ?',
+          confirmLabel: 'Régénérer de zéro',
+          confirmColor: 'warn',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.generate(true);
+        }
+        this.cdr.markForCheck();
+      });
+  }
+
+  /**
    * Déclenche (ou relance) la génération du projet de conclusions.
    * SF-98-52 : crée une nouvelle version. Sur succès `202`, démarre le
    * polling et sélectionne la nouvelle version.
+   *
+   * SF-271-02 — `fromScratch` (défaut `false` = « Actualiser ») : `false`
+   * préserve le texte de l'avocat, `true` régénère from-scratch.
    */
-  generate(): void {
+  generate(fromScratch = false): void {
     if (this.generating()) {
       return;
     }
     this.generating.set(true);
     // Un nouvel essai efface tout refus précédent (SF-98-62).
     this.unsupportedMessage.set(null);
-    this.conclusionsService.generate(this.caseFileId).subscribe({
+    this.conclusionsService.generate(this.caseFileId, fromScratch).subscribe({
       next: (res) => {
         this.generating.set(false);
         // Reflète immédiatement l'état PENDING de la nouvelle version en
