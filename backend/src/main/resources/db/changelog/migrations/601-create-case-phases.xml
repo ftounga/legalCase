@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="601-create-case-phases" author="legalcase">
+        <comment>
+            F-283 / SF-283-01 — phases procédurales du dossier. Chaque ligne = une
+            transition datée (le dossier est entré dans la phase à entered_at).
+            La suite ordonnée forme la progression du dossier (Saisine → Conciliation
+            → Fond → Appel → Cassation…). Isolation workspace via case_file_id.
+            Distinct de contradictoire_rounds (échanges) et de case_files.procedure_stage
+            (libellé courant statique, F-243).
+        </comment>
+
+        <createTable tableName="case_phases">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phase" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="label" type="varchar(200)"/>
+            <column name="entered_at" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="note" type="varchar(2000)"/>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="case_phases" baseColumnNames="case_file_id"
+                referencedTableName="case_files" referencedColumnNames="id"
+                constraintName="fk_case_phases_case_file" onDelete="CASCADE"/>
+
+        <createIndex tableName="case_phases" indexName="idx_case_phases_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="case_phases"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
