@@ -624,6 +624,34 @@ updated_at
 
 Index : idx_case_phases_case_file (case_file_id).
 
+## case_strategy
+
+Recommandation stratégique consolidée d'un dossier (F-286 / SF-286-01). Couche LLM
+de synthèse **EN LECTURE** : un appel Sonnet (temperature 0, gate Anthropic via
+`AiCallContext.systemLevel(JobType.SYSTEM_CASE_STRATEGY)`) lit les verdicts des
+outils décisionnels **calculés** (via `CaseFileDashboardService`, jamais les tuiles
+pré-remplies non cliquées) + la synthèse du dossier, et produit une reco lisible
+(référé vs fond, concilier vs plaider, chefs prioritaires). **N'altère aucun outil**
+(invariant « 1 outil = 1 situation ») : aucune écriture sur les tables d'analyse ni
+sur `decision_tool_visibility_rules`. **1 ligne courante par dossier** (upsert,
+contrainte unique `uq_case_strategy_case_file`) ; régénérable, pas d'historique en
+MVP. Sur 0 outil calculé, aucune ligne générée (`EMPTY_INPUT`, pas d'appel LLM).
+Isolation workspace via `case_file_id`. Affichée en coiffe de la colonne verdict
+(onglet Décision).
+
+Champs :
+
+id (uuid)
+case_file_id (FK → case_files, ON DELETE CASCADE, unique uq_case_strategy_case_file)
+content (text — markdown de la reco)
+tools_considered (int — nb d'outils calculés pris en compte)
+model_used (varchar(100))
+prompt_tokens (int)
+completion_tokens (int)
+generated_at (timestamptz)
+created_at
+updated_at
+
 ---
 
 # 13 — Analyse IA
