@@ -19,6 +19,10 @@ import {
   parseMarkdownSections,
   replaceSectionInDraft,
   buildExportContent,
+  draftStorageKey,
+  readDraft,
+  writeDraft,
+  clearDraft,
 } from './conclusions-section.component';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
@@ -1558,6 +1562,217 @@ describe('ConclusionsSectionComponent', () => {
 
       expect(component.editing()).toBe(false);
     });
+  });
+
+  // -------------------------------------------------------------------------
+  // F-279 / SF-279-01 — feedback de sauvegarde explicite + autosave local
+  // -------------------------------------------------------------------------
+  describe('F-279 — feedback save + autosave brouillon', () => {
+    /** Met le composant en mode édition d'une version DONE + DRAFT. */
+    function enterEdit(): void {
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+      fixture.detectChanges();
+      component.startEditing();
+      fixture.detectChanges();
+    }
+
+    beforeEach(() => localStorage.clear());
+    afterEach(() => localStorage.clear());
+
+    it('édition + frappe → état « Modifié » (dirty)', () => {
+      enterEdit();
+      expect(component.dirty()).toBe(false);
+      component.onDraftInput('Texte modifié par l\'avocat.');
+      fixture.detectChanges();
+      expect(component.dirty()).toBe(true);
+      const chip = fixture.nativeElement.querySelector(
+        '[data-testid="save-state-indicator"]',
+      );
+      expect(chip).not.toBeNull();
+      expect(chip.textContent).toContain('Modifié');
+    });
+
+    it('« Enregistrer » réussi → snackbar succès + dirty=false + brouillon purgé', fakeAsync(() => {
+      enterEdit();
+      component.onDraftInput('Nouveau texte.');
+      tick(800); // autosave local
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).not.toBeNull();
+
+      component.saveContent();
+      const req = httpMock.expectOne(contentUrl('conc-2'));
+      req.flush(doneResponse({ lifecycleStatus: 'DRAFT', content: 'Nouveau texte.' }));
+      httpMock.expectOne(VERSIONS_URL).flush(versionList());
+
+      expect(snackSpy.open).toHaveBeenCalledWith(
+        'Modifications enregistrées.',
+        'Fermer',
+        jasmine.objectContaining({ panelClass: ['snack-success'] }),
+      );
+      // Brouillon local purgé après enregistrement serveur.
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).toBeNull();
+    }));
+
+    it('frappe → écrit le brouillon dans localStorage après debounce', fakeAsync(() => {
+      enterEdit();
+      component.onDraftInput('Brouillon en cours…');
+      // Avant le debounce : rien d'écrit encore.
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).toBeNull();
+      tick(800);
+      const raw = localStorage.getItem('lc.conclusions.draft.case-1.conc-2');
+      expect(raw).not.toBeNull();
+      expect(JSON.parse(raw!).content).toBe('Brouillon en cours…');
+    }));
+
+    it('brouillon revenu identique au serveur → entrée locale supprimée', fakeAsync(() => {
+      enterEdit();
+      const serverContent = component.savedContent();
+      component.onDraftInput('Divergent');
+      tick(800);
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).not.toBeNull();
+      // Retour au contenu serveur → l'autosave purge l'entrée (pas de faux brouillon).
+      component.onDraftInput(serverContent);
+      tick(800);
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).toBeNull();
+    }));
+
+    it('réouverture avec brouillon divergent → bandeau « Brouillon récupéré »', () => {
+      // Pré-positionne un brouillon local divergent du contenu serveur.
+      localStorage.setItem(
+        'lc.conclusions.draft.case-1.conc-2',
+        JSON.stringify({
+          versionId: 'conc-2',
+          content: 'Travail récupéré après crash',
+          savedAt: '2026-06-12T10:00:00Z',
+        }),
+      );
+      enterEdit();
+      expect(component.draftRecovered()).toBe(true);
+      const banner = fixture.nativeElement.querySelector(
+        '[data-testid="draft-recovery-banner"]',
+      );
+      expect(banner).not.toBeNull();
+    });
+
+    it('« Restaurer » → charge le brouillon local ; « Ignorer » → garde le serveur + purge', () => {
+      localStorage.setItem(
+        'lc.conclusions.draft.case-1.conc-2',
+        JSON.stringify({
+          versionId: 'conc-2',
+          content: 'Travail récupéré',
+          savedAt: '2026-06-12T10:00:00Z',
+        }),
+      );
+      enterEdit();
+      component.restoreDraft();
+      expect(component.draftContent()).toBe('Travail récupéré');
+      expect(component.draftRecovered()).toBe(false);
+
+      // Nouveau cycle : on sort puis on repositionne un brouillon, et discard
+      // doit garder le serveur et purger. (cancelEditing purge le local, on
+      // réécrit donc l'entrée APRÈS être sorti d'édition.)
+      component.cancelEditing();
+      localStorage.setItem(
+        'lc.conclusions.draft.case-1.conc-2',
+        JSON.stringify({
+          versionId: 'conc-2',
+          content: 'Autre brouillon',
+          savedAt: '2026-06-12T11:00:00Z',
+        }),
+      );
+      component.startEditing();
+      expect(component.draftRecovered()).toBe(true);
+      component.discardDraft();
+      expect(component.draftContent()).toBe(component.savedContent());
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).toBeNull();
+    });
+
+    it('« Annuler » → purge le brouillon local', fakeAsync(() => {
+      enterEdit();
+      component.onDraftInput('Jetable');
+      tick(800);
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).not.toBeNull();
+      component.cancelEditing();
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).toBeNull();
+    }));
+
+    it('passage en VALIDATED → purge le brouillon local', () => {
+      // Pré-positionne un brouillon, puis valide la version.
+      localStorage.setItem(
+        'lc.conclusions.draft.case-1.conc-2',
+        JSON.stringify({ versionId: 'conc-2', content: 'x', savedAt: '' }),
+      );
+      fixture.detectChanges();
+      flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+      fixture.detectChanges();
+
+      component.changeLifecycle('VALIDATED');
+      httpMock
+        .expectOne(lifecycleUrl('conc-2'))
+        .flush(doneResponse({ lifecycleStatus: 'VALIDATED' }));
+      httpMock.expectOne(VERSIONS_URL).flush(versionList());
+
+      expect(localStorage.getItem('lc.conclusions.draft.case-1.conc-2')).toBeNull();
+    });
+  });
+});
+
+// ── F-279 / SF-279-01 — stockage local du brouillon (helpers purs) ──────────
+describe('F-279 — conclusion-draft-storage', () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it('clé déterministe par (dossier, version)', () => {
+    expect(draftStorageKey('c1', 'v2')).toBe('lc.conclusions.draft.c1.v2');
+  });
+
+  it('write → read round-trip', () => {
+    writeDraft('c1', 'v2', 'Mon brouillon');
+    const rec = readDraft('c1', 'v2');
+    expect(rec).not.toBeNull();
+    expect(rec!.content).toBe('Mon brouillon');
+    expect(rec!.versionId).toBe('v2');
+  });
+
+  it('clearDraft supprime l\'entrée', () => {
+    writeDraft('c1', 'v2', 'x');
+    clearDraft('c1', 'v2');
+    expect(readDraft('c1', 'v2')).toBeNull();
+  });
+
+  it('JSON invalide → readDraft retourne null et purge', () => {
+    localStorage.setItem('lc.conclusions.draft.c1.v2', '{pasdujson');
+    expect(readDraft('c1', 'v2')).toBeNull();
+    expect(localStorage.getItem('lc.conclusions.draft.c1.v2')).toBeNull();
+  });
+
+  it('forme inattendue → readDraft retourne null', () => {
+    localStorage.setItem('lc.conclusions.draft.c1.v2', JSON.stringify({ foo: 1 }));
+    expect(readDraft('c1', 'v2')).toBeNull();
+  });
+
+  it('localStorage.setItem qui jette → writeDraft no-op (pas d\'exception)', () => {
+    const orig = localStorage.setItem;
+    localStorage.setItem = () => {
+      throw new DOMException('QuotaExceededError');
+    };
+    try {
+      expect(() => writeDraft('c1', 'v2', 'x')).not.toThrow();
+    } finally {
+      localStorage.setItem = orig;
+    }
+  });
+
+  it('localStorage.getItem qui jette → readDraft retourne null (pas d\'exception)', () => {
+    const orig = localStorage.getItem;
+    localStorage.getItem = () => {
+      throw new DOMException('SecurityError');
+    };
+    try {
+      expect(readDraft('c1', 'v2')).toBeNull();
+    } finally {
+      localStorage.getItem = orig;
+    }
   });
 });
 

@@ -52,12 +52,26 @@ import {
   parseMarkdownSections,
   replaceSectionInDraft,
 } from './conclusion-sections.util';
+// F-279 / SF-279-01 — autosave local du brouillon (module pur, voir bas de fichier).
+import {
+  clearDraft,
+  readDraft,
+  writeDraft,
+} from './conclusion-draft-storage.util';
 
 /**
  * Intervalle de polling de l'état des conclusions (ms).
  * Mini-spec SF-98-01 : « polling GET …/conclusions toutes les 3 s ».
  */
 const POLL_INTERVAL_MS = 3000;
+
+/**
+ * F-279 / SF-279-01 — Délai de stabilisation (ms) avant d'écrire le brouillon
+ * dans `localStorage`. Évite une écriture à chaque frappe tout en restant
+ * suffisamment court pour ne perdre que les toutes dernières secondes en cas de
+ * crash.
+ */
+const AUTOSAVE_DEBOUNCE_MS = 800;
 
 /** Libellés FR des états du cycle de vie d'une version (SF-98-52). */
 const LIFECYCLE_LABELS: Record<ConclusionLifecycleStatus, string> = {
@@ -174,6 +188,30 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly savingContent = signal(false);
 
   /**
+   * F-279 / SF-279-01 — Dernier contenu **confirmé côté serveur** pour la
+   * version en cours d'édition. Sert de référence à l'indicateur dirty/clean :
+   * tant que `draftContent() === savedContent()`, l'éditeur est « ✓ Enregistré ».
+   * Mis à jour à l'entrée en édition et après chaque enregistrement réussi.
+   */
+  readonly savedContent = signal('');
+
+  /**
+   * F-279 / SF-279-01 — Vrai si un brouillon **local** (autosave) plus récent
+   * que le contenu serveur a été retrouvé à l'entrée en édition et attend une
+   * décision de l'avocat (Restaurer / Ignorer). Bandeau « Brouillon récupéré ».
+   */
+  readonly draftRecovered = signal(false);
+
+  /**
+   * F-279 / SF-279-01 — Vrai quand le brouillon en cours diverge du dernier
+   * contenu enregistré côté serveur (état « Modifié » vs « ✓ Enregistré »).
+   * N'a de sens qu'en mode édition.
+   */
+  readonly dirty = computed<boolean>(
+    () => this.draftContent() !== this.savedContent(),
+  );
+
+  /**
    * F-266 / SF-266-02 — En-tête de cabinet saisi pour l'export (nom, adresse,
    * barreau…). **Non persisté** (vit le temps de la session) ; préfixé au seul
    * fichier exporté (Word/PDF), jamais au `content` markdown stocké.
@@ -285,6 +323,13 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   /** Handle du polling actif (null = aucun polling en cours). */
   private pollHandle: ReturnType<typeof setInterval> | null = null;
 
+  /**
+   * F-279 / SF-279-01 — Handle du timer d'autosave local (debounce). `null`
+   * = aucune écriture programmée. Annulé à chaque nouvelle frappe et à la
+   * destruction du composant.
+   */
+  private autosaveHandle: ReturnType<typeof setTimeout> | null = null;
+
   /** Statut courant, par défaut `NOT_GENERATED` tant que rien n'est chargé. */
   readonly status = computed<ConclusionStatus>(
     () => this.conclusion()?.status ?? 'NOT_GENERATED',
@@ -377,6 +422,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPolling();
+    this.cancelAutosave();
   }
 
   /**
@@ -528,6 +574,13 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
           this.updatingLifecycle.set(false);
           // Sortir d'un brouillon (validation/dépôt) ferme le mode édition.
           this.editing.set(false);
+          // F-279 — la version n'est plus DRAFT : le brouillon local n'a plus
+          // de raison d'être (la version est figée), on le purge.
+          if (res.lifecycleStatus !== 'DRAFT') {
+            this.cancelAutosave();
+            clearDraft(this.caseFileId, versionId);
+            this.draftRecovered.set(false);
+          }
           this.conclusion.set(res);
           this.cdr.markForCheck();
           this.refreshVersions();
@@ -689,12 +742,61 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     if (!this.editable() || this.editing()) {
       return;
     }
-    this.draftContent.set(this.conclusion()?.content ?? '');
+    const current = this.conclusion();
+    const serverContent = current?.content ?? '';
+    this.draftContent.set(serverContent);
+    // F-279 — référence dirty/clean = contenu serveur courant.
+    this.savedContent.set(serverContent);
     this.editorView.set('edit');
     this.editing.set(true);
     // F-265 — réinitialise l'état de co-rédaction à chaque entrée en édition.
     this.selectedSectionStart.set(null);
     this.regenInstruction.set('');
+    // F-279 — propose la restauration d'un brouillon local plus récent que le
+    // contenu serveur (anti-perte après crash / fermeture d'onglet).
+    this.draftRecovered.set(false);
+    const versionId = current?.id;
+    if (versionId) {
+      const draft = readDraft(this.caseFileId, versionId);
+      if (draft !== null && draft.content !== serverContent) {
+        this.draftRecovered.set(true);
+      } else if (draft !== null) {
+        // Brouillon identique au serveur → entrée obsolète, on purge.
+        clearDraft(this.caseFileId, versionId);
+      }
+    }
+  }
+
+  /**
+   * F-279 / SF-279-01 — Restaure le brouillon local dans l'éditeur (l'avocat a
+   * cliqué « Restaurer » dans le bandeau « Brouillon récupéré »). Le contenu
+   * devient « Modifié » tant qu'il n'est pas enregistré côté serveur.
+   */
+  restoreDraft(): void {
+    const versionId = this.conclusion()?.id;
+    if (!versionId) {
+      this.draftRecovered.set(false);
+      return;
+    }
+    const draft = readDraft(this.caseFileId, versionId);
+    if (draft !== null) {
+      this.draftContent.set(draft.content);
+    }
+    this.draftRecovered.set(false);
+  }
+
+  /**
+   * F-279 / SF-279-01 — Ignore le brouillon local et conserve le contenu
+   * serveur (clic « Ignorer »). L'entrée locale est supprimée pour ne plus être
+   * reproposée.
+   */
+  discardDraft(): void {
+    const versionId = this.conclusion()?.id;
+    if (versionId) {
+      clearDraft(this.caseFileId, versionId);
+    }
+    this.draftContent.set(this.savedContent());
+    this.draftRecovered.set(false);
   }
 
   /** SF-264-01 — Bascule la vue éditeur/aperçu sur écran étroit. */
@@ -733,6 +835,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         : this.prefixLines(value, start, end, this.linePrefix(action));
 
     this.draftContent.set(result.value);
+    // F-279 — l'insertion markdown modifie le brouillon → autosave local.
+    this.scheduleAutosave();
 
     // Restaure le focus et la sélection après le re-rendu (textarea recréé via
     // le binding `[value]`). Pas de mutation hors zone Angular ⇒ markForCheck
@@ -826,6 +930,14 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    * brouillon. Aucun appel serveur — le texte affiché reste inchangé.
    */
   cancelEditing(): void {
+    // F-279 — abandon explicite : purge le brouillon local (annule un autosave
+    // en attente puis efface l'entrée) pour ne pas le reproposer ensuite.
+    this.cancelAutosave();
+    const versionId = this.conclusion()?.id;
+    if (versionId) {
+      clearDraft(this.caseFileId, versionId);
+    }
+    this.draftRecovered.set(false);
     this.editing.set(false);
     this.draftContent.set('');
     this.selectedSectionStart.set(null);
@@ -835,6 +947,41 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   /** SF-98-49 — Met à jour le brouillon depuis le `textarea`. */
   onDraftInput(value: string): void {
     this.draftContent.set(value);
+    // F-279 — programme l'autosave local (debounce).
+    this.scheduleAutosave();
+  }
+
+  /**
+   * F-279 / SF-279-01 — Programme une écriture **locale** du brouillon après un
+   * délai de stabilisation. Annule l'écriture précédente non encore exécutée.
+   *
+   * <p>Si le brouillon est revenu identique au contenu serveur, on **supprime**
+   * l'entrée locale plutôt que d'enregistrer un faux brouillon (sinon le bandeau
+   * « Brouillon récupéré » réapparaîtrait à tort). N'écrit jamais côté serveur.</p>
+   */
+  private scheduleAutosave(): void {
+    const versionId = this.conclusion()?.id;
+    if (!versionId) {
+      return;
+    }
+    this.cancelAutosave();
+    this.autosaveHandle = setTimeout(() => {
+      this.autosaveHandle = null;
+      const content = this.draftContent();
+      if (content === this.savedContent()) {
+        clearDraft(this.caseFileId, versionId);
+      } else {
+        writeDraft(this.caseFileId, versionId, content);
+      }
+    }, AUTOSAVE_DEBOUNCE_MS);
+  }
+
+  /** F-279 — Annule une écriture d'autosave programmée non encore exécutée. */
+  private cancelAutosave(): void {
+    if (this.autosaveHandle !== null) {
+      clearTimeout(this.autosaveHandle);
+      this.autosaveHandle = null;
+    }
   }
 
   /**
@@ -858,7 +1005,17 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
           this.savingContent.set(false);
           this.editing.set(false);
           this.draftContent.set('');
+          // F-279 — l'enregistrement serveur a réussi : c'est désormais la
+          // référence, on purge le brouillon local et on confirme explicitement.
+          this.savedContent.set(content);
+          this.draftRecovered.set(false);
+          this.cancelAutosave();
+          clearDraft(this.caseFileId, versionId);
           this.conclusion.set(res);
+          this.snackBar.open('Modifications enregistrées.', 'Fermer', {
+            duration: 3000,
+            panelClass: ['snack-success'],
+          });
           this.cdr.markForCheck();
           this.refreshVersions();
         },
@@ -928,6 +1085,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
             return;
           }
           this.draftContent.set(replaced);
+          // F-279 — la section régénérée modifie le brouillon → autosave local.
+          this.scheduleAutosave();
           this.selectedSectionStart.set(null);
           this.regenInstruction.set('');
           this.snackBar.open(
@@ -1208,3 +1367,16 @@ export {
   parseMarkdownSections,
   replaceSectionInDraft,
 } from './conclusion-sections.util';
+
+/**
+ * F-279 / SF-279-01 — Ré-export des helpers d'autosave local (module pur
+ * `./conclusion-draft-storage.util`) pour qu'ils soient testables via le module
+ * du composant, à l'image des helpers de sections ci-dessus.
+ */
+export {
+  type ConclusionDraftRecord,
+  draftStorageKey,
+  readDraft,
+  writeDraft,
+  clearDraft,
+} from './conclusion-draft-storage.util';

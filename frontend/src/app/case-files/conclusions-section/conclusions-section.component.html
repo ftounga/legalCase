@@ -223,6 +223,42 @@
 
         <!-- ── Éditeur de relecture (SF-98-49 + SF-264-01) ─────── -->
         @if (editing()) {
+          <!-- F-279 SF-279-01 — Bandeau « Brouillon récupéré » : un autosave
+               local plus récent que le contenu serveur a été retrouvé (crash /
+               onglet fermé). L'avocat choisit Restaurer / Ignorer. -->
+          @if (draftRecovered()) {
+            <div class="cs-draft-recovery"
+                 data-testid="draft-recovery-banner"
+                 role="status">
+              <mat-icon class="cs-draft-recovery__icon">history</mat-icon>
+              <div class="cs-draft-recovery__body">
+                <p class="cs-draft-recovery__title">
+                  Brouillon récupéré
+                </p>
+                <p class="cs-draft-recovery__text">
+                  Des modifications non enregistrées de cette version ont été
+                  retrouvées. Les restaurer ?
+                </p>
+                <div class="cs-draft-recovery__actions">
+                  <button mat-flat-button color="primary"
+                          type="button"
+                          data-testid="draft-restore-btn"
+                          (click)="restoreDraft()">
+                    <mat-icon>restore</mat-icon>
+                    Restaurer
+                  </button>
+                  <button mat-stroked-button
+                          type="button"
+                          data-testid="draft-discard-btn"
+                          (click)="discardDraft()">
+                    <mat-icon>close</mat-icon>
+                    Ignorer
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
           <!-- Bascule éditeur/aperçu — visible uniquement sur écran étroit
                (la version large affiche les 2 colonnes côte à côte, cf. SCSS). -->
           <div class="cs-edit-toggle" role="tablist"
@@ -346,6 +382,24 @@
               <mat-icon>close</mat-icon>
               Annuler
             </button>
+
+            <!-- F-279 SF-279-01 — Indicateur d'état de sauvegarde explicite :
+                 « Modifié » tant que le brouillon diverge du serveur, sinon
+                 « ✓ Enregistré ». Sauvegarde locale automatique en arrière-plan. -->
+            <span class="cs-save-state"
+                  data-testid="save-state-indicator"
+                  [class.cs-save-state--dirty]="dirty()"
+                  [class.cs-save-state--clean]="!dirty()"
+                  role="status"
+                  aria-live="polite">
+              @if (dirty()) {
+                <mat-icon class="cs-save-state__icon">edit</mat-icon>
+                <span>Modifié — brouillon sauvegardé</span>
+              } @else {
+                <mat-icon class="cs-save-state__icon">check_circle</mat-icon>
+                <span>Enregistré</span>
+              }
+            </span>
           </div>
         } @else {
           <app-conclusion-document [content]="conclusion()?.content" [pieces]="pieceRefs()" />
