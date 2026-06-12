@@ -1,0 +1,112 @@
+<mat-card class="phase-card" data-testid="case-phases-timeline">
+  <!-- En-tête + phase courante (fil rouge) -->
+  <div class="phase-head">
+    <span class="phase-title">
+      <mat-icon class="phase-title-icon">timeline</mat-icon>
+      Phases du dossier
+    </span>
+
+    @if (currentPhase(); as cp) {
+      <span class="phase-pill" data-testid="phase-current">
+        <mat-icon class="phase-pill-icon">flag</mat-icon>
+        Phase courante · {{ phaseLabel(cp) }}
+      </span>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="phase-muted">Chargement des phases…</p>
+  } @else {
+    <ol class="phase-line" data-testid="phase-steps">
+      <!-- État initial : aucune phase encore -->
+      @if (phases().length === 0) {
+        <li class="phase-node phase-node--ghost">
+          <span class="phase-dot"></span>
+          <div class="phase-body">
+            <span class="phase-num">Phase 1</span>
+            <span class="phase-label">Saisine — à dater</span>
+          </div>
+        </li>
+      }
+
+      <!-- Les phases franchies -->
+      @for (p of phases(); track p.id; let i = $index) {
+        <li class="phase-node"
+            [class.phase-node--current]="isCurrent(p)"
+            [attr.data-testid]="'phase-step-' + i">
+          <span class="phase-dot" [class.phase-dot--pulse]="isCurrent(p)"></span>
+          <div class="phase-body">
+            <div class="phase-row">
+              <span class="phase-num">{{ phaseLabel(p.phase) }}</span>
+              @if (isCurrent(p)) { <span class="phase-tag">En cours</span> }
+              <span class="phase-spacer"></span>
+              <button mat-icon-button class="phase-act" (click)="openEdit(p)"
+                      [attr.aria-label]="'Modifier la phase ' + phaseLabel(p.phase)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button class="phase-act" (click)="remove(p)"
+                      [attr.aria-label]="'Supprimer la phase ' + phaseLabel(p.phase)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+            @if (p.label) { <span class="phase-label">{{ p.label }}</span> }
+            <div class="phase-dates">
+              <span class="phase-date">
+                <mat-icon class="phase-date-icon">event</mat-icon>
+                entrée le {{ p.enteredAt | date:'dd/MM/yyyy' }}
+              </span>
+            </div>
+            @if (p.note) { <p class="phase-note">{{ p.note }}</p> }
+          </div>
+        </li>
+      }
+    </ol>
+
+    <!-- Ajouter une phase -->
+    @if (!showForm()) {
+      <div class="phase-add-row">
+        <button mat-stroked-button data-testid="add-phase-btn" (click)="openAdd()">
+          <mat-icon>add</mat-icon>
+          Enregistrer une phase
+        </button>
+      </div>
+    } @else {
+      <form class="phase-form" [formGroup]="form" (ngSubmit)="save()" data-testid="phase-form">
+        <div class="phase-form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Phase</mat-label>
+            <mat-select formControlName="phase">
+              @for (opt of phaseOptions; track opt.value) {
+                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Date d’entrée</mat-label>
+            <input matInput type="date" lang="fr-FR" formControlName="enteredAt" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="phase-form-wide">
+            <mat-label>Libellé (optionnel)</mat-label>
+            <input matInput formControlName="label" maxlength="200"
+                   placeholder="ex. Audience de conciliation du 15/02" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="phase-form-wide">
+            <mat-label>Note (optionnel)</mat-label>
+            <textarea matInput formControlName="note" maxlength="2000" rows="2"
+                      placeholder="ex. renvoi au fond, audience fixée"></textarea>
+          </mat-form-field>
+        </div>
+        <div class="phase-form-actions">
+          <button mat-button type="button" (click)="cancelForm()">Annuler</button>
+          <button mat-flat-button color="primary" type="submit"
+                  [disabled]="form.invalid || saving()" data-testid="phase-save-btn">
+            {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
+          </button>
+        </div>
+      </form>
+    }
+  }
+</mat-card>
