@@ -667,15 +667,32 @@ describe('ConclusionsSectionComponent', () => {
     editBtn.click();
     fixture.detectChanges();
 
+    // SF-277-01 — par défaut, le mode édition = surface WYSIWYG (1 colonne) ;
+    // le textarea source + l'aperçu live sont derrière le toggle « source ».
+    expect(component.editing()).toBe(true);
+    expect(component.wysiwygMode()).toBe(true);
+    expect(component.draftContent()).toBe(
+      'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
+    );
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="wysiwyg-editor-host"]'),
+    ).not.toBeNull();
+    // En WYSIWYG, ni textarea source ni split aperçu.
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="conclusions-editor"]'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="preview-pane"]'),
+    ).toBeNull();
+
+    // SF-277-01 — bascule sur la source markdown : textarea + aperçu réapparaissent.
+    component.toggleMarkdownSource();
+    fixture.detectChanges();
     const editor: HTMLTextAreaElement = fixture.nativeElement.querySelector(
       '[data-testid="conclusions-editor"]',
     );
     expect(editor).not.toBeNull();
     expect(editor.value).toBe('POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…');
-    expect(component.editing()).toBe(true);
-    // SF-264-01 — en édition, le bloc lecture seule disparaît mais l'aperçu live
-    // (rendu via le même ConclusionDocumentComponent) reste rendu : on vérifie
-    // que c'est bien dans la colonne d'aperçu, pas le bloc lecture.
     expect(
       fixture.nativeElement.querySelector('[data-testid="editor-pane"]'),
     ).not.toBeNull();
@@ -1506,7 +1523,12 @@ describe('ConclusionsSectionComponent', () => {
   // ---------------------------------------------------------------------------
 
   describe('SF-264-01 — barre d\'outils markdown + aperçu live', () => {
-    /** Entre en mode édition avec un contenu connu et un select positionné. */
+    /**
+     * Entre en mode édition **source markdown** (SF-277-01) avec un contenu
+     * connu et un select positionné. La barre d'outils markdown + le textarea +
+     * l'aperçu live (F-264) vivent en mode source ; le WYSIWYG (défaut) est
+     * couvert par son propre spec. On bascule donc explicitement sur la source.
+     */
     function enterEditingWith(content: string, start = 0, end = 0): void {
       fixture.detectChanges();
       flushInitialLoad(
@@ -1515,6 +1537,8 @@ describe('ConclusionsSectionComponent', () => {
       );
       fixture.detectChanges();
       component.startEditing();
+      // SF-277-01 — afficher la source markdown (textarea + barre F-264).
+      component.toggleMarkdownSource();
       fixture.detectChanges();
       const editor: HTMLTextAreaElement = fixture.nativeElement.querySelector(
         '[data-testid="conclusions-editor"]',
