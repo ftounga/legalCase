@@ -33,7 +33,9 @@ public enum JobType {
     SYSTEM_CASE_CONCLUSION,
     SYSTEM_SEMANTIC_DIFF,
     SYSTEM_JURISPRUDENCE_VERIFICATION,
-    SYSTEM_CHAT_SUMMARY;
+    SYSTEM_CHAT_SUMMARY,
+    /** F-286 / SF-286-01 — recommandation stratégique de dossier (couche LLM de synthèse en lecture des verdicts d'outils calculés + synthèse). */
+    SYSTEM_CASE_STRATEGY;
 
     /** F-257 — true pour les codes {@code SYSTEM_*} (gate user skip, record obligatoire). */
     public boolean isSystemLevel() {

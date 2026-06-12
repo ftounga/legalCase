@@ -706,6 +706,14 @@
 
           <!-- Colonne de verdict (sticky) -->
           <div class="decision-space__verdict">
+            <!-- F-286 SF-286-01 : « Stratégie de dossier » — coiffe la colonne verdict,
+                 au-dessus du tableau de bord. Couche LLM de synthèse EN LECTURE des
+                 verdicts d'outils CALCULÉS + synthèse (référé/fond, concilier/plaider,
+                 priorisation des chefs, séquencement). N'altère AUCUN outil (invariant
+                 1 outil = 1 situation préservé). Pas un 4ᵉ bloc primaire : carte de
+                 coiffe de la même brique « consolidation des verdicts ». -->
+            <app-case-strategy [caseFileId]="caseFile()!.id"></app-case-strategy>
+
             <!-- F-184 SF-184-01 : tableau de bord décisionnel en carte premium (Option B).
                  F-244 SF-244-03 : id = ancre cible de l'étape « Tableau de bord
                  décisionnel » du case-dashboard-stepper. -->
