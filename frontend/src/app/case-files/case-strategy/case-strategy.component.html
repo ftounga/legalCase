@@ -1,0 +1,99 @@
+<mat-card class="strat-card" data-testid="case-strategy">
+  <!-- En-tête + méta -->
+  <div class="strat-head">
+    <span class="strat-title">
+      <mat-icon class="strat-title-icon">flag</mat-icon>
+      Stratégie de dossier
+    </span>
+
+    @if (hasReco()) {
+      <span class="strat-pill" data-testid="strat-meta">
+        <mat-icon class="strat-pill-icon">insights</mat-icon>
+        {{ toolsConsidered() }} verdict{{ toolsConsidered() > 1 ? 's' : '' }} pris en compte
+      </span>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="strat-muted">Chargement de la stratégie…</p>
+  } @else {
+
+    <!-- État en cours de génération -->
+    @if (generating()) {
+      <div class="strat-loading" data-testid="strat-generating">
+        <mat-spinner diameter="28" strokeWidth="3"></mat-spinner>
+        <span class="strat-loading-text">Analyse stratégique en cours…</span>
+      </div>
+    } @else {
+
+      <!-- Recommandation disponible -->
+      @if (hasReco()) {
+        <article class="strat-reco" data-testid="strat-reco" [innerHTML]="contentHtml()"></article>
+
+        <div class="strat-footer">
+          @if (generatedAt(); as g) {
+            <span class="strat-date" data-testid="strat-date">
+              <mat-icon class="strat-date-icon">schedule</mat-icon>
+              générée le {{ g | date: 'dd/MM/yyyy à HH:mm' }}
+            </span>
+          }
+          <span class="strat-spacer"></span>
+          <a
+            class="strat-link"
+            data-testid="strat-to-conclusions"
+            [routerLink]="['/case-files', caseFileId, 'conclusions']">
+            <mat-icon class="strat-link-icon">description</mat-icon>
+            Rédiger mes conclusions
+          </a>
+          <button
+            mat-stroked-button
+            class="strat-regen"
+            data-testid="strat-regenerate"
+            (click)="generate()">
+            <mat-icon>autorenew</mat-icon>
+            Régénérer
+          </button>
+        </div>
+      }
+
+      <!-- État « rien à consolider » : honnêteté du vide (reprise F-258) -->
+      @else if (emptyInput()) {
+        <div class="strat-empty strat-empty--input" data-testid="strat-empty-input">
+          <mat-icon class="strat-empty-icon">calculate</mat-icon>
+          <div class="strat-empty-body">
+            <p class="strat-empty-title">Aucun outil décisionnel calculé</p>
+            <p class="strat-empty-text">
+              Renseignez et calculez vos outils décisionnels à gauche : la recommandation
+              stratégique consolide leurs verdicts. Elle n'invente rien tant qu'aucun outil
+              n'est calculé.
+            </p>
+          </div>
+        </div>
+      }
+
+      <!-- État initial : jamais généré -->
+      @else {
+        <div class="strat-empty" data-testid="strat-empty">
+          <mat-icon class="strat-empty-icon">flag</mat-icon>
+          <div class="strat-empty-body">
+            <p class="strat-empty-title">Consolidez votre stratégie</p>
+            <p class="strat-empty-text">
+              Obtenez une recommandation lisible — référé ou fond, concilier ou plaider,
+              priorisation des chefs de demande, séquencement — synthétisée à partir des
+              verdicts de vos outils décisionnels et de la synthèse du dossier.
+            </p>
+            <button
+              mat-flat-button
+              color="primary"
+              class="strat-cta"
+              data-testid="strat-generate"
+              (click)="generate()">
+              <mat-icon>auto_fix_high</mat-icon>
+              Générer la stratégie
+            </button>
+          </div>
+        </div>
+      }
+    }
+  }
+</mat-card>

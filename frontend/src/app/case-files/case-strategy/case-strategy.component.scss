@@ -1,0 +1,223 @@
+/* F-286 — carte « Stratégie de dossier ». Charte DESIGN_SYSTEM.md :
+   navy #1A3A5C / or #C9973A, Merriweather (titres) / Inter (corps) / JetBrains Mono
+   (dates), espacements multiples de 4px. Gabarit de référence : frise F-282. */
+
+:host {
+  --strat-navy: var(--color-primary, #1a3a5c);
+  --strat-gold: var(--color-accent, #c9973a);
+  --strat-text: var(--color-text, #1c2b3a);
+  --strat-muted: var(--color-text-secondary, #6b7a8d);
+  --strat-divider: var(--color-divider, #e0e4ea);
+  --strat-bg: var(--color-background, #f5f6fa);
+  display: block;
+}
+
+.strat-card {
+  padding: 20px 24px 16px;
+  border-radius: 12px;
+  /* Colonne « document » : on évite l'étirement plein écran. */
+  max-width: 760px;
+  /* coiffe du tableau de bord : un liseré or discret marque la plus haute altitude */
+  border-top: 3px solid var(--strat-gold);
+}
+
+/* ── En-tête + pilule méta ─────────────────────────────────── */
+.strat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.strat-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Merriweather', Georgia, serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--strat-navy);
+}
+.strat-title-icon {
+  color: var(--strat-gold);
+}
+
+.strat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--strat-bg);
+  border: 1px solid var(--strat-divider);
+  color: var(--strat-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.strat-pill-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.strat-muted {
+  color: var(--strat-muted);
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+/* ── Chargement génération ─────────────────────────────────── */
+.strat-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 8px;
+}
+.strat-loading-text {
+  font-size: 14px;
+  color: var(--strat-muted);
+}
+
+/* ── Recommandation (markdown rendu) ───────────────────────── */
+.strat-reco {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--strat-text);
+
+  :is(h2) {
+    font-family: 'Merriweather', Georgia, serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--strat-navy);
+    margin: 20px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--strat-divider);
+  }
+  :is(h2):first-child {
+    margin-top: 0;
+  }
+  :is(h3) {
+    font-family: 'Merriweather', Georgia, serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--strat-navy);
+    margin: 16px 0 4px;
+  }
+  :is(p) {
+    margin: 4px 0 8px;
+  }
+  :is(ul, ol) {
+    margin: 4px 0 8px;
+    padding-left: 20px;
+  }
+  :is(li) {
+    margin: 4px 0;
+  }
+  :is(li)::marker {
+    color: var(--strat-gold);
+  }
+  :is(strong) {
+    color: var(--strat-navy);
+    font-weight: 600;
+  }
+}
+
+/* ── Pied : date + actions ─────────────────────────────────── */
+.strat-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--strat-divider);
+}
+.strat-spacer {
+  flex: 1;
+}
+.strat-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--strat-muted);
+}
+.strat-date-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+.strat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--strat-navy);
+  text-decoration: none;
+}
+.strat-link:hover {
+  text-decoration: underline;
+}
+.strat-link-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+.strat-regen {
+  --mdc-outlined-button-label-text-color: var(--strat-navy);
+}
+
+/* ── États vides ───────────────────────────────────────────── */
+.strat-empty {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--strat-divider);
+  border-radius: 8px;
+  background: var(--strat-bg);
+}
+.strat-empty--input {
+  border-color: var(--strat-gold);
+  background: rgba(201, 151, 58, 0.08);
+}
+.strat-empty-icon {
+  flex: none;
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: var(--strat-gold);
+}
+.strat-empty-body {
+  flex: 1;
+  min-width: 0;
+}
+.strat-empty-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--strat-navy);
+}
+.strat-empty-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--strat-muted);
+}
+.strat-cta {
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .strat-card {
+    padding: 16px;
+  }
+  .strat-empty {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
