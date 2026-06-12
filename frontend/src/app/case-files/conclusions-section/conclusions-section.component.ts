@@ -58,6 +58,12 @@ import {
   readDraft,
   writeDraft,
 } from './conclusion-draft-storage.util';
+// F-280 / SF-280-01 — diff lisible ligne-à-ligne entre deux versions (module pur).
+import {
+  type DiffLine,
+  diffLines,
+  summarizeDiff,
+} from './conclusion-diff.util';
 
 /**
  * Intervalle de polling de l'état des conclusions (ms).
@@ -227,6 +233,32 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   /** F-265 / SF-265-02 — Instruction libre de l'avocat (« renforce la prescription »). */
   readonly regenInstruction = signal('');
 
+  // ── F-280 / SF-280-01 — Mode comparaison de versions (diff) ───────────────
+  /** Vrai quand l'avocat est dans le panneau de comparaison de versions. */
+  readonly comparing = signal(false);
+  /** Id de la version « base » (avant) du diff. */
+  readonly diffBaseId = signal<string | null>(null);
+  /** Id de la version « cible » (après) du diff. */
+  readonly diffTargetId = signal<string | null>(null);
+  /** Content chargé de la version base (null tant que non chargé). */
+  readonly diffBaseContent = signal<string | null>(null);
+  /** Content chargé de la version cible (null tant que non chargé). */
+  readonly diffTargetContent = signal<string | null>(null);
+  /** Chargement des contenus des deux bornes en cours. */
+  readonly diffLoading = signal(false);
+  /** Message d'erreur du panneau de diff (null = aucune erreur). */
+  readonly diffError = signal<string | null>(null);
+
+  /**
+   * F-280 — Diff ligne-à-ligne entre la base et la cible. Recalculé
+   * automatiquement (pur) à chaque changement de borne ou de content.
+   */
+  readonly diff = computed<DiffLine[]>(() =>
+    diffLines(this.diffBaseContent(), this.diffTargetContent()),
+  );
+  /** F-280 — Synthèse compacte du diff (nb d'ajouts / suppressions). */
+  readonly diffSummary = computed(() => summarizeDiff(this.diff()));
+
   /**
    * F-265 / SF-265-02 — Sections détectées dans le brouillon courant, par
    * parsing **déterministe** des titres markdown (`##`/`###`). Chaque section
@@ -342,6 +374,13 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   /** Vrai s'il existe au moins une version générée pour le dossier. */
   readonly hasVersions = computed<boolean>(() => this.versions().length > 0);
+
+  /**
+   * F-280 / SF-280-01 — Vrai si la comparaison de versions est proposable :
+   * il faut au moins deux versions pour qu'un diff ait un sens. Le bouton
+   * « Comparer les versions » n'est rendu que dans ce cas (cf. template).
+   */
+  readonly canCompare = computed<boolean>(() => this.versions().length >= 2);
 
   /**
    * SF-98-48 (ajustement b2) — Vrai si la version affichée a été générée en
@@ -550,6 +589,100 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /**
+   * F-280 / SF-280-01 — Ouvre le panneau de comparaison de versions.
+   *
+   * Bornes par défaut : cible = version sélectionnée, base = version juste
+   * antérieure (cas d'usage dominant « qu'a fait ma dernière régénération ? »).
+   * Si la version sélectionnée est la plus ancienne, on compare les deux
+   * versions les plus récentes (`versions()` est trié version décroissante).
+   * Lecture seule : aucun appel d'écriture. Ignoré pendant un polling actif.
+   */
+  openCompare(): void {
+    if (!this.canCompare() || this.pollHandle !== null) {
+      return;
+    }
+    const list = this.versions();
+    const selected = this.selectedVersionId();
+    const selectedIndex = list.findIndex((v) => v.id === selected);
+    // `idx` = position de la cible dans la liste décroissante (0 = plus récente).
+    // La base est l'élément suivant (version_number inférieur). On garantit
+    // base ≠ cible même si la cible est la plus ancienne version.
+    const targetIndex =
+      selectedIndex >= 0 && selectedIndex < list.length - 1
+        ? selectedIndex
+        : list.length - 2;
+    const baseIndex = targetIndex + 1;
+    this.comparing.set(true);
+    this.diffError.set(null);
+    this.loadDiff(list[baseIndex].id, list[targetIndex].id);
+  }
+
+  /** F-280 — Ferme le panneau de comparaison et restaure le rendu acte. */
+  closeCompare(): void {
+    this.comparing.set(false);
+    this.diffError.set(null);
+    this.diffBaseContent.set(null);
+    this.diffTargetContent.set(null);
+  }
+
+  /** F-280 — Change la borne « base » (avant) du diff et recharge. */
+  setDiffBase(versionId: string): void {
+    if (versionId === this.diffBaseId()) {
+      return;
+    }
+    this.loadDiff(versionId, this.diffTargetId());
+  }
+
+  /** F-280 — Change la borne « cible » (après) du diff et recharge. */
+  setDiffTarget(versionId: string): void {
+    if (versionId === this.diffTargetId()) {
+      return;
+    }
+    this.loadDiff(this.diffBaseId(), versionId);
+  }
+
+  /**
+   * F-280 — Charge en parallèle le content des deux bornes via `getVersion`
+   * (endpoint existant, lecture seule) puis laisse le `computed` `diff()`
+   * recalculer. En cas d'échec, affiche un message dans le panneau sans
+   * casser le mode comparaison.
+   */
+  private loadDiff(baseId: string | null, targetId: string | null): void {
+    if (baseId === null || targetId === null) {
+      return;
+    }
+    this.diffBaseId.set(baseId);
+    this.diffTargetId.set(targetId);
+    this.diffError.set(null);
+    this.diffLoading.set(true);
+    this.cdr.markForCheck();
+    forkJoin({
+      base: this.conclusionsService.getVersion(this.caseFileId, baseId),
+      target: this.conclusionsService.getVersion(this.caseFileId, targetId),
+    }).subscribe({
+      next: ({ base, target }) => {
+        this.diffBaseContent.set(base.content ?? '');
+        this.diffTargetContent.set(target.content ?? '');
+        this.diffLoading.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.diffError.set(
+          'Impossible de charger les versions à comparer. Réessayez.',
+        );
+        this.diffLoading.set(false);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** F-280 — Libellé court d'une version pour les sélecteurs du diff. */
+  versionLabel(versionId: string | null): string {
+    const v = this.versions().find((x) => x.id === versionId);
+    return v ? `Version ${v.versionNumber}` : '';
   }
 
   /**

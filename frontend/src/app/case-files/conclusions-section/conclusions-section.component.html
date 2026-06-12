@@ -12,7 +12,7 @@
         <mat-label>Version</mat-label>
         <mat-select [value]="selectedVersionId()"
                     data-testid="version-select"
-                    [disabled]="generating()"
+                    [disabled]="generating() || comparing()"
                     (selectionChange)="selectVersion($event.value)">
           @for (v of versions(); track v.id) {
             <mat-option [value]="v.id" [attr.data-testid]="'version-option-' + v.id">
@@ -401,6 +401,103 @@
               }
             </span>
           </div>
+        } @else if (comparing()) {
+          <!-- ── F-280 / SF-280-01 — Comparaison de versions (diff) ───────── -->
+          <div class="cs-diff" data-testid="diff-panel">
+            <div class="cs-diff-controls">
+              <mat-form-field appearance="outline" class="cs-diff-field">
+                <mat-label>Version de base</mat-label>
+                <mat-select [value]="diffBaseId()"
+                            data-testid="diff-base-select"
+                            [disabled]="diffLoading()"
+                            (selectionChange)="setDiffBase($event.value)">
+                  @for (v of versions(); track v.id) {
+                    <mat-option [value]="v.id">Version {{ v.versionNumber }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-icon class="cs-diff-arrow" aria-hidden="true">arrow_forward</mat-icon>
+              <mat-form-field appearance="outline" class="cs-diff-field">
+                <mat-label>Version cible</mat-label>
+                <mat-select [value]="diffTargetId()"
+                            data-testid="diff-target-select"
+                            [disabled]="diffLoading()"
+                            (selectionChange)="setDiffTarget($event.value)">
+                  @for (v of versions(); track v.id) {
+                    <mat-option [value]="v.id">Version {{ v.versionNumber }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <button mat-stroked-button
+                      type="button"
+                      class="cs-diff-close"
+                      data-testid="diff-close-btn"
+                      (click)="closeCompare()">
+                <mat-icon>close</mat-icon>
+                Fermer la comparaison
+              </button>
+            </div>
+
+            @if (diffLoading()) {
+              <div class="cs-loading">
+                <mat-spinner diameter="22"></mat-spinner>
+                <span>Chargement des versions…</span>
+              </div>
+            } @else if (diffError()) {
+              <p class="cs-message cs-message--error" data-testid="diff-error">
+                <mat-icon class="cs-message-icon">error_outline</mat-icon>
+                <span>{{ diffError() }}</span>
+              </p>
+            } @else {
+              <div class="cs-diff-legend" role="note">
+                <span class="cs-diff-legend__item">
+                  <span class="cs-diff-swatch cs-diff-swatch--added"></span>
+                  Ajouté ({{ diffSummary().added }})
+                </span>
+                <span class="cs-diff-legend__item">
+                  <span class="cs-diff-swatch cs-diff-swatch--removed"></span>
+                  Supprimé ({{ diffSummary().removed }})
+                </span>
+                <span class="cs-diff-summary" data-testid="diff-summary">
+                  {{ diffSummary().added }} ajout(s), {{ diffSummary().removed }} suppression(s)
+                </span>
+              </div>
+
+              @if (diffSummary().added === 0 && diffSummary().removed === 0) {
+                <p class="cs-message cs-message--muted" data-testid="diff-identical">
+                  Aucune différence entre ces deux versions.
+                </p>
+              } @else {
+                <div class="cs-diff-body" data-testid="diff-body">
+                  @for (line of diff(); track $index) {
+                    @switch (line.type) {
+                      @case ('added') {
+                        <div class="cs-diff-line cs-diff-line--added"
+                             data-testid="diff-line-added">
+                          <span class="cs-diff-sign" aria-hidden="true">+</span>
+                          <span class="cs-diff-text">{{ line.text }}</span>
+                        </div>
+                      }
+                      @case ('removed') {
+                        <div class="cs-diff-line cs-diff-line--removed"
+                             data-testid="diff-line-removed">
+                          <span class="cs-diff-sign" aria-hidden="true">&minus;</span>
+                          <span class="cs-diff-text">{{ line.text }}</span>
+                        </div>
+                      }
+                      @default {
+                        <div class="cs-diff-line cs-diff-line--unchanged"
+                             data-testid="diff-line-unchanged">
+                          <span class="cs-diff-sign" aria-hidden="true">&nbsp;</span>
+                          <span class="cs-diff-text">{{ line.text }}</span>
+                        </div>
+                      }
+                    }
+                  }
+                </div>
+              }
+            }
+          </div>
         } @else {
           <app-conclusion-document [content]="conclusion()?.content" [pieces]="pieceRefs()" />
 
@@ -498,6 +595,16 @@
               }
               Régénérer
             </button>
+            <!-- F-280 / SF-280-01 — Comparer deux versions (≥ 2 versions requises). -->
+            @if (canCompare()) {
+              <button mat-stroked-button
+                      data-testid="compare-versions-btn"
+                      [disabled]="generating()"
+                      (click)="openCompare()">
+                <mat-icon>compare_arrows</mat-icon>
+                Comparer les versions
+              </button>
+            }
           </div>
         }
       }
