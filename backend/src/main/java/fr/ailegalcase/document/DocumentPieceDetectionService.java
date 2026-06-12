@@ -6,6 +6,7 @@ import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.analysis.JobType;
+import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.vision.PiecesPersistedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,6 +139,7 @@ public class DocumentPieceDetectionService {
 
     private final DocumentExtractionRepository extractionRepository;
     private final DocumentPieceRepository pieceRepository;
+    private final CaseFileRepository caseFileRepository;
     private final AnthropicService anthropicService;
     private final TaskExecutor taskExecutor;
     private final ApplicationEventPublisher eventPublisher;
@@ -147,11 +149,13 @@ public class DocumentPieceDetectionService {
 
     public DocumentPieceDetectionService(DocumentExtractionRepository extractionRepository,
                                          DocumentPieceRepository pieceRepository,
+                                         CaseFileRepository caseFileRepository,
                                          AnthropicService anthropicService,
                                          @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor,
                                          ApplicationEventPublisher eventPublisher) {
         this.extractionRepository = extractionRepository;
         this.pieceRepository = pieceRepository;
+        this.caseFileRepository = caseFileRepository;
         this.anthropicService = anthropicService;
         this.taskExecutor = taskExecutor;
         this.eventPublisher = eventPublisher;
@@ -259,6 +263,14 @@ public class DocumentPieceDetectionService {
         // Idempotence : le delete-before-insert amont a déjà retiré les anciennes pièces
         // de ce document, donc leurs numéros ne sont plus comptés dans le max.
         UUID caseFileId = resolveCaseFileId(document);
+        // SF-260-02 : verrou pessimiste sur la ligne CaseFile AVANT de lire le
+        // max(piece_number). detect() étant @Transactional, le verrou tient jusqu'au
+        // commit → les détections concurrentes du même dossier (un événement
+        // AFTER_COMMIT par document) se sérialisent, ce qui élimine la course
+        // lecture-puis-écriture responsable des collisions « 1, 1, 1 » du bordereau.
+        if (caseFileId != null) {
+            caseFileRepository.findByIdForUpdate(caseFileId);
+        }
         int nextNumber = nextPieceNumber(caseFileId);
         for (ParsedPiece p : parsed) {
             DocumentPiece entity = new DocumentPiece();

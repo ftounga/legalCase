@@ -97,6 +97,7 @@ public class ExtractionService {
     private final DocumentRepository documentRepository;
     private final DocumentExtractionRepository extractionRepository;
     private final DocumentPieceRepository documentPieceRepository;
+    private final fr.ailegalcase.casefile.CaseFileRepository caseFileRepository;
     private final StorageService storageService;
     private final ApplicationEventPublisher eventPublisher;
     private final OcrService ocrService;
@@ -113,6 +114,7 @@ public class ExtractionService {
     public ExtractionService(DocumentRepository documentRepository,
                              DocumentExtractionRepository extractionRepository,
                              DocumentPieceRepository documentPieceRepository,
+                             fr.ailegalcase.casefile.CaseFileRepository caseFileRepository,
                              StorageService storageService,
                              ApplicationEventPublisher eventPublisher,
                              OcrService ocrService,
@@ -125,6 +127,7 @@ public class ExtractionService {
         this.documentRepository = documentRepository;
         this.extractionRepository = extractionRepository;
         this.documentPieceRepository = documentPieceRepository;
+        this.caseFileRepository = caseFileRepository;
         this.storageService = storageService;
         this.eventPublisher = eventPublisher;
         this.ocrService = ocrService;
@@ -433,6 +436,11 @@ public class ExtractionService {
             // fail-open : pas de numéro si le dossier n'est pas résoluble.
         }
         if (caseFileId != null) {
+            // SF-260-02 : verrou pessimiste sur la ligne CaseFile AVANT la lecture du
+            // max(piece_number) pour sérialiser l'attribution avec la détection de
+            // pièces concurrente (DocumentPieceDetectionService) → pas de collision.
+            // extract() (appelant) est @Transactional, le verrou tient jusqu'au commit.
+            caseFileRepository.findByIdForUpdate(caseFileId);
             Integer max = documentPieceRepository.findMaxPieceNumberByCaseFileId(caseFileId);
             piece.setPieceNumber((max == null ? 0 : max) + 1);
         }

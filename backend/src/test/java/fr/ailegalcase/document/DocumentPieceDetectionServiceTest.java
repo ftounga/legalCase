@@ -30,6 +30,7 @@ class DocumentPieceDetectionServiceTest {
 
     @Mock private DocumentExtractionRepository extractionRepository;
     @Mock private DocumentPieceRepository pieceRepository;
+    @Mock private fr.ailegalcase.casefile.CaseFileRepository caseFileRepository;
     @Mock private AnthropicService anthropicService;
     @Mock private ApplicationEventPublisher eventPublisher;
 
@@ -41,7 +42,8 @@ class DocumentPieceDetectionServiceTest {
     @BeforeEach
     void setUp() {
         service = new DocumentPieceDetectionService(
-                extractionRepository, pieceRepository, anthropicService, new SyncTaskExecutor(), eventPublisher);
+                extractionRepository, pieceRepository, caseFileRepository, anthropicService,
+                new SyncTaskExecutor(), eventPublisher);
     }
 
     // U-01 : Haiku retourne 2 pièces → 2 entrées persistées dans le bon ordre
@@ -191,6 +193,35 @@ class DocumentPieceDetectionServiceTest {
         verify(pieceRepository, org.mockito.Mockito.times(2)).save(captor.capture());
         assertThat(captor.getAllValues()).extracting(DocumentPiece::getPieceNumber)
                 .containsExactly(5, 6);
+        // SF-260-02 : le verrou pessimiste par dossier doit être acquis avant l'attribution.
+        verify(caseFileRepository).findByIdForUpdate(caseFileId);
+    }
+
+    // SF-260-02 : sous détection multi-documents d'un même dossier, l'attribution
+    // séquentielle reste correcte (numéros distincts continus) — la sérialisation
+    // est garantie par le verrou pessimiste (findByIdForUpdate), non testable en pur
+    // unitaire, mais on vérifie ici qu'il est bien acquis et que la séquence est {1..N}.
+    @Test
+    void detect_assignsSequentialDistinctNumbers_andAcquiresLock() {
+        UUID caseFileId = mockExtractionWithCaseFileId();
+        when(pieceRepository.findMaxPieceNumberByCaseFileId(caseFileId)).thenReturn(null);
+        String haikuResponse = """
+                [
+                  {"type":"CONTRAT","label":"A","pageStart":1,"pageEnd":1,"orderIndex":0},
+                  {"type":"ATTESTATION","label":"B","pageStart":2,"pageEnd":2,"orderIndex":1},
+                  {"type":"AUTRE","label":"C","pageStart":3,"pageEnd":3,"orderIndex":2}
+                ]
+                """;
+        when(anthropicService.analyze(any(AiCallContext.class), anyString(), anyString(), anyInt()))
+                .thenReturn(new AnthropicResult(haikuResponse, "sonnet", 100, 50));
+
+        service.detect(EXTRACTION_ID, "texte");
+
+        ArgumentCaptor<DocumentPiece> captor = ArgumentCaptor.forClass(DocumentPiece.class);
+        verify(pieceRepository, org.mockito.Mockito.times(3)).save(captor.capture());
+        assertThat(captor.getAllValues()).extracting(DocumentPiece::getPieceNumber)
+                .containsExactly(1, 2, 3);
+        verify(caseFileRepository).findByIdForUpdate(caseFileId);
     }
 
     // F-260 : dossier sans pièce numérotée → la première pièce reçoit le numéro 1.
