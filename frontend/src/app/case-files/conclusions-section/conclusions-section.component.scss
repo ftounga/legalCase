@@ -286,6 +286,33 @@ $divider: #e0e4ea;
   }
 }
 
+// ── SF-277-01 — Toggle « source markdown » (replié par défaut) ─────────────
+// Discret, aligné à droite, jamais un 2ᵉ éditeur permanent à l'écran.
+.cs-source-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 8px;
+}
+
+.cs-source-toggle-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a6473;
+}
+
+// SF-277-01 — Note de repli quand le WYSIWYG ne peut pas parser (fallback).
+.cs-source-fallback-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 3px solid $gold;
+  border-radius: 4px;
+  background: #fdf7ec;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #5a6473;
+}
+
 // ── SF-264-01 — Layout éditeur + aperçu live ───────────────
 // Bascule éditeur/aperçu : visible uniquement sur écran étroit.
 .cs-edit-toggle {

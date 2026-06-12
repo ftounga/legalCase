@@ -34,6 +34,9 @@ import {
   MarkdownAction,
   MarkdownToolbarComponent,
 } from '../../shared/markdown-toolbar/markdown-toolbar.component';
+// SF-277-01 — Éditeur WYSIWYG (surface d'édition de l'acte, lib ProseMirror
+// lazy-loadée par le composant lui-même).
+import { ConclusionWysiwygEditorComponent } from '../conclusion-wysiwyg-editor/conclusion-wysiwyg-editor.component';
 import { ConclusionsService } from '../../core/services/conclusions.service';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
@@ -139,6 +142,7 @@ const LIFECYCLE_ORDER: readonly ConclusionLifecycleStatus[] = [
     RouterLink,
     ConclusionDocumentComponent,
     MarkdownToolbarComponent,
+    ConclusionWysiwygEditorComponent,
   ],
   templateUrl: './conclusions-section.component.html',
   styleUrl: './conclusions-section.component.scss',
@@ -353,6 +357,23 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    * édition.
    */
   readonly editorView = signal<'edit' | 'preview'>('edit');
+
+  /**
+   * SF-277-01 — Mode d'édition de l'acte. `true` (défaut) = surface **WYSIWYG**
+   * (1 colonne, l'acte mis en forme remplace textarea + aperçu). `false` =
+   * **source markdown** (textarea brut + barre d'outils + aperçu live F-264),
+   * accessible via le toggle « source markdown » (replié par défaut) ou activé
+   * automatiquement en cas d'erreur de parse (fallback anti-perte).
+   */
+  readonly wysiwygMode = signal(true);
+
+  /**
+   * SF-277-01 — Vrai si l'éditeur WYSIWYG n'a pas pu parser le markdown courant
+   * (ou si la lib ne s'est pas chargée). On bascule alors sur la source markdown
+   * et on désactive le retour WYSIWYG tant que le contenu reste non parsable
+   * (jamais de perte de contenu, cf. mini-spec « cas d'erreur »).
+   */
+  readonly wysiwygParseError = signal(false);
 
   /**
    * SF-264-01 — Référence au `<textarea>` d'édition markdown. Utilisée par la
@@ -1018,6 +1039,9 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     // F-279 — référence dirty/clean = contenu serveur courant.
     this.savedContent.set(serverContent);
     this.editorView.set('edit');
+    // SF-277-01 — entrée en édition = surface WYSIWYG par défaut, sans erreur.
+    this.wysiwygMode.set(true);
+    this.wysiwygParseError.set(false);
     this.editing.set(true);
     // F-265 — réinitialise l'état de co-rédaction à chaque entrée en édition.
     this.selectedSectionStart.set(null);
@@ -1072,6 +1096,45 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   /** SF-264-01 — Bascule la vue éditeur/aperçu sur écran étroit. */
   setEditorView(view: 'edit' | 'preview'): void {
     this.editorView.set(view);
+  }
+
+  /**
+   * SF-277-01 — Reçoit le markdown sérialisé par la surface WYSIWYG. Alimente
+   * `draftContent` (source de vérité markdown, inchangée en aval : save F-279,
+   * diff F-280, sommaire F-276, co-rédaction F-265, export, alerte placeholders)
+   * et programme l'autosave local exactement comme une frappe dans le textarea.
+   */
+  onWysiwygMarkdownChange(markdown: string): void {
+    if (markdown === this.draftContent()) {
+      return;
+    }
+    this.draftContent.set(markdown);
+    this.scheduleAutosave();
+  }
+
+  /**
+   * SF-277-01 — La surface WYSIWYG signale un markdown non parsable (ou une lib
+   * non chargée). On bascule sur la source markdown brute (fallback anti-perte)
+   * et on mémorise l'erreur pour ne pas reproposer le WYSIWYG sur ce contenu.
+   */
+  onWysiwygParseError(failed: boolean): void {
+    this.wysiwygParseError.set(failed);
+    if (failed) {
+      this.wysiwygMode.set(false);
+    }
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * SF-277-01 — Bascule entre la surface WYSIWYG et la source markdown brute
+   * (toggle « source markdown », replié par défaut). Sans effet tant qu'un
+   * parse-error force la source markdown.
+   */
+  toggleMarkdownSource(): void {
+    if (this.wysiwygParseError()) {
+      return;
+    }
+    this.wysiwygMode.update((on) => !on);
   }
 
   /**

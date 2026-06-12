@@ -1,0 +1,189 @@
+// SF-277-01 — Surface d'édition WYSIWYG. L'avocat édite « la feuille » : la
+// surface ProseMirror rend l'acte avec le MÊME style que `conclusion-document`
+// (Merriweather titres marine, filets or, corps Inter justifié). Palette design
+// system uniquement (marine + or + gris). Espacements multiples de 4px.
+//
+// ⚠️ Le DOM de la surface est créé impérativement par ProseMirror → il échappe à
+// la ViewEncapsulation d'Angular. On le cible via `::ng-deep` mais TOUJOURS
+// SCOPÉ sous `.cwe-surface` pour ne PAS polluer les autres écrans (un `::ng-deep`
+// non préfixé fuite globalement — cf. incident « gros bloc bleu » F-249).
+
+$navy: #1a3a5c;
+$gold: #c9973a;
+$text: #1c2b3a;
+$muted: #6b7a8d;
+$divider: #e0e4ea;
+
+.cwe {
+  display: block;
+}
+
+// ── Barre d'outils : sobre, alignée sur la barre markdown F-264 ─────────────
+.cwe-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 8px;
+  border: 1px solid $divider;
+  border-radius: 8px 8px 0 0;
+  background: #f7f9fb;
+}
+
+.cwe-btn {
+  color: $navy;
+
+  &:disabled {
+    color: $muted;
+  }
+}
+
+.cwe-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: $divider;
+}
+
+.cwe-loading {
+  margin: 0 0 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-style: italic;
+  color: $muted;
+}
+
+// ── Surface éditable : « feuille » de l'acte ────────────────────────────────
+.cwe-surface {
+  display: block;
+  min-height: 360px;
+  padding: 32px 40px;
+  border: 1px solid $divider;
+  border-radius: 0 0 8px 8px;
+  background: #ffffff;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  &--hidden {
+    display: none;
+  }
+}
+
+// ── Rendu du contenu ProseMirror (scopé sous .cwe-surface) ──────────────────
+.cwe-surface ::ng-deep .ProseMirror {
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: $text;
+
+  &:focus {
+    outline: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Merriweather', serif;
+    color: $navy;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+  }
+
+  h1 {
+    margin: 0 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid $gold;
+    font-weight: 700;
+    font-size: 26px;
+    text-align: center;
+  }
+
+  h2 {
+    margin: 32px 0 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba($gold, 0.5);
+    font-weight: 600;
+    font-size: 20px;
+  }
+
+  h3 {
+    margin: 24px 0 12px;
+    font-weight: 600;
+    font-size: 17px;
+  }
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  p {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.7;
+    color: $text;
+    text-align: justify;
+    hyphens: auto;
+  }
+
+  strong,
+  b {
+    font-weight: 700;
+    color: $navy;
+  }
+
+  em,
+  i {
+    font-style: italic;
+  }
+
+  ul,
+  ol {
+    margin: 0 0 16px;
+    padding-left: 28px;
+    line-height: 1.7;
+  }
+
+  li {
+    margin-bottom: 8px;
+    text-align: justify;
+
+    &::marker {
+      color: $gold;
+      font-weight: 600;
+    }
+
+    > p {
+      margin: 0;
+    }
+  }
+
+  blockquote {
+    margin: 0 0 16px;
+    padding: 8px 20px;
+    border-left: 4px solid $navy;
+    background: rgba($navy, 0.04);
+    color: $text;
+    font-style: italic;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  hr {
+    margin: 24px 0;
+    border: none;
+    border-top: 1px solid $divider;
+  }
+}
+
+// Responsive : padding réduit sur écran étroit.
+@media (max-width: 640px) {
+  .cwe-surface {
+    padding: 20px 16px;
+  }
+}

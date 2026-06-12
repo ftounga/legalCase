@@ -259,109 +259,145 @@
             </div>
           }
 
-          <!-- Bascule éditeur/aperçu — visible uniquement sur écran étroit
-               (la version large affiche les 2 colonnes côte à côte, cf. SCSS). -->
-          <div class="cs-edit-toggle" role="tablist"
-               aria-label="Affichage éditeur ou aperçu"
-               data-testid="edit-view-toggle">
-            <button mat-button type="button"
-                    role="tab"
-                    data-testid="view-edit-btn"
-                    class="cs-edit-toggle-btn"
-                    [class.cs-edit-toggle-btn--active]="editorView() === 'edit'"
-                    [attr.aria-selected]="editorView() === 'edit'"
-                    (click)="setEditorView('edit')">
-              <mat-icon>edit</mat-icon>
-              Édition
-            </button>
-            <button mat-button type="button"
-                    role="tab"
-                    data-testid="view-preview-btn"
-                    class="cs-edit-toggle-btn"
-                    [class.cs-edit-toggle-btn--active]="editorView() === 'preview'"
-                    [attr.aria-selected]="editorView() === 'preview'"
-                    (click)="setEditorView('preview')">
-              <mat-icon>visibility</mat-icon>
-              Aperçu
-            </button>
+          <!-- F-265 / SF-265-02 — Co-rédaction IA par section. Conservée
+               au-dessus de la surface d'édition dans les DEUX modes (SF-277-01,
+               invariant écran 3). -->
+          <div class="cs-coredaction" data-testid="coredaction-zone">
+            <div class="cs-coredaction-head">
+              <mat-icon class="cs-coredaction-icon">auto_fix_high</mat-icon>
+              <span class="cs-coredaction-title">Co-rédaction IA</span>
+            </div>
+            @if (sections().length > 0) {
+              <div class="cs-coredaction-row">
+                <select class="cs-coredaction-select"
+                        data-testid="coredaction-section-select"
+                        aria-label="Section à régénérer"
+                        [disabled]="regenerating() || savingContent()"
+                        (change)="onSelectSection($any($event.target).value)">
+                  <option value="">Choisir une section…</option>
+                  @for (section of sections(); track section.start) {
+                    <option [value]="section.start"
+                            [selected]="section.start === selectedSectionStart()">
+                      {{ section.title }}
+                    </option>
+                  }
+                </select>
+                <input class="cs-coredaction-instruction"
+                       type="text"
+                       data-testid="coredaction-instruction"
+                       aria-label="Instruction de régénération"
+                       placeholder="Instruction : « renforce la prescription »…"
+                       [value]="regenInstruction()"
+                       [disabled]="regenerating() || savingContent()"
+                       (input)="onInstructionInput($any($event.target).value)" />
+                <button mat-flat-button color="primary"
+                        type="button"
+                        data-testid="coredaction-regenerate-btn"
+                        [disabled]="!canRegenerate()"
+                        (click)="regenerateSection()">
+                  @if (regenerating()) {
+                    <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
+                  } @else {
+                    <mat-icon>auto_fix_high</mat-icon>
+                  }
+                  Régénérer cette section
+                </button>
+              </div>
+            } @else {
+              <span class="cs-coredaction-empty"
+                    data-testid="coredaction-empty">
+                Aucune section détectée (ajoutez un titre ## ou ###).
+              </span>
+            }
           </div>
 
-          <div class="cs-edit-split"
-               [class.cs-edit-split--show-preview]="editorView() === 'preview'">
-            <!-- Colonne éditeur : co-rédaction IA + barre d'outils markdown + textarea. -->
-            <div class="cs-edit-pane cs-edit-pane--editor" data-testid="editor-pane">
-              <!-- SF-267-02 — libellé symétrique de « Aperçu » (large écran). -->
-              <span class="cs-preview-label cs-edit-label">Édition</span>
-              <!-- F-265 / SF-265-02 — Co-rédaction IA par section. -->
-              <div class="cs-coredaction" data-testid="coredaction-zone">
-                <div class="cs-coredaction-head">
-                  <mat-icon class="cs-coredaction-icon">auto_fix_high</mat-icon>
-                  <span class="cs-coredaction-title">Co-rédaction IA</span>
-                </div>
-                @if (sections().length > 0) {
-                  <div class="cs-coredaction-row">
-                    <select class="cs-coredaction-select"
-                            data-testid="coredaction-section-select"
-                            aria-label="Section à régénérer"
-                            [disabled]="regenerating() || savingContent()"
-                            (change)="onSelectSection($any($event.target).value)">
-                      <option value="">Choisir une section…</option>
-                      @for (section of sections(); track section.start) {
-                        <option [value]="section.start"
-                                [selected]="section.start === selectedSectionStart()">
-                          {{ section.title }}
-                        </option>
-                      }
-                    </select>
-                    <input class="cs-coredaction-instruction"
-                           type="text"
-                           data-testid="coredaction-instruction"
-                           aria-label="Instruction de régénération"
-                           placeholder="Instruction : « renforce la prescription »…"
-                           [value]="regenInstruction()"
-                           [disabled]="regenerating() || savingContent()"
-                           (input)="onInstructionInput($any($event.target).value)" />
-                    <button mat-flat-button color="primary"
-                            type="button"
-                            data-testid="coredaction-regenerate-btn"
-                            [disabled]="!canRegenerate()"
-                            (click)="regenerateSection()">
-                      @if (regenerating()) {
-                        <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
-                      } @else {
-                        <mat-icon>auto_fix_high</mat-icon>
-                      }
-                      Régénérer cette section
-                    </button>
-                  </div>
-                } @else {
-                  <span class="cs-coredaction-empty"
-                        data-testid="coredaction-empty">
-                    Aucune section détectée (ajoutez un titre ## ou ###).
-                  </span>
-                }
+          <!-- SF-277-01 — Toggle « source markdown » (replié par défaut). Bascule
+               entre la surface WYSIWYG et l'édition source brute (F-264). Masqué
+               quand un parse-error force la source (le fallback est déjà actif). -->
+          @if (!wysiwygParseError()) {
+            <div class="cs-source-toggle">
+              <button mat-button type="button"
+                      data-testid="wysiwyg-source-toggle"
+                      class="cs-source-toggle-btn"
+                      [attr.aria-pressed]="!wysiwygMode()"
+                      (click)="toggleMarkdownSource()">
+                <mat-icon>{{ wysiwygMode() ? 'code' : 'edit_note' }}</mat-icon>
+                {{ wysiwygMode() ? 'Afficher la source markdown' : 'Revenir à l’édition mise en forme' }}
+              </button>
+            </div>
+          }
+
+          @if (wysiwygParseError()) {
+            <p class="cs-source-fallback-note" data-testid="wysiwyg-fallback-note">
+              Mise en forme indisponible pour ce contenu : édition en source
+              markdown (aucune perte de texte).
+            </p>
+          }
+
+          @if (wysiwygMode() && !wysiwygParseError()) {
+            <!-- SF-277-01 — Mode WYSIWYG : 1 SEULE surface (l'acte mis en forme
+                 remplace textarea + aperçu live). La lib ProseMirror est
+                 lazy-loadée par le composant. -->
+            <app-conclusion-wysiwyg-editor
+              data-testid="wysiwyg-editor-host"
+              [markdown]="draftContent()"
+              [disabled]="savingContent() || regenerating()"
+              (markdownChange)="onWysiwygMarkdownChange($event)"
+              (parseError)="onWysiwygParseError($event)" />
+          } @else {
+            <!-- SF-277-01 — Mode source markdown (toggle ou fallback parse-error) :
+                 édition F-264 = textarea brut + barre d'outils + aperçu live. -->
+            <!-- Bascule éditeur/aperçu — visible uniquement sur écran étroit. -->
+            <div class="cs-edit-toggle" role="tablist"
+                 aria-label="Affichage éditeur ou aperçu"
+                 data-testid="edit-view-toggle">
+              <button mat-button type="button"
+                      role="tab"
+                      data-testid="view-edit-btn"
+                      class="cs-edit-toggle-btn"
+                      [class.cs-edit-toggle-btn--active]="editorView() === 'edit'"
+                      [attr.aria-selected]="editorView() === 'edit'"
+                      (click)="setEditorView('edit')">
+                <mat-icon>edit</mat-icon>
+                Édition
+              </button>
+              <button mat-button type="button"
+                      role="tab"
+                      data-testid="view-preview-btn"
+                      class="cs-edit-toggle-btn"
+                      [class.cs-edit-toggle-btn--active]="editorView() === 'preview'"
+                      [attr.aria-selected]="editorView() === 'preview'"
+                      (click)="setEditorView('preview')">
+                <mat-icon>visibility</mat-icon>
+                Aperçu
+              </button>
+            </div>
+
+            <div class="cs-edit-split"
+                 [class.cs-edit-split--show-preview]="editorView() === 'preview'">
+              <!-- Colonne éditeur : barre d'outils markdown + textarea. -->
+              <div class="cs-edit-pane cs-edit-pane--editor" data-testid="editor-pane">
+                <span class="cs-preview-label cs-edit-label">Édition</span>
+                <app-markdown-toolbar
+                  [disabled]="savingContent() || regenerating()"
+                  (action)="applyMarkdown($event)" />
+                <textarea #editor
+                          class="cs-editor"
+                          data-testid="conclusions-editor"
+                          rows="18"
+                          [value]="draftContent()"
+                          [disabled]="savingContent() || regenerating()"
+                          (input)="onDraftInput($any($event.target).value)"
+                          aria-label="Texte du projet de conclusions"></textarea>
               </div>
 
-              <app-markdown-toolbar
-                [disabled]="savingContent() || regenerating()"
-                (action)="applyMarkdown($event)" />
-              <textarea #editor
-                        class="cs-editor"
-                        data-testid="conclusions-editor"
-                        rows="18"
-                        [value]="draftContent()"
-                        [disabled]="savingContent() || regenerating()"
-                        (input)="onDraftInput($any($event.target).value)"
-                        aria-label="Texte du projet de conclusions"></textarea>
+              <!-- Colonne aperçu : rendu « acte » live du brouillon markdown. -->
+              <div class="cs-edit-pane cs-edit-pane--preview" data-testid="preview-pane">
+                <span class="cs-preview-label">Aperçu</span>
+                <app-conclusion-document [content]="draftContent()" [pieces]="pieceRefs()" />
+              </div>
             </div>
-
-            <!-- Colonne aperçu : rendu « acte » live du brouillon markdown
-                 (réutilise ConclusionDocumentComponent — aucun style dupliqué). -->
-            <div class="cs-edit-pane cs-edit-pane--preview" data-testid="preview-pane">
-              <span class="cs-preview-label">Aperçu</span>
-              <app-conclusion-document [content]="draftContent()" [pieces]="pieceRefs()" />
-            </div>
-          </div>
+          }
 
           <div class="cs-actions">
             <button mat-flat-button color="primary"
