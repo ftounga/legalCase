@@ -57,6 +57,15 @@
               </button>
             </div>
             @if (r.label) { <span class="contra-label">{{ r.label }}</span> }
+            @if (sourceDocumentName(r.sourceDocumentId); as docName) {
+              <a class="contra-source"
+                 [href]="sourceDocumentUrl(r.sourceDocumentId!)"
+                 target="_blank" rel="noopener"
+                 [attr.data-testid]="'contra-source-' + r.roundNumber">
+                <mat-icon class="contra-source-icon">attach_file</mat-icon>
+                {{ docName }}
+              </a>
+            }
             <div class="contra-dates">
               <span class="contra-date">{{ r.datedAt | date:'dd/MM/yyyy' }}</span>
               @if (r.responseDueAt) {
@@ -131,6 +140,23 @@
           <mat-form-field appearance="outline">
             <mat-label>Échéance de réponse (optionnel)</mat-label>
             <input matInput type="date" lang="fr-FR" formControlName="responseDueAt" />
+          </mat-form-field>
+
+          <!-- SF-282-03 : pièce source optionnelle (document du dossier). -->
+          <mat-form-field appearance="outline" class="contra-form-label" data-testid="contra-source-field">
+            <mat-label>Pièce source (optionnel)</mat-label>
+            <mat-select formControlName="sourceDocumentId"
+                        [disabled]="documentsUnavailable() || documents().length === 0">
+              <mat-option [value]="null">Aucune</mat-option>
+              @for (doc of documents(); track doc.id) {
+                <mat-option [value]="doc.id">{{ doc.originalFilename }}</mat-option>
+              }
+            </mat-select>
+            @if (documentsUnavailable()) {
+              <mat-hint>Liste des pièces indisponible</mat-hint>
+            } @else if (documents().length === 0) {
+              <mat-hint>Aucune pièce dans le dossier</mat-hint>
+            }
           </mat-form-field>
         </div>
         <div class="contra-form-actions">
