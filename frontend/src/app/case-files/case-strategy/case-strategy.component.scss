@@ -10,6 +10,9 @@
   --strat-divider: var(--color-divider, #e0e4ea);
   --strat-bg: var(--color-background, #f5f6fa);
   display: block;
+  /* En coiffe de la colonne verdict (grid/flex), ne pas s'étirer verticalement
+     à la hauteur de la colonne outils → évite un blanc sous la reco. */
+  align-self: flex-start;
 }
 
 .strat-card {
