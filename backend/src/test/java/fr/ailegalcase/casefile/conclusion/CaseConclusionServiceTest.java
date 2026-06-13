@@ -53,11 +53,8 @@ class CaseConclusionServiceTest {
     private final fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext
             toolJurisprudenceContext =
             mock(fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext.class);
-    private final fr.ailegalcase.document.DocumentRepository documentRepository =
-            mock(fr.ailegalcase.document.DocumentRepository.class);
-    private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository =
-            mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
-    private final AdverseMoyensExtractor adverseMoyensExtractor = mock(AdverseMoyensExtractor.class);
+    private final AdverseMoyenPersistenceService adverseMoyenPersistenceService =
+            mock(AdverseMoyenPersistenceService.class);
     private final ConclusionPromptRegistry promptRegistry = new ConclusionPromptRegistry(List.of(
             new CphFondDemandeurPromptProvider(), new CphFondDefendeurPromptProvider()));
     private final CaseConclusionPromptBuilder promptBuilder =
@@ -72,7 +69,7 @@ class CaseConclusionServiceTest {
             documentPieceRepository, caseFileDashboardService,
             promptBuilder, anthropicService, styleCorpusRepository, jurisprudenceCitationRepository,
             jurisprudenceCheckRepository, toolJurisprudenceContext,
-            documentRepository, documentExtractionRepository, adverseMoyensExtractor,
+            adverseMoyenPersistenceService,
             streamPublisher, compositionExclusionRepository);
 
     @BeforeEach
@@ -466,10 +463,10 @@ class CaseConclusionServiceTest {
                 any(AiCallContext.class), argThat(s -> !s.contains("Adopte le style rédactionnel suivant")), any(), anyInt(), any());
     }
 
-    // ── SF-261-02 — extraction & réfutation des moyens adverses ──────────────
+    // ── SF-261-05 — moyens adverses persistés (lus, non ré-extraits) ─────────
 
     @Test
-    void generate_withAdverseDocument_loadsTextAndCallsExtractor() {
+    void generate_withPersistedAdverseMoyens_injectsThemIntoPrompt() {
         UUID conclusionId = UUID.randomUUID();
         CaseConclusion conclusion = pendingConclusion(conclusionId);
         UUID caseFileId = conclusion.getCaseFile().getId();
@@ -477,19 +474,14 @@ class CaseConclusionServiceTest {
         when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
                 .thenReturn(List.of());
 
-        fr.ailegalcase.document.Document adverse = adverseDocument(true);
-        fr.ailegalcase.document.Document normal = adverseDocument(false);
-        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId))
-                .thenReturn(List.of(adverse, normal));
-        when(documentExtractionRepository.findByDocumentId(adverse.getId()))
-                .thenReturn(Optional.of(extraction("Conclusions adverses : faute grave invoquée.")));
-        when(adverseMoyensExtractor.extract(
-                eq(List.of("Conclusions adverses : faute grave invoquée.")),
-                eq("DROIT_DU_TRAVAIL"), eq("FRANCE"), eq(caseFileId)))
-                .thenReturn(List.of(new AdverseMoyen(
-                        "Le licenciement repose sur une faute grave.",
-                        List.of("art. L. 1234-1 C. trav."),
-                        List.of("Lettre de licenciement"))));
+        // Le service de persistance retourne le set persisté (avec id stable).
+        when(adverseMoyenPersistenceService.loadOrExtract(caseFileId, "DROIT_DU_TRAVAIL", "FRANCE"))
+                .thenReturn(List.of(new AdverseMoyenWithId(
+                        UUID.randomUUID(),
+                        new AdverseMoyen(
+                                "Le licenciement repose sur une faute grave.",
+                                List.of("art. L. 1234-1 C. trav."),
+                                List.of("Lettre de licenciement")))));
         when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any()))
                 .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
                         1200, 3400, "end_turn"));
@@ -497,11 +489,8 @@ class CaseConclusionServiceTest {
         service.generate(conclusionId);
 
         assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
-        // l'extracteur a bien été appelé avec le texte du seul document adverse
-        verify(adverseMoyensExtractor).extract(
-                eq(List.of("Conclusions adverses : faute grave invoquée.")),
-                eq("DROIT_DU_TRAVAIL"), eq("FRANCE"), eq(caseFileId));
-        // le moyen extrait alimente la section du prompt
+        verify(adverseMoyenPersistenceService).loadOrExtract(caseFileId, "DROIT_DU_TRAVAIL", "FRANCE");
+        // le moyen persisté alimente la section du prompt (intrant inchangé)
         verify(anthropicService).analyzeWithSystemCacheStreaming(
                 any(AiCallContext.class), any(),
                 contains("=== MOYENS ADVERSES À RÉFUTER ==="), anyInt(), any());
@@ -511,13 +500,13 @@ class CaseConclusionServiceTest {
     }
 
     @Test
-    void generate_noAdverseDocument_doesNotCallExtractor() {
+    void generate_noPersistedAdverseMoyens_noSectionInPrompt() {
         UUID conclusionId = UUID.randomUUID();
         CaseConclusion conclusion = pendingConclusion(conclusionId);
         stubGenerationStubs(conclusionId, conclusion);
         when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
                 .thenReturn(List.of());
-        // aucun document adverse (repository renvoie liste vide par défaut)
+        // aucun moyen (loadOrExtract renvoie liste vide par défaut du mock)
         when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any()))
                 .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
                         1200, 3400, "end_turn"));
@@ -525,17 +514,9 @@ class CaseConclusionServiceTest {
         service.generate(conclusionId);
 
         assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
-        verify(adverseMoyensExtractor, never()).extract(any(), any(), any(), any());
         verify(anthropicService).analyzeWithSystemCacheStreaming(
                 any(AiCallContext.class), any(),
                 argThat(m -> !m.contains("MOYENS ADVERSES À RÉFUTER")), anyInt(), any());
-    }
-
-    private fr.ailegalcase.document.Document adverseDocument(boolean adverse) {
-        fr.ailegalcase.document.Document doc = new fr.ailegalcase.document.Document();
-        ReflectionTestUtils.setField(doc, "id", UUID.randomUUID());
-        doc.setAdversePleadings(adverse);
-        return doc;
     }
 
     // ── F-271 / SF-271-02 — conclusions récapitulatives (texte de l'avocat préservé) ──
@@ -813,13 +794,6 @@ class CaseConclusionServiceTest {
                 UUID.randomUUID(), arretRef, "Cour de cassation", null, null, null, null, null, null);
     }
 
-    private fr.ailegalcase.document.DocumentExtraction extraction(String text) {
-        fr.ailegalcase.document.DocumentExtraction extraction =
-                new fr.ailegalcase.document.DocumentExtraction();
-        extraction.setExtractedText(text);
-        return extraction;
-    }
-
     /** Stubs communs aux scénarios de génération aboutie (hors corpus de style et IA). */
     private void stubGenerationStubs(UUID conclusionId, CaseConclusion conclusion) {
         when(caseConclusionRepository.findById(conclusionId)).thenReturn(Optional.of(conclusion));
@@ -828,6 +802,9 @@ class CaseConclusionServiceTest {
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
         when(documentPieceRepository.findByCaseFileIdOrderByPieceNumber(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
+        // SF-261-05 — par défaut aucun moyen adverse persisté (set vide) ; les scénarios
+        // qui en ont besoin surchargent loadOrExtract avec leurs moyens.
+        when(adverseMoyenPersistenceService.loadOrExtract(any(), any(), any())).thenReturn(List.of());
     }
 
     private fr.ailegalcase.document.DocumentPiece documentPiece(

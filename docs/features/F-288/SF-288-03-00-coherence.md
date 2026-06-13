@@ -3,7 +3,10 @@
 > Réexamen de la dimension « moyens adverses » de l'écran de composition, à la lumière du code. 2026-06-13.
 > Parent : `SF-288-00-coherence.md` (qui listait les moyens adverses comme 3ᵉ trou partiel, « gain marginal »).
 
-## Verdict : **STOP avec pré-requis** — bloqué sur la persistance des moyens adverses
+## Verdict : **GO via pré-requis** — décision PO 2026-06-13 : on construit d'abord la persistance des moyens, puis la curation
+
+> Initialement STOP-avec-pré-requis (infaisable sans ID stable des moyens). **Le PO a choisi de lever le pré-requis** (chemin B) : livrer la persistance des moyens adverses puis la curation par-dessus.
+> Décomposition : **SF-261-05** (persistance des moyens adverses extraits — F-261, backend) → **SF-288-03** (curation, dimension `ADVERSE_MOYEN` du modal de composition).
 
 ---
 
@@ -33,4 +36,9 @@ La vague 1 repose sur un **`item_key` stable** (le `toolId`). Pour les moyens, i
 - **A — Différer** la vague 3 jusqu'à ce que la **persistance des moyens adverses** (backlog F-261) soit livrée ; la curation deviendra alors une vraie « dimension » de l'écran de composition (réutilise la table générique + le modal).
 - **B — Construire d'abord le pré-requis** (persistance des moyens) en SF dédiée, puis la curation par-dessus.
 
-**Recommandation : A (différer)** — la valeur est marginale (étape 0 parent) et le pré-requis est lourd ; à reprendre sur signal terrain avocat.
+**Recommandation initiale : A (différer)** — la valeur est marginale et le pré-requis lourd.
+
+### ✅ DÉCISION PO (2026-06-13) : **chemin B — construire le pré-requis puis la curation.**
+- **SF-261-05 — Persistance des moyens adverses** (F-261, backend) : entité + table `adverse_moyen` (ID stable), service d'extraction-et-persistance (replace set par dossier, idempotent), `CaseConclusionService.prepare` lit le **set persisté** (extraction-si-absent en fallback, fail-open) au lieu de ré-extraire à chaque génération. **Bonus cohérence** : modal et génération lisent le **même** set.
+- **SF-288-03 — Curation des moyens adverses** : dimension `ADVERSE_MOYEN` dans le modal de composition (réutilise la table générique `conclusion_composition_exclusion` + le modal SF-288-01), `item_key` = id du moyen persisté. `prepare` filtre les moyens exclus.
+- **Limite MVP assumée** : le set persisté ne s'auto-rafraîchit pas à l'ajout d'une nouvelle écriture adverse (ré-extraction sur déclencheur explicite / si set absent) — à tracer.
