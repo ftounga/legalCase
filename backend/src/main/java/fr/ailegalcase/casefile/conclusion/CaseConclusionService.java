@@ -39,7 +39,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -79,6 +81,7 @@ public class CaseConclusionService {
     private final DocumentExtractionRepository documentExtractionRepository;
     private final AdverseMoyensExtractor adverseMoyensExtractor;
     private final ConclusionStreamPublisher streamPublisher;
+    private final ConclusionCompositionExclusionRepository compositionExclusionRepository;
 
     /**
      * SF-287-01 — intervalle minimal (ms) entre deux événements {@code progress}
@@ -115,7 +118,8 @@ public class CaseConclusionService {
                                  DocumentRepository documentRepository,
                                  DocumentExtractionRepository documentExtractionRepository,
                                  AdverseMoyensExtractor adverseMoyensExtractor,
-                                 ConclusionStreamPublisher streamPublisher) {
+                                 ConclusionStreamPublisher streamPublisher,
+                                 ConclusionCompositionExclusionRepository compositionExclusionRepository) {
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.strategicOptionRepository = strategicOptionRepository;
@@ -131,6 +135,7 @@ public class CaseConclusionService {
         this.documentExtractionRepository = documentExtractionRepository;
         this.adverseMoyensExtractor = adverseMoyensExtractor;
         this.streamPublisher = streamPublisher;
+        this.compositionExclusionRepository = compositionExclusionRepository;
     }
 
     @RabbitListener(queues = CaseConclusionRabbitMQConfig.CASE_CONCLUSION_QUEUE, concurrency = "2")
@@ -262,6 +267,10 @@ public class CaseConclusionService {
         List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> numberedPieces =
                 loadNumberedPieces(caseFileId);
 
+        // F-288 / SF-288-01 — ensemble d'outils EXCLUS par l'avocat (dimension DECISION_TOOL).
+        // Fail-open : toute erreur de lecture ⇒ ensemble vide ⇒ aucun filtre (comportement actuel).
+        Set<String> excludedToolIds = loadExcludedToolIds(caseFileId);
+
         CaseConclusionPromptBuilder.ConclusionPromptInput input =
                 new CaseConclusionPromptBuilder.ConclusionPromptInput(
                         caseFile.getTitle(),
@@ -273,10 +282,15 @@ public class CaseConclusionService {
                                 domain, country, conclusion.getPositionCode())),
                         loadLatestAnalysisResult(caseFileId),
                         numberedPieces,
-                        loadDecisionToolTiles(caseFileId),
+                        // F-288 — verdicts des outils calculés, MOINS les outils exclus.
+                        filterExcludedTiles(loadDecisionToolTiles(caseFileId), excludedToolIds),
                         loadRetainedStrategies(caseFileId),
                         loadJurisprudenceCitations(caseFileId),
-                        toolJurisprudenceContext.collectForCaseFile(caseFileId),
+                        // F-288 — jurisprudence DÉRIVÉE des outils, MOINS celle des outils exclus.
+                        // La jurisprudence d'appui F-242 (loadJurisprudenceCitations) et adverse
+                        // (loadAdverseJurisprudenceChecks) ne sont PAS touchées.
+                        filterExcludedToolJurisprudence(
+                                toolJurisprudenceContext.collectForCaseFile(caseFileId), excludedToolIds),
                         loadAdverseJurisprudenceChecks(caseFileId),
                         loadAdverseMoyens(caseFileId, domain, country),
                         // F-271 / SF-271-02 — base récapitulative (texte de l'avocat à
@@ -498,6 +512,69 @@ public class CaseConclusionService {
                     caseFileId, ex.getMessage());
             return List.of();
         }
+    }
+
+    /**
+     * F-288 / SF-288-01 — ensemble des {@code toolId} que l'avocat a exclus de l'acte
+     * (dimension {@code DECISION_TOOL}). La même clé ({@code toolId} TOOL_REGISTRY) est
+     * exposée par {@link CaseFileDashboardService#assembleDecisionToolTiles} (tiles) et par
+     * les {@code ToolUsageContributor} (jurisprudence dérivée) — un même ensemble filtre
+     * donc les deux chemins.
+     *
+     * <p><strong>Fail-open</strong> : toute exception de lecture ⇒ ensemble vide ⇒ aucun
+     * filtre (= comportement actuel), journalisé. Un ensemble vide laisse le prompt
+     * strictement identique à aujourd'hui (non-régression).</p>
+     */
+    private Set<String> loadExcludedToolIds(UUID caseFileId) {
+        try {
+            Set<String> excluded = new HashSet<>();
+            for (ConclusionCompositionExclusion exclusion : compositionExclusionRepository
+                    .findByCaseFileIdAndDimension(
+                            caseFileId, ConclusionCompositionService.DIMENSION_DECISION_TOOL)) {
+                excluded.add(exclusion.getItemKey());
+            }
+            return excluded;
+        } catch (RuntimeException ex) {
+            log.warn("F-288 — lecture des exclusions de composition indisponible pour caseFile {} — "
+                    + "génération sans filtre : {}", caseFileId, ex.getMessage());
+            return Set.of();
+        }
+    }
+
+    /** F-288 — retire les tiles dont le {@code toolId} est exclu. Ensemble vide ⇒ liste inchangée. */
+    private static List<DashboardTile> filterExcludedTiles(List<DashboardTile> tiles, Set<String> excludedToolIds) {
+        if (excludedToolIds.isEmpty() || tiles.isEmpty()) {
+            return tiles;
+        }
+        List<DashboardTile> kept = new ArrayList<>(tiles.size());
+        for (DashboardTile tile : tiles) {
+            if (!excludedToolIds.contains(tile.toolId())) {
+                kept.add(tile);
+            }
+        }
+        return kept;
+    }
+
+    /**
+     * F-288 — retire de la jurisprudence dérivée des outils ({@code ToolUsageAggregator})
+     * les entrées dont le {@code toolId} est exclu. Ensemble vide ⇒ liste inchangée. La
+     * jurisprudence d'appui F-242 et adverse SF-98-56 ne passent jamais par ici.
+     */
+    private static List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool>
+            filterExcludedToolJurisprudence(
+                    List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> citations,
+                    Set<String> excludedToolIds) {
+        if (excludedToolIds.isEmpty() || citations.isEmpty()) {
+            return citations;
+        }
+        List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> kept =
+                new ArrayList<>(citations.size());
+        for (fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool citation : citations) {
+            if (!excludedToolIds.contains(citation.toolId())) {
+                kept.add(citation);
+            }
+        }
+        return kept;
     }
 
     /** Pistes stratégiques au statut {@code RETAINED} de la synthèse la plus récente. */

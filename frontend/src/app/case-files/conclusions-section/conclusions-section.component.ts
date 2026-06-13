@@ -24,6 +24,15 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+// F-288 / SF-288-01 — composition (curation des outils) avant génération.
+import {
+  ConclusionCompositionService,
+  CompositionExclusion,
+} from '../../core/services/conclusion-composition.service';
+import {
+  ConclusionCompositionDialogComponent,
+  ConclusionCompositionDialogResult,
+} from './conclusion-composition-dialog/conclusion-composition-dialog.component';
 import {
   ConclusionDocumentComponent,
   PieceRef,
@@ -432,6 +441,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly lifecycleOptions = LIFECYCLE_ORDER;
 
   private readonly conclusionsService = inject(ConclusionsService);
+  // F-288 / SF-288-01 — lecture des outils curables + persistance des exclusions.
+  private readonly compositionService = inject(ConclusionCompositionService);
   private readonly conclusionStreamService = inject(ConclusionStreamService);
   private readonly caseFileService = inject(CaseFileService);
   private readonly caseDashboardService = inject(CaseDashboardService);
@@ -583,7 +594,9 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       return;
     }
     if (!this.hasVersions()) {
-      this.generate();
+      // F-288 — première génération : on compose directement (pas de
+      // confirmation de régénération).
+      this.composeThenGenerate(false);
       return;
     }
     this.dialog
@@ -602,7 +615,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.generate();
+          // F-288 — après confirmation, ouverture du modal de composition.
+          this.composeThenGenerate(false);
         }
         this.cdr.markForCheck();
       });
@@ -637,9 +651,91 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.generate(false);
+          // F-288 — après confirmation, ouverture du modal de composition
+          // (mode from-scratch préservé).
+          this.composeThenGenerate(false);
         }
         this.cdr.markForCheck();
+      });
+  }
+
+  /**
+   * F-288 / SF-288-01 — Étape de composition avant génération. Lit les éléments
+   * curables (`GET …/composition`). Si AUCUN élément n'est curable (aucune
+   * dimension ou aucune liste d'items), lance directement la génération
+   * existante (pas de friction inutile). Sinon ouvre le modal de composition,
+   * pré-coché selon l'ensemble persisté ; sur « Confirmer & générer », persiste
+   * les exclusions (`PUT …/composition`) PUIS lance la génération avec les mêmes
+   * paramètres qu'avant (`fromScratch` inchangé). « Annuler » → aucune action.
+   *
+   * Fail-open : si la lecture de la composition échoue, on génère sans filtre
+   * (= comportement actuel), sans bloquer l'avocat.
+   */
+  private composeThenGenerate(fromScratch: boolean): void {
+    if (this.generating()) {
+      return;
+    }
+    this.compositionService.getComposition(this.caseFileId).subscribe({
+      next: (composition) => {
+        const dimensions = composition?.dimensions ?? [];
+        const hasCurable = dimensions.some((d) => (d.items?.length ?? 0) > 0);
+        if (!hasCurable) {
+          // Aucun outil calculé → pas de modal, génération directe.
+          this.generate(fromScratch);
+          this.cdr.markForCheck();
+          return;
+        }
+        this.dialog
+          .open(ConclusionCompositionDialogComponent, {
+            width: '620px',
+            maxWidth: '95vw',
+            data: { composition },
+          })
+          .afterClosed()
+          .subscribe(
+            (result: ConclusionCompositionDialogResult | undefined) => {
+              if (!result) {
+                // « Annuler » : on ne génère pas.
+                this.cdr.markForCheck();
+                return;
+              }
+              this.persistThenGenerate(result.exclusions, fromScratch);
+            },
+          );
+      },
+      error: () => {
+        // Fail-open : composition illisible → génération sans filtre.
+        this.generate(fromScratch);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * F-288 / SF-288-01 — Persiste l'ensemble d'exclusions choisi puis lance la
+   * génération existante. En cas d'échec de la persistance, on prévient via la
+   * snackbar et on ne lance PAS la génération (l'avocat saurait sinon que son
+   * choix n'a pas été pris en compte).
+   */
+  private persistThenGenerate(
+    exclusions: CompositionExclusion[],
+    fromScratch: boolean,
+  ): void {
+    this.compositionService
+      .saveComposition(this.caseFileId, exclusions)
+      .subscribe({
+        next: () => {
+          this.generate(fromScratch);
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.snackBar.open(
+            'Impossible d\'enregistrer la composition des conclusions. Réessayez.',
+            'Fermer',
+            { duration: 6000, panelClass: ['snack-error'] },
+          );
+          this.cdr.markForCheck();
+        },
       });
   }
 

@@ -34,6 +34,7 @@ import {
   ConclusionResponse,
   ConclusionVersionSummary,
 } from '../../core/models/conclusion.model';
+import { ConclusionCompositionDialogComponent } from './conclusion-composition-dialog/conclusion-composition-dialog.component';
 
 describe('ConclusionsSectionComponent', () => {
   let component: ConclusionsSectionComponent;
@@ -54,6 +55,8 @@ describe('ConclusionsSectionComponent', () => {
   // SF-271-02 — la génération porte ?fromScratch=… (défaut false = « Actualiser »).
   const GENERATE_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate?fromScratch=false`;
   const VERSIONS_URL = `/api/v1/case-files/${CASE_ID}/conclusions/versions`;
+  // F-288 SF-288-01 — composition (curation des outils) avant génération.
+  const COMPOSITION_URL = `/api/v1/case-files/${CASE_ID}/conclusions/composition`;
   // F-258 SF-258-01 — endpoints du décompte « outils non calculés ».
   const VISIBILITY_URL = `/api/v1/case-files/${CASE_ID}/decision-tools-visibility`;
   const DASHBOARD_URL = `/api/v1/case-files/${CASE_ID}/dashboard`;
@@ -129,6 +132,22 @@ describe('ConclusionsSectionComponent', () => {
         lifecycleStatus: 'VALIDATED',
       }),
     ];
+  }
+
+  /**
+   * F-288 SF-288-01 — Sert le `GET …/composition` déclenché par
+   * `requestGenerate()` / `regenerate()`. Par défaut : aucune dimension curable
+   * ⇒ pas de modal de composition, génération directe (comportement historique
+   * préservé pour les tests antérieurs).
+   */
+  function flushComposition(
+    dimensions: {
+      key: string;
+      label: string;
+      items: { key: string; label: string; included: boolean }[];
+    }[] = [],
+  ): void {
+    httpMock.expectOne(COMPOSITION_URL).flush({ dimensions });
   }
 
   beforeEach(async () => {
@@ -466,6 +485,8 @@ describe('ConclusionsSectionComponent', () => {
     );
     btn.click();
 
+    // F-288 — composition lue d'abord ; aucune dimension curable ⇒ génération directe.
+    flushComposition();
     const postReq = httpMock.expectOne(GENERATE_URL);
     expect(postReq.request.method).toBe('POST');
     postReq.flush({ status: 'PENDING', versionNumber: 1 });
@@ -514,7 +535,8 @@ describe('ConclusionsSectionComponent', () => {
     expect(dialogData.title).toContain('Régénérer');
     expect(dialogData.message).toContain('vos modifications incluses');
 
-    // afterClosed → true (défaut) → la génération part.
+    // afterClosed → true (défaut) → composition lue ; pas d'item curable ⇒ génération.
+    flushComposition();
     const postReq = httpMock.expectOne(GENERATE_URL);
     expect(postReq.request.method).toBe('POST');
     postReq.flush({ status: 'PENDING', versionNumber: 3 });
@@ -549,11 +571,197 @@ describe('ConclusionsSectionComponent', () => {
     expect(component.hasVersions()).toBe(false);
     component.requestGenerate();
 
+    // F-288 — pas de confirmation de régénération (1re génération) ; on lit la
+    // composition, aucune dimension curable ⇒ génération directe.
+    expect(dialogSpy.open).not.toHaveBeenCalled();
+    flushComposition();
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 1 });
+    httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
+  // ---------------------------------------------------------------------------
+  // F-288 / SF-288-01 — modal de composition avant génération
+  // ---------------------------------------------------------------------------
+
+  /** Composition type avec un outil intégré (A) et un déjà exclu (B). */
+  function curableComposition(): {
+    dimensions: {
+      key: string;
+      label: string;
+      items: { key: string; label: string; included: boolean }[];
+    }[];
+  } {
+    return {
+      dimensions: [
+        {
+          key: 'DECISION_TOOL',
+          label: 'Outils décisionnels',
+          items: [
+            { key: 'tool-a', label: 'Indemnité', included: true },
+            { key: 'tool-b', label: 'Préavis', included: false },
+          ],
+        },
+      ],
+    };
+  }
+
+  it('F-288 — items curables > 0 → ouvre le modal de composition (C1)', fakeAsync(() => {
+    // Modal annulé : on vérifie seulement qu'il s'ouvre, sans générer.
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of(undefined),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad(); // aucune version → 1re génération, pas de confirmation
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    flushComposition(curableComposition().dimensions);
+
+    // Le modal de composition est ouvert (pas de génération tant que non confirmé).
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    const opened = dialogSpy.open.calls.mostRecent().args[0];
+    expect(opened).toBe(ConclusionCompositionDialogComponent);
+    httpMock.expectNone(GENERATE_URL);
+
+    component.ngOnDestroy();
+  }));
+
+  it('F-288 — 0 item curable → pas de modal, génération directe (C2)', fakeAsync(() => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    flushComposition([]); // aucune dimension curable
+
     expect(dialogSpy.open).not.toHaveBeenCalled();
     const postReq = httpMock.expectOne(GENERATE_URL);
     expect(postReq.request.method).toBe('POST');
     postReq.flush({ status: 'PENDING', versionNumber: 1 });
     httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
+  it('F-288 — confirmer avec un item décoché → PUT exclusions puis génération (C3)', fakeAsync(() => {
+    // Le modal renvoie l'exclusion de tool-a (décoché par l'avocat).
+    dialogSpy.open.and.returnValue({
+      afterClosed: () =>
+        of({ exclusions: [{ dimension: 'DECISION_TOOL', itemKey: 'tool-a' }] }),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    flushComposition(curableComposition().dimensions);
+
+    // PUT de la composition AVANT generate, avec l'exclusion choisie.
+    const putReq = httpMock.expectOne(COMPOSITION_URL);
+    expect(putReq.request.method).toBe('PUT');
+    expect(putReq.request.body).toEqual({
+      exclusions: [{ dimension: 'DECISION_TOOL', itemKey: 'tool-a' }],
+    });
+    putReq.flush(curableComposition());
+
+    // PUIS la génération est lancée (mêmes paramètres, fromScratch=false).
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 1 });
+    httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
+  it('F-288 — annuler le modal → ni PUT ni génération', fakeAsync(() => {
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of(undefined),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    flushComposition(curableComposition().dimensions);
+
+    httpMock.expectNone(COMPOSITION_URL); // pas de PUT
+    httpMock.expectNone(GENERATE_URL);
+
+    component.ngOnDestroy();
+  }));
+
+  it('F-288 — réouverture : le modal reçoit la composition lue (pré-coché selon GET) (C5)', fakeAsync(() => {
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of(undefined),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    const comp = curableComposition();
+    component.requestGenerate();
+    flushComposition(comp.dimensions);
+
+    // La data passée au modal = la composition lue (tool-b included=false ⇒ décoché).
+    const data = dialogSpy.open.calls.mostRecent().args[1]?.data as {
+      composition: { dimensions: { items: { key: string; included: boolean }[] }[] };
+    };
+    const items = data.composition.dimensions[0].items;
+    expect(items.find((i) => i.key === 'tool-a')?.included).toBe(true);
+    expect(items.find((i) => i.key === 'tool-b')?.included).toBe(false);
+
+    component.ngOnDestroy();
+  }));
+
+  it('F-288 — fail-open : GET composition en erreur → génération sans filtre', fakeAsync(() => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    httpMock
+      .expectOne(COMPOSITION_URL)
+      .flush(null, { status: 500, statusText: 'Server Error' });
+
+    // Pas de modal, pas de PUT ; la génération part quand même (comportement actuel).
+    expect(dialogSpy.open).not.toHaveBeenCalled();
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 1 });
+    httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
+  it('F-288 — échec du PUT composition → snackbar, pas de génération', fakeAsync(() => {
+    dialogSpy.open.and.returnValue({
+      afterClosed: () =>
+        of({ exclusions: [{ dimension: 'DECISION_TOOL', itemKey: 'tool-a' }] }),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    flushComposition(curableComposition().dimensions);
+
+    httpMock
+      .expectOne(COMPOSITION_URL)
+      .flush(null, { status: 500, statusText: 'Server Error' });
+
+    expect(snackSpy.open).toHaveBeenCalled();
+    httpMock.expectNone(GENERATE_URL);
 
     component.ngOnDestroy();
   }));
@@ -579,7 +787,9 @@ describe('ConclusionsSectionComponent', () => {
     expect(dialogData.message).toContain('ne sont pas garanties');
     expect(dialogData.confirmColor).toBe('warn');
 
-    // afterClosed → true (défaut) → POST (régénération = consolidation, fromScratch=false).
+    // afterClosed → true (défaut) → composition lue ; pas d'item curable ⇒ POST
+    // (régénération = consolidation, fromScratch=false).
+    flushComposition();
     const postReq = httpMock.expectOne(GENERATE_URL);
     expect(postReq.request.method).toBe('POST');
     postReq.flush({ status: 'PENDING', versionNumber: 3 });
@@ -1521,6 +1731,8 @@ describe('ConclusionsSectionComponent', () => {
     expect(regenBtn.textContent).toContain('Régénérer');
 
     regenBtn.click();
+    // F-288 — confirmation (afterClosed→true) puis composition (aucun item) ⇒ POST.
+    flushComposition();
     const postReq = httpMock.expectOne(GENERATE_URL);
     expect(postReq.request.method).toBe('POST');
     postReq.flush({ status: 'PENDING', versionNumber: 3 });

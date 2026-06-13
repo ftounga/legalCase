@@ -306,6 +306,7 @@ chunk_analyses
 document_analyses
 case_analyses
 case_conclusions
+conclusion_composition_exclusion
 case_jurisprudence_citations
 tool_jurisprudence_mappings
 jurisprudence_watch_flags
@@ -651,6 +652,35 @@ completion_tokens (int)
 generated_at (timestamptz)
 created_at
 updated_at
+
+---
+
+## conclusion_composition_exclusion
+
+Composition de l'acte de conclusions **avant génération** (F-288 / SF-288-01). Chaque
+ligne = un **item EXCLU** par l'avocat pour un dossier, par dimension. **Vague 1 :
+dimension `DECISION_TOOL`**, `item_key` = `toolId` d'un outil décisionnel **calculé**
+que l'avocat ne veut pas verser dans l'acte. On stocke **uniquement les exclus** :
+table vide = comportement historique (tous les outils calculés injectés), donc
+**non-régressif**. Le worker (`CaseConclusionService.prepare`) lit cet ensemble et
+**filtre** le verdict de l'outil **et** la jurisprudence dérivée de cet outil (chemin
+`ToolUsageAggregator`) — la jurisprudence d'appui F-242 et adverse SF-98-56 ne sont pas
+touchées. Choix **durable** : il survit aux régénérations (F-271/F-278). Table
+**générique** (`dimension` + `item_key`) prête pour `HEAD_OF_CLAIM` (vague 2) et
+`ADVERSE_MOYEN` (vague 3) sans nouvelle migration. Isolation workspace via
+`case_file_id` (404 non-leak, famille `/conclusions`). Endpoints
+`GET`/`PUT /api/v1/case-files/{id}/conclusions/composition`.
+
+Champs :
+
+id (uuid)
+case_file_id (FK → case_files, ON DELETE CASCADE)
+dimension (varchar(40) — DECISION_TOOL en vague 1)
+item_key (varchar(120) — toolId de l'outil exclu)
+created_at (timestamptz)
+
+Contrainte unique uq_conclusion_composition_exclusion (case_file_id, dimension, item_key).
+Index idx_conclusion_composition_exclusion_case_file (case_file_id).
 
 ---
 

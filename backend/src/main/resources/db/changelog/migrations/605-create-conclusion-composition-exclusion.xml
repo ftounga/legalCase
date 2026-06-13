@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="605-create-conclusion-composition-exclusion" author="legalcase">
+        <comment>
+            F-288 / SF-288-01 — composition des conclusions avant génération. Chaque ligne
+            = un item EXCLU de l'acte pour un dossier, par dimension. Vague 1 : dimension
+            DECISION_TOOL, item_key = toolId d'un outil décisionnel CALCULÉ que l'avocat ne
+            verse pas. On stocke uniquement les exclus (table vide = comportement actuel,
+            non-régressif). Table générique (dimension + item_key) prête pour HEAD_OF_CLAIM
+            (vague 2) et ADVERSE_MOYEN (vague 3) sans nouvelle migration. Le worker
+            (CaseConclusionService.prepare) lit cet ensemble et filtre verdicts d'outils +
+            jurisprudence dérivée. Isolation workspace via case_file_id.
+        </comment>
+
+        <createTable tableName="conclusion_composition_exclusion">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dimension" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="item_key" type="varchar(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="conclusion_composition_exclusion" baseColumnNames="case_file_id"
+                referencedTableName="case_files" referencedColumnNames="id"
+                constraintName="fk_conclusion_composition_exclusion_case_file" onDelete="CASCADE"/>
+
+        <addUniqueConstraint
+                tableName="conclusion_composition_exclusion"
+                columnNames="case_file_id, dimension, item_key"
+                constraintName="uq_conclusion_composition_exclusion"/>
+
+        <createIndex tableName="conclusion_composition_exclusion"
+                     indexName="idx_conclusion_composition_exclusion_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="conclusion_composition_exclusion"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

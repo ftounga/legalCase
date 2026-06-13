@@ -1,15 +1,36 @@
 # F-288 — Cadrage cohérence (étape 0)
 
-> Feature : **Curation amont des outils & arguments intégrés à la génération des conclusions** — laisser l'avocat choisir, AVANT de générer, ce qui entre dans l'acte.
+> Feature : **Écran de composition des conclusions avant génération** — au clic « Générer », l'avocat choisit ce qu'il verse dans l'acte, parmi les ingrédients réellement non contrôlés.
 > Skill : `ai-skills/feature-coherence-challenger.md`. 2026-06-13. Origine : signal PO « rendre la génération des conclusions plus intelligente / dynamique ».
+> **Recadrage PO 2026-06-13** (après audit des ingrédients) : ce n'est pas « curation des outils » seuls — c'est un **écran de composition** (étape intermédiaire déclenchée par « Générer ») couvrant les **3 ingrédients non curés** : outils décisionnels, chefs de demande, moyens adverses.
 
-## Verdict : **GO avec ajustements** — ⚠️ profil de risque F-262/F-263 (à confirmer par le PO)
+## Verdict : **GO avec ajustements** — profil de risque F-262/F-263 assumé, scope restreint aux trous réels
 
 ---
 
 ## Intention métier (1 phrase)
 
-Permettre à l'avocat de **sélectionner/désélectionner les outils décisionnels calculés (et chefs de demande) à verser dans les conclusions**, **avant** de cliquer « Générer », de façon **durable** (le choix survit aux régénérations).
+Au clic « Générer », présenter à l'avocat un **écran de composition** où il **sélectionne/désélectionne les ingrédients non encore contrôlés** (outils décisionnels calculés, chefs de demande, moyens adverses) avant de lancer la génération, de façon **durable** (le choix survit aux régénérations).
+
+---
+
+## Audit des ingrédients de l'acte (vérifié dans `CaseConclusionService.prepare`, 2026-06-13)
+
+Une conclusion est composée de **7 ingrédients**. **5 sont déjà curables en amont** → les re-piloter = doublon. **Seuls 3 sont des trous** :
+
+| # | Ingrédient | Source code | Déjà piloté ? |
+|---|---|---|---|
+| 1 | Synthèse / analyse (faits, points, risques) | `loadLatestAnalysisResult` | C'est le dossier — non curable (on ne retire pas les faits) |
+| 2 | Pièces / bordereau | `loadNumberedPieces` | ✅ F-260 (ordre, numéro, suppression) |
+| 3 | **Outils décisionnels calculés** | `assembleDecisionToolTiles` | ❌ **trou — injectés en bloc** |
+| 4 | Pistes stratégiques | `loadRetainedStrategies` | ✅ seules les `RETAINED` (marquées) entrent |
+| 5 | Jurisprudence d'appui (F-242) | `loadJurisprudenceCitations` | ✅ saisie manuelle par point |
+| 6 | Jurisprudence adverse à réfuter (SF-98-56) | `loadAdverseJurisprudenceChecks` | ✅ seules les **marquées** entrent |
+| 7 | **Moyens adverses (F-261)** | `loadAdverseMoyens` | 🟡 **trou partiel — doc marqué mais moyens auto-extraits, pas de tri** |
+
+**+ chefs de demande** : la fondation F-262 (`GET …/heads-of-claim`) existe mais **n'alimente aucune sélection** dans la génération → **3ᵉ trou** si l'avocat doit choisir les chefs qu'il plaide.
+
+➡️ **Scope F-288 = les 3 trous** : outils décisionnels (#3), chefs de demande, moyens adverses individuels (#7). Les 5 ingrédients déjà curés sont **hors périmètre** (anti-doublon).
 
 ---
 
@@ -108,9 +129,16 @@ F-288 s'insère **entre l'étape 2 (calcul) et l'étape 4 (génération)** : un 
 2. Persistance (durable / volatile) — *reco durable*.
 3. Confirmer GO malgré le précédent F-262/263 (profil de risque assumé).
 
-### ✅ DÉCISION PO (2026-06-13) : **GO** confirmé.
-- **Périmètre = A** (outils décisionnels calculés seuls ; extension aux chefs de demande différée en vague ultérieure si signal).
-- **Persistance = durable** (le choix de composition est rattaché au dossier et **survit aux régénérations** — c'est la valeur de fond vs F-265).
-- **Défaut = tout coché** (non-régressif : qui ne touche à rien obtient le comportement actuel `detectAll`).
+### ✅ DÉCISION PO (2026-06-13) : **GO** confirmé — recadré « écran de composition ».
+- **Forme** = **écran/étape de composition intermédiaire déclenchée par le clic « Générer »** (l'écran ne se charge que quand on génère), puis « Confirmer & générer ».
+- **Périmètre = 3 dimensions = les 3 trous réels**, livrées en **vagues** :
+  - **Vague 1 (SF-288-01) — Outils décisionnels calculés** (le seul trou franc). Ancre du framework.
+  - **Vague 2 — Chefs de demande** (réutilise la fondation F-262 `heads-of-claim`).
+  - **Vague 3 — Moyens adverses individuels** (tri moyen par moyen des écritures adverses F-261).
+- **Persistance = durable** (le choix de composition est rattaché au dossier et **survit aux régénérations** — valeur de fond vs F-265).
+- **Défaut = tout coché** (non-régressif : qui ne touche à rien obtient le comportement actuel).
+- **Hors périmètre (anti-doublon)** : pièces (F-260), pistes stratégiques (RETAINED), jurisprudence d'appui (F-242), jurisprudence adverse (SF-98-56), synthèse — déjà curés ailleurs.
 
-F-288 `Backlog` → `À faire`. Prochaine étape : **0 bis** (cohérence écran, sélecteur avant « Générer »), puis mini-spec SF-288-01.
+**Cadre vs multi-feature** : F-288 = **un** écran, **un** flux, **une** génération ; les 3 dimensions sont des **sous-features/vagues** (framework commun + dimension par vague, comme F-98/F-261), pas des features séparées.
+
+F-288 `Backlog` → `À faire`. Prochaine étape : **0 bis** (cohérence écran de l'étape intermédiaire), puis mini-spec **SF-288-01** (vague 1, outils).
