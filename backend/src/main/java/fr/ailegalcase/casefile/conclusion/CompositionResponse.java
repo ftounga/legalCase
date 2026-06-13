@@ -10,8 +10,10 @@ import java.util.List;
  * { "dimensions": [ { "key": "DECISION_TOOL", "label": "Outils décisionnels",
  *     "items": [ { "key": "&lt;toolId&gt;", "label": "&lt;titre&gt;", "included": true|false } ] } ] }
  * </pre>
- * Vague 1 : exactement UNE dimension {@code DECISION_TOOL}. {@code included = false}
- * si le {@code toolId} est dans l'ensemble d'exclusions persisté, sinon {@code true}.</p>
+ * Dimensions applicables, dans l'ordre : {@code DECISION_TOOL} (vague 1, outils calculés)
+ * puis {@code ADVERSE_MOYEN} (SF-288-03, moyens adverses persistés — omise si aucun moyen).
+ * {@code included = false} si la clé de l'item est dans l'ensemble d'exclusions persisté de
+ * sa dimension, sinon {@code true}.</p>
  */
 public record CompositionResponse(List<Dimension> dimensions) {
 

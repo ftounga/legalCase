@@ -56,6 +56,7 @@ class ConclusionCompositionControllerIT {
     @Autowired private ConclusionCompositionExclusionRepository exclusionRepository;
 
     @MockBean private CaseFileDashboardService dashboardService;
+    @MockBean private AdverseMoyenPersistenceService adverseMoyenPersistenceService;
 
     private OAuth2AuthenticationToken auth;
     private CaseFile caseFile;
@@ -135,6 +136,8 @@ class ConclusionCompositionControllerIT {
                         "Sans cause", "2/7", "ALERT"),
                 new DashboardTile("F-DT-09", "INDEMNITES", "Comparateur d'indemnités",
                         "18 000 €", null, "OK")));
+        // Par défaut aucun moyen adverse → dimension ADVERSE_MOYEN omise.
+        when(adverseMoyenPersistenceService.findPersisted(any())).thenReturn(List.of());
     }
 
     @Test
@@ -166,6 +169,49 @@ class ConclusionCompositionControllerIT {
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.dimensions[0].items[?(@.key=='F-DT-08')].included").value(false));
+    }
+
+    @Test
+    void get_withMoyens_returnsAdverseMoyenDimension() throws Exception {
+        UUID moyenId = UUID.randomUUID();
+        when(adverseMoyenPersistenceService.findPersisted(any()))
+                .thenReturn(List.of(new AdverseMoyenWithId(moyenId,
+                        new AdverseMoyen("Le licenciement repose sur une faute grave.",
+                                List.of(), List.of()))));
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/conclusions/composition", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dimensions[0].key").value("DECISION_TOOL"))
+                .andExpect(jsonPath("$.dimensions[1].key").value("ADVERSE_MOYEN"))
+                .andExpect(jsonPath("$.dimensions[1].label").value("Moyens adverses"))
+                .andExpect(jsonPath("$.dimensions[1].items[0].key").value(moyenId.toString()))
+                .andExpect(jsonPath("$.dimensions[1].items[0].included").value(true));
+    }
+
+    @Test
+    void put_adverseMoyenExclusion_persistsAndReturns200() throws Exception {
+        UUID moyenId = UUID.randomUUID();
+        when(adverseMoyenPersistenceService.findPersisted(any()))
+                .thenReturn(List.of(new AdverseMoyenWithId(moyenId,
+                        new AdverseMoyen("Faute grave.", List.of(), List.of()))));
+
+        String body = objectMapper.writeValueAsString(new CompositionUpdateRequest(List.of(
+                new CompositionUpdateRequest.ExclusionEntry("ADVERSE_MOYEN", moyenId.toString()))));
+
+        mockMvc.perform(put("/api/v1/case-files/{id}/conclusions/composition", caseFile.getId())
+                        .with(authentication(auth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dimensions[1].key").value("ADVERSE_MOYEN"))
+                .andExpect(jsonPath("$.dimensions[1].items[0].included").value(false));
+
+        // persistance vérifiée via GET.
+        mockMvc.perform(get("/api/v1/case-files/{id}/conclusions/composition", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dimensions[1].items[0].included").value(false));
     }
 
     @Test

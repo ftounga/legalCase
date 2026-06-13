@@ -42,10 +42,12 @@ class ConclusionCompositionServiceTest {
             mock(WorkspaceMemberRepository.class);
     private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
     private final CaseFileDashboardService dashboardService = mock(CaseFileDashboardService.class);
+    private final AdverseMoyenPersistenceService adverseMoyenPersistenceService =
+            mock(AdverseMoyenPersistenceService.class);
 
     private final ConclusionCompositionService service = new ConclusionCompositionService(
             exclusionRepository, caseFileRepository, workspaceMemberRepository,
-            currentUserResolver, dashboardService);
+            currentUserResolver, dashboardService, adverseMoyenPersistenceService);
 
     private final Principal principal = () -> "google";
     private UUID caseFileId;
@@ -85,22 +87,31 @@ class ConclusionCompositionServiceTest {
                 new DashboardTile("F-DT-09", "INDEMNITES", "Comparateur d'indemnités",
                         "18 000 €", null, "OK")));
 
-        // Persistance simulée en mémoire.
-        when(exclusionRepository.findByCaseFileIdAndDimension(eq(caseFileId), eq("DECISION_TOOL")))
-                .thenAnswer(inv -> new ArrayList<>(store));
+        // Persistance simulée en mémoire, dimension-aware (DECISION_TOOL + ADVERSE_MOYEN).
+        when(exclusionRepository.findByCaseFileIdAndDimension(eq(caseFileId), any()))
+                .thenAnswer(inv -> {
+                    String dim = inv.getArgument(1);
+                    List<ConclusionCompositionExclusion> matching = new ArrayList<>();
+                    for (ConclusionCompositionExclusion e : store) {
+                        if (e.getDimension().equals(dim)) {
+                            matching.add(e);
+                        }
+                    }
+                    return matching;
+                });
         when(exclusionRepository.save(any())).thenAnswer(inv -> {
             store.add(inv.getArgument(0));
             return inv.getArgument(0);
         });
-        doAnswerDelete();
-    }
-
-    private void doAnswerDelete() {
-        // deleteByCaseFileIdAndDimension vide le store.
+        // deleteByCaseFileIdAndDimension retire UNIQUEMENT les lignes de la dimension visée.
         org.mockito.Mockito.doAnswer(inv -> {
-            store.clear();
+            String dim = inv.getArgument(1);
+            store.removeIf(e -> e.getDimension().equals(dim));
             return null;
-        }).when(exclusionRepository).deleteByCaseFileIdAndDimension(eq(caseFileId), eq("DECISION_TOOL"));
+        }).when(exclusionRepository).deleteByCaseFileIdAndDimension(eq(caseFileId), any());
+
+        // Par défaut : aucun moyen adverse persisté (dimension ADVERSE_MOYEN omise).
+        when(adverseMoyenPersistenceService.findPersisted(any())).thenReturn(List.of());
     }
 
     @Test
@@ -138,14 +149,26 @@ class ConclusionCompositionServiceTest {
         service.putComposition(caseFileId, new CompositionUpdateRequest(List.of(
                 new CompositionUpdateRequest.ExclusionEntry("DECISION_TOOL", "F-DT-08"))),
                 null, principal);
-        // 2e PUT (set vide) ré-inclut tout.
+        // 2e PUT porte de nouveau DECISION_TOOL (cette fois en réinclut F-DT-09 seul → F-DT-08 ré-inclus).
         CompositionResponse response = service.putComposition(
-                caseFileId, new CompositionUpdateRequest(List.of()), null, principal);
+                caseFileId, new CompositionUpdateRequest(List.of(
+                        new CompositionUpdateRequest.ExclusionEntry("DECISION_TOOL", "F-DT-09"))),
+                null, principal);
 
-        assertThat(response.dimensions().get(0).items()).allMatch(CompositionResponse.Item::included);
-        // delete appelé à chaque PUT (remplacement).
+        assertThat(itemByKey(response, "F-DT-08").included()).isTrue();
+        assertThat(itemByKey(response, "F-DT-09").included()).isFalse();
+        // delete appelé à chaque PUT portant DECISION_TOOL (remplacement de cette dimension).
         verify(exclusionRepository, times(2))
                 .deleteByCaseFileIdAndDimension(caseFileId, "DECISION_TOOL");
+    }
+
+    @Test
+    void put_emptyBody_touchesNoDimension() {
+        // Body vide → aucune dimension portée → aucun delete (le PUT n'efface rien).
+        service.putComposition(caseFileId, new CompositionUpdateRequest(List.of()), null, principal);
+
+        verify(exclusionRepository, org.mockito.Mockito.never())
+                .deleteByCaseFileIdAndDimension(eq(caseFileId), any());
     }
 
     @Test
@@ -192,6 +215,120 @@ class ConclusionCompositionServiceTest {
         assertThatThrownBy(() -> service.getComposition(UUID.randomUUID(), null, principal))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404");
+    }
+
+    // ── SF-288-03 — dimension ADVERSE_MOYEN ─────────────────────────────────────
+
+    @Test
+    void getComposition_withMoyens_returnsTwoDimensions() {
+        UUID moyenId = UUID.randomUUID();
+        when(adverseMoyenPersistenceService.findPersisted(eq(caseFileId)))
+                .thenReturn(List.of(new AdverseMoyenWithId(moyenId,
+                        new AdverseMoyen("Le licenciement repose sur une faute grave.",
+                                List.of("art. L. 1234-1"), List.of("Lettre")))));
+
+        CompositionResponse response = service.getComposition(caseFileId, null, principal);
+
+        assertThat(response.dimensions()).hasSize(2);
+        assertThat(response.dimensions().get(0).key()).isEqualTo("DECISION_TOOL");
+        CompositionResponse.Dimension moyens = response.dimensions().get(1);
+        assertThat(moyens.key()).isEqualTo("ADVERSE_MOYEN");
+        assertThat(moyens.label()).isEqualTo("Moyens adverses");
+        assertThat(moyens.items()).hasSize(1);
+        assertThat(moyens.items().get(0).key()).isEqualTo(moyenId.toString());
+        assertThat(moyens.items().get(0).included()).isTrue();
+    }
+
+    @Test
+    void getComposition_noMoyen_omitsAdverseMoyenDimension() {
+        // findPersisted renvoie vide (stub par défaut) → dimension ADVERSE_MOYEN omise.
+        CompositionResponse response = service.getComposition(caseFileId, null, principal);
+
+        assertThat(response.dimensions()).hasSize(1);
+        assertThat(response.dimensions().get(0).key()).isEqualTo("DECISION_TOOL");
+    }
+
+    @Test
+    void getComposition_longThese_isTruncatedTo80WithEllipsis() {
+        String longThese = "A".repeat(200);
+        UUID moyenId = UUID.randomUUID();
+        when(adverseMoyenPersistenceService.findPersisted(eq(caseFileId)))
+                .thenReturn(List.of(new AdverseMoyenWithId(moyenId,
+                        new AdverseMoyen(longThese, List.of(), List.of()))));
+
+        CompositionResponse response = service.getComposition(caseFileId, null, principal);
+
+        String label = response.dimensions().get(1).items().get(0).label();
+        assertThat(label).hasSize(81); // 80 caractères + « … »
+        assertThat(label).endsWith("…");
+    }
+
+    @Test
+    void putThenGet_adverseMoyenExcluded_includedFalse() {
+        UUID moyenId = UUID.randomUUID();
+        when(adverseMoyenPersistenceService.findPersisted(eq(caseFileId)))
+                .thenReturn(List.of(new AdverseMoyenWithId(moyenId,
+                        new AdverseMoyen("Faute grave.", List.of(), List.of()))));
+
+        CompositionResponse afterPut = service.putComposition(caseFileId,
+                new CompositionUpdateRequest(List.of(
+                        new CompositionUpdateRequest.ExclusionEntry("ADVERSE_MOYEN", moyenId.toString()))),
+                null, principal);
+
+        CompositionResponse.Dimension moyens = afterPut.dimensions().get(1);
+        assertThat(moyens.items().get(0).included()).isFalse();
+
+        // GET reflète la persistance.
+        CompositionResponse afterGet = service.getComposition(caseFileId, null, principal);
+        assertThat(afterGet.dimensions().get(1).items().get(0).included()).isFalse();
+    }
+
+    @Test
+    void put_decisionToolOnly_doesNotEraseAdverseMoyenExclusions() {
+        UUID moyenId = UUID.randomUUID();
+        when(adverseMoyenPersistenceService.findPersisted(eq(caseFileId)))
+                .thenReturn(List.of(new AdverseMoyenWithId(moyenId,
+                        new AdverseMoyen("Faute grave.", List.of(), List.of()))));
+
+        // 1) exclure un moyen.
+        service.putComposition(caseFileId, new CompositionUpdateRequest(List.of(
+                new CompositionUpdateRequest.ExclusionEntry("ADVERSE_MOYEN", moyenId.toString()))),
+                null, principal);
+        // 2) PUT outils SEULS (ne porte que DECISION_TOOL).
+        service.putComposition(caseFileId, new CompositionUpdateRequest(List.of(
+                new CompositionUpdateRequest.ExclusionEntry("DECISION_TOOL", "F-DT-08"))),
+                null, principal);
+
+        // L'exclusion du moyen DOIT survivre.
+        CompositionResponse response = service.getComposition(caseFileId, null, principal);
+        assertThat(response.dimensions().get(1).items().get(0).included()).isFalse();
+        assertThat(itemByKey(response, "F-DT-08").included()).isFalse();
+        // delete ADVERSE_MOYEN appelé UNE seule fois (au 1er PUT), pas au PUT outils.
+        verify(exclusionRepository, times(1))
+                .deleteByCaseFileIdAndDimension(caseFileId, "ADVERSE_MOYEN");
+    }
+
+    @Test
+    void put_adverseMoyenOnly_doesNotEraseDecisionToolExclusions() {
+        UUID moyenId = UUID.randomUUID();
+        when(adverseMoyenPersistenceService.findPersisted(eq(caseFileId)))
+                .thenReturn(List.of(new AdverseMoyenWithId(moyenId,
+                        new AdverseMoyen("Faute grave.", List.of(), List.of()))));
+
+        // 1) exclure un outil.
+        service.putComposition(caseFileId, new CompositionUpdateRequest(List.of(
+                new CompositionUpdateRequest.ExclusionEntry("DECISION_TOOL", "F-DT-08"))),
+                null, principal);
+        // 2) PUT moyens SEULS.
+        service.putComposition(caseFileId, new CompositionUpdateRequest(List.of(
+                new CompositionUpdateRequest.ExclusionEntry("ADVERSE_MOYEN", moyenId.toString()))),
+                null, principal);
+
+        CompositionResponse response = service.getComposition(caseFileId, null, principal);
+        assertThat(itemByKey(response, "F-DT-08").included()).isFalse();
+        assertThat(response.dimensions().get(1).items().get(0).included()).isFalse();
+        verify(exclusionRepository, times(1))
+                .deleteByCaseFileIdAndDimension(caseFileId, "DECISION_TOOL");
     }
 
     private static CompositionResponse.Item itemByKey(CompositionResponse response, String key) {

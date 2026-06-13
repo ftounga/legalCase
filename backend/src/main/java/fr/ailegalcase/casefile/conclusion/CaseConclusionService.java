@@ -660,14 +660,25 @@ public class CaseConclusionService {
      * reste accessible à la curation (F-288 vague 3) via
      * {@link AdverseMoyenPersistenceService#findPersisted}.</p>
      *
+     * <p>F-288 / SF-288-03 — les moyens dont l'{@code id} (string) figure dans l'ensemble
+     * d'exclusions de dimension {@code ADVERSE_MOYEN} sont <strong>filtrés</strong> AVANT le
+     * mapping vers le record {@link AdverseMoyen} injecté au prompt : l'avocat ne réfute pas
+     * un moyen qu'il concède. Ensemble vide ⇒ tous les moyens (non-régression SF-261-05).</p>
+     *
      * <p><strong>Fail-open</strong> : le service est lui-même fail-open ; tout échec ⇒
-     * liste vide ⇒ génération sans section. Ici on enveloppe par sécurité.</p>
+     * liste vide ⇒ génération sans section. Ici on enveloppe par sécurité. La lecture des
+     * exclusions est elle aussi fail-open (toute erreur ⇒ aucun filtre, tous les moyens).</p>
      */
     private List<AdverseMoyen> loadAdverseMoyensForPrompt(UUID caseFileId, String domain, String country) {
         try {
+            Set<String> excludedMoyenIds = loadExcludedAdverseMoyenIds(caseFileId);
             List<AdverseMoyen> moyens = new ArrayList<>();
             for (AdverseMoyenWithId persisted :
                     adverseMoyenPersistenceService.loadOrExtract(caseFileId, domain, country)) {
+                String id = persisted.id() != null ? persisted.id().toString() : null;
+                if (id != null && excludedMoyenIds.contains(id)) {
+                    continue;
+                }
                 moyens.add(persisted.moyen());
             }
             return moyens;
@@ -675,6 +686,27 @@ public class CaseConclusionService {
             log.warn("Lecture des moyens adverses indisponible pour caseFile {} — "
                     + "génération sans section de réfutation des moyens : {}", caseFileId, ex.getMessage());
             return List.of();
+        }
+    }
+
+    /**
+     * F-288 / SF-288-03 — ensemble des id de moyens adverses exclus par l'avocat
+     * (dimension {@code ADVERSE_MOYEN}). <strong>Fail-open</strong> : toute exception de
+     * lecture ⇒ ensemble vide ⇒ aucun filtre (tous les moyens, comportement SF-261-05).
+     */
+    private Set<String> loadExcludedAdverseMoyenIds(UUID caseFileId) {
+        try {
+            Set<String> excluded = new HashSet<>();
+            for (ConclusionCompositionExclusion exclusion : compositionExclusionRepository
+                    .findByCaseFileIdAndDimension(
+                            caseFileId, ConclusionCompositionService.DIMENSION_ADVERSE_MOYEN)) {
+                excluded.add(exclusion.getItemKey());
+            }
+            return excluded;
+        } catch (RuntimeException ex) {
+            log.warn("F-288 — lecture des exclusions de moyens adverses indisponible pour caseFile {} — "
+                    + "génération sans filtre : {}", caseFileId, ex.getMessage());
+            return Set.of();
         }
     }
 
