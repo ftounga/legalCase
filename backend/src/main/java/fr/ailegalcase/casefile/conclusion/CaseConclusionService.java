@@ -19,12 +19,8 @@ import fr.ailegalcase.casefile.DashboardTile;
 import fr.ailegalcase.casefile.ProcedureStageCatalog;
 import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitation;
 import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository;
-import fr.ailegalcase.document.Document;
-import fr.ailegalcase.document.DocumentExtraction;
-import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentPiece;
 import fr.ailegalcase.document.DocumentPieceRepository;
-import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.stylelearning.StyleCorpusDocument;
 import fr.ailegalcase.stylelearning.StyleCorpusDocumentStatus;
 import fr.ailegalcase.stylelearning.StyleCorpusRepository;
@@ -77,9 +73,7 @@ public class CaseConclusionService {
     private final JurisprudenceCitationRepository jurisprudenceCitationRepository;
     private final JurisprudenceCheckRepository jurisprudenceCheckRepository;
     private final fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext;
-    private final DocumentRepository documentRepository;
-    private final DocumentExtractionRepository documentExtractionRepository;
-    private final AdverseMoyensExtractor adverseMoyensExtractor;
+    private final AdverseMoyenPersistenceService adverseMoyenPersistenceService;
     private final ConclusionStreamPublisher streamPublisher;
     private final ConclusionCompositionExclusionRepository compositionExclusionRepository;
 
@@ -115,9 +109,7 @@ public class CaseConclusionService {
                                  JurisprudenceCitationRepository jurisprudenceCitationRepository,
                                  JurisprudenceCheckRepository jurisprudenceCheckRepository,
                                  fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext,
-                                 DocumentRepository documentRepository,
-                                 DocumentExtractionRepository documentExtractionRepository,
-                                 AdverseMoyensExtractor adverseMoyensExtractor,
+                                 AdverseMoyenPersistenceService adverseMoyenPersistenceService,
                                  ConclusionStreamPublisher streamPublisher,
                                  ConclusionCompositionExclusionRepository compositionExclusionRepository) {
         this.caseConclusionRepository = caseConclusionRepository;
@@ -131,9 +123,7 @@ public class CaseConclusionService {
         this.jurisprudenceCitationRepository = jurisprudenceCitationRepository;
         this.jurisprudenceCheckRepository = jurisprudenceCheckRepository;
         this.toolJurisprudenceContext = toolJurisprudenceContext;
-        this.documentRepository = documentRepository;
-        this.documentExtractionRepository = documentExtractionRepository;
-        this.adverseMoyensExtractor = adverseMoyensExtractor;
+        this.adverseMoyenPersistenceService = adverseMoyenPersistenceService;
         this.streamPublisher = streamPublisher;
         this.compositionExclusionRepository = compositionExclusionRepository;
     }
@@ -292,7 +282,7 @@ public class CaseConclusionService {
                         filterExcludedToolJurisprudence(
                                 toolJurisprudenceContext.collectForCaseFile(caseFileId), excludedToolIds),
                         loadAdverseJurisprudenceChecks(caseFileId),
-                        loadAdverseMoyens(caseFileId, domain, country),
+                        loadAdverseMoyensForPrompt(caseFileId, domain, country),
                         // F-271 / SF-271-02 — base récapitulative (texte de l'avocat à
                         // préserver) : content de la dernière version DONE, bordereau retiré.
                         // En mode « Régénérer de zéro » (generatedFromScratch), aucune base.
@@ -658,36 +648,31 @@ public class CaseConclusionService {
     }
 
     /**
-     * F-261 / SF-261-02 — moyens de la partie adverse extraits des documents marqués
-     * « écritures adverses » ({@code adverse_pleadings}, SF-261-01) du dossier.
+     * F-261 / SF-261-05 — moyens de la partie adverse à injecter au prompt, lus depuis
+     * le <strong>set persisté</strong> (table {@code adverse_moyen}) via
+     * {@link AdverseMoyenPersistenceService#loadOrExtract}.
      *
-     * <p>Charge le texte extrait de chaque document adverse ({@link DocumentExtraction})
-     * puis délègue l'extraction à {@link AdverseMoyensExtractor} (appel LLM uniquement
-     * pour le travail FR avec texte exploitable ; no-op sinon). <strong>Aucun document
-     * adverse → aucun appel LLM</strong> (liste de textes vide).</p>
+     * <p>Le service retourne le set persisté (sans ré-extraction LLM si déjà figé), ou
+     * l'extrait + persiste à la première génération. On le mappe vers l'intrant prompt
+     * {@link AdverseMoyen} <strong>nu</strong> (sans id) : le contenu injecté à la
+     * section « MOYENS ADVERSES À RÉFUTER » est strictement identique à l'existant
+     * (mêmes thèse / fondements / pièces, même ordre — non-régression F-261). L'id stable
+     * reste accessible à la curation (F-288 vague 3) via
+     * {@link AdverseMoyenPersistenceService#findPersisted}.</p>
      *
-     * <p><strong>Fail-open</strong> : toute erreur de lecture aboutit à une liste vide
-     * (génération sans section), l'exception n'est jamais propagée. L'extracteur est
-     * lui-même fail-open sur l'appel IA.</p>
+     * <p><strong>Fail-open</strong> : le service est lui-même fail-open ; tout échec ⇒
+     * liste vide ⇒ génération sans section. Ici on enveloppe par sécurité.</p>
      */
-    private List<AdverseMoyen> loadAdverseMoyens(UUID caseFileId, String domain, String country) {
+    private List<AdverseMoyen> loadAdverseMoyensForPrompt(UUID caseFileId, String domain, String country) {
         try {
-            List<String> textesAdverses = new ArrayList<>();
-            for (Document document : documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId)) {
-                if (!document.isAdversePleadings()) {
-                    continue;
-                }
-                documentExtractionRepository.findByDocumentId(document.getId())
-                        .map(DocumentExtraction::getExtractedText)
-                        .filter(text -> text != null && !text.isBlank())
-                        .ifPresent(textesAdverses::add);
+            List<AdverseMoyen> moyens = new ArrayList<>();
+            for (AdverseMoyenWithId persisted :
+                    adverseMoyenPersistenceService.loadOrExtract(caseFileId, domain, country)) {
+                moyens.add(persisted.moyen());
             }
-            if (textesAdverses.isEmpty()) {
-                return List.of();
-            }
-            return adverseMoyensExtractor.extract(textesAdverses, domain, country, caseFileId);
+            return moyens;
         } catch (RuntimeException ex) {
-            log.warn("Lecture des écritures adverses indisponible pour caseFile {} — "
+            log.warn("Lecture des moyens adverses indisponible pour caseFile {} — "
                     + "génération sans section de réfutation des moyens : {}", caseFileId, ex.getMessage());
             return List.of();
         }
