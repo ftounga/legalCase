@@ -20,6 +20,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ContradictoireService } from '../../core/services/contradictoire.service';
+import { DocumentService } from '../../core/services/document.service';
+import { Document } from '../../core/models/document.model';
 import {
   ContradictoireParty,
   ContradictoireRound,
@@ -55,6 +57,7 @@ export class ContradictoireTimelineComponent implements OnInit {
   @Output() generateReplyRequested = new EventEmitter<void>();
 
   private readonly service = inject(ContradictoireService);
+  private readonly documentService = inject(DocumentService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -65,6 +68,11 @@ export class ContradictoireTimelineComponent implements OnInit {
   readonly showForm = signal(false);
   readonly editingId = signal<string | null>(null);
 
+  /** SF-282-03 : documents du dossier, source du sélecteur « Pièce source ». */
+  readonly documents = signal<Document[]>([]);
+  /** SF-282-03 : true si le chargement des documents a échoué (dégradation gracieuse). */
+  readonly documentsUnavailable = signal(false);
+
   readonly rounds = computed<ContradictoireRound[]>(() => this.timeline()?.rounds ?? []);
   readonly summary = computed(() => this.timeline()?.summary ?? null);
   readonly awaitingOurs = computed(() => this.summary()?.awaitingParty === 'OURS');
@@ -74,10 +82,39 @@ export class ContradictoireTimelineComponent implements OnInit {
     label: this.fb.control<string>('', Validators.maxLength(200)),
     datedAt: this.fb.nonNullable.control<string>('', Validators.required),
     responseDueAt: this.fb.control<string>(''),
+    sourceDocumentId: this.fb.control<string | null>(null),
   });
 
   ngOnInit(): void {
     this.load();
+    this.loadDocuments();
+  }
+
+  /** SF-282-03 : charge les documents du dossier pour le sélecteur de pièce source. */
+  private loadDocuments(): void {
+    this.documentService.list(this.caseFileId).subscribe({
+      next: (docs) => {
+        this.documents.set(docs ?? []);
+        this.documentsUnavailable.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.documents.set([]);
+        this.documentsUnavailable.set(true);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** SF-282-03 : nom de fichier de la pièce liée à un round (null si supprimée/inconnue). */
+  sourceDocumentName(documentId: string | null): string | null {
+    if (!documentId) return null;
+    return this.documents().find((d) => d.id === documentId)?.originalFilename ?? null;
+  }
+
+  /** SF-282-03 : URL de téléchargement de la pièce liée (réutilise DocumentService). */
+  sourceDocumentUrl(documentId: string): string {
+    return this.documentService.downloadUrl(this.caseFileId, documentId);
   }
 
   private load(): void {
@@ -97,7 +134,7 @@ export class ContradictoireTimelineComponent implements OnInit {
 
   openAdd(party: ContradictoireParty): void {
     this.editingId.set(null);
-    this.form.reset({ party, label: '', datedAt: '', responseDueAt: '' });
+    this.form.reset({ party, label: '', datedAt: '', responseDueAt: '', sourceDocumentId: null });
     this.showForm.set(true);
   }
 
@@ -108,6 +145,7 @@ export class ContradictoireTimelineComponent implements OnInit {
       label: round.label ?? '',
       datedAt: round.datedAt,
       responseDueAt: round.responseDueAt ?? '',
+      sourceDocumentId: round.sourceDocumentId ?? null,
     });
     this.showForm.set(true);
   }
@@ -132,6 +170,7 @@ export class ContradictoireTimelineComponent implements OnInit {
       label: raw.label?.trim() || null,
       datedAt: raw.datedAt,
       responseDueAt: raw.responseDueAt || null,
+      sourceDocumentId: raw.sourceDocumentId || null,
     };
     this.saving.set(true);
     const id = this.editingId();
