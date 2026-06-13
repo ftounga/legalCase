@@ -666,7 +666,10 @@ describe('ConclusionsSectionComponent', () => {
     // PUT de la composition AVANT generate, avec l'exclusion choisie.
     const putReq = httpMock.expectOne(COMPOSITION_URL);
     expect(putReq.request.method).toBe('PUT');
+    // SF-288-04 — le PUT déclare les dimensions affichées (pour pouvoir les vider
+    // côté backend quand « tout recoché »), en plus des exclusions choisies.
     expect(putReq.request.body).toEqual({
+      dimensions: ['DECISION_TOOL'],
       exclusions: [{ dimension: 'DECISION_TOOL', itemKey: 'tool-a' }],
     });
     putReq.flush(curableComposition());
@@ -736,7 +739,9 @@ describe('ConclusionsSectionComponent', () => {
     // PUT avec l'exclusion ADVERSE_MOYEN choisie, AVANT la génération.
     const putReq = httpMock.expectOne(COMPOSITION_URL);
     expect(putReq.request.method).toBe('PUT');
+    // SF-288-04 — le PUT déclare les 2 dimensions affichées (vidables même sans exclusion).
     expect(putReq.request.body).toEqual({
+      dimensions: ['DECISION_TOOL', 'ADVERSE_MOYEN'],
       exclusions: [{ dimension: 'ADVERSE_MOYEN', itemKey: 'moyen-2' }],
     });
     putReq.flush(compositionWithMoyens());

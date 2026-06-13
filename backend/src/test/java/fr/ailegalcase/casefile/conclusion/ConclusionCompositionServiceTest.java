@@ -164,11 +164,38 @@ class ConclusionCompositionServiceTest {
 
     @Test
     void put_emptyBody_touchesNoDimension() {
-        // Body vide → aucune dimension portée → aucun delete (le PUT n'efface rien).
+        // Body sans `dimensions` déclarées ET sans exclusions → aucune dimension portée
+        // → aucun delete (compat. SF-288-01 : un body vide n'efface rien).
         service.putComposition(caseFileId, new CompositionUpdateRequest(List.of()), null, principal);
 
         verify(exclusionRepository, org.mockito.Mockito.never())
                 .deleteByCaseFileIdAndDimension(eq(caseFileId), any());
+    }
+
+    @Test
+    void put_declaredDimensionWithEmptyExclusions_clearsThatDimension() {
+        // SF-288-04 — régression staging 2026-06-13 : « tout recoché » ne ré-incluait pas.
+        // 1) on exclut F-DT-08.
+        service.putComposition(caseFileId, new CompositionUpdateRequest(List.of(
+                new CompositionUpdateRequest.ExclusionEntry("DECISION_TOOL", "F-DT-08"))),
+                null, principal);
+        // 2) « tout recoché » : le client DÉCLARE gérer DECISION_TOOL mais n'exclut rien.
+        CompositionResponse response = service.putComposition(caseFileId,
+                new CompositionUpdateRequest(List.of("DECISION_TOOL"), List.of()),
+                null, principal);
+
+        // L'exclusion précédente est effacée → F-DT-08 ré-inclus (bug corrigé).
+        assertThat(itemByKey(response, "F-DT-08").included()).isTrue();
+        assertThat(itemByKey(response, "F-DT-09").included()).isTrue();
+    }
+
+    @Test
+    void put_declaredUnknownDimension_throws400() {
+        CompositionUpdateRequest request = new CompositionUpdateRequest(
+                List.of("UNKNOWN_DIM"), List.of());
+        assertThatThrownBy(() -> service.putComposition(caseFileId, request, null, principal))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
     }
 
     @Test
