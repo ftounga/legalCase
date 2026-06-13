@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -29,6 +30,13 @@ public class CasePhaseController {
                                               @AuthenticationPrincipal OidcUser oidcUser,
                                               Principal principal) {
         return service.timeline(caseFileId, oidcUser, principal);
+    }
+
+    @GetMapping("/suggestions")
+    public List<CasePhaseSuggestion> suggestions(@PathVariable UUID caseFileId,
+                                                 @AuthenticationPrincipal OidcUser oidcUser,
+                                                 Principal principal) {
+        return service.suggestions(caseFileId, oidcUser, principal);
     }
 
     @PostMapping

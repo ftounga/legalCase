@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import {
   CasePhase,
   CasePhaseInput,
+  CasePhaseSuggestion,
   CasePhaseTimeline,
 } from '../models/case-phase.model';
 
@@ -18,6 +19,11 @@ export class CasePhaseService {
 
   timeline(caseFileId: string): Observable<CasePhaseTimeline> {
     return this.http.get<CasePhaseTimeline>(this.url(caseFileId));
+  }
+
+  /** SF-283-03 — phases suggérées (domaine × pays du dossier), ordonnées. */
+  suggestions(caseFileId: string): Observable<CasePhaseSuggestion[]> {
+    return this.http.get<CasePhaseSuggestion[]>(`${this.url(caseFileId)}/suggestions`);
   }
 
   create(caseFileId: string, input: CasePhaseInput): Observable<CasePhase> {

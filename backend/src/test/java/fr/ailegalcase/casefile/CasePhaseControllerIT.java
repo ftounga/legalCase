@@ -226,6 +226,50 @@ class CasePhaseControllerIT {
                 .andExpect(status().isUnauthorized());
     }
 
+    // I-11 : suggestions DT×FR (workspace FRANCE par défaut, dossier DROIT_DU_TRAVAIL)
+    @Test
+    void suggestions_travailFrance_orderedCivilList() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/{id}/phases/suggestions", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(8))
+                .andExpect(jsonPath("$[0].type").value("SAISINE"))
+                .andExpect(jsonPath("$[0].defaultLabel").value("Saisine du Conseil de prud'hommes"))
+                .andExpect(jsonPath("$[7].type").value("EXECUTION"));
+    }
+
+    // I-12 : suggestions immigration × BELGIQUE → procédure administrative BE
+    @Test
+    void suggestions_immigrationBelgique_administrativePath() throws Exception {
+        workspace.setCountry("BELGIQUE");
+        workspaceRepository.save(workspace);
+        caseFile.setLegalDomain("DROIT_IMMIGRATION");
+        caseFileRepository.save(caseFile);
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/phases/suggestions", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[0].type").value("RECOURS_PREALABLE"))
+                .andExpect(jsonPath("$[1].type").value("CCE"))
+                .andExpect(jsonPath("$[2].type").value("CONSEIL_ETAT"));
+    }
+
+    // I-13 : suggestions d'un dossier d'un autre workspace / inexistant → 404
+    @Test
+    void suggestions_caseFileFromOtherWorkspace_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/{id}/phases/suggestions", UUID.randomUUID())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-14 : suggestions sans auth → 401
+    @Test
+    void suggestions_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/{id}/phases/suggestions", caseFile.getId()))
+                .andExpect(status().isUnauthorized());
+    }
+
     private CasePhase savePhase(CasePhaseType type, LocalDate enteredAt) {
         CasePhase p = new CasePhase();
         p.setCaseFile(caseFile);
