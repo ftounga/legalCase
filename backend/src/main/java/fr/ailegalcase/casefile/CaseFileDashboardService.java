@@ -1154,7 +1154,15 @@ public class CaseFileDashboardService {
                 }
                 basse = r.fourchetteBasseMontant();
                 haute = r.fourhetteHauteMontant();
-                baremeSource = r.baremeSource();
+                // F-291 / SF-291-01 — branche Macron : enrichir la ligne secondaire avec
+                // les bornes LÉGALES (L.1235-3) en plus de la fourchette jurisprudentielle.
+                // La primaryValue reste la fourchette jurisprudentielle (estimation phare) ;
+                // on transmet en secondaire le barème légal calculé (plancher/plafond mois +
+                // montants = salaireMensuel × bornes) pour que les conclusions ne confondent
+                // plus barème légal et fourchette indicative. Lecture seule : aucun calcul de
+                // l'outil n'est altéré. Fail-open : si une borne ou le salaire est null, on
+                // conserve le baremeSource d'origine (pas de bornes légales injectées).
+                baremeSource = formatBaremeSecondary(r);
             } catch (Exception ex) {
                 return null;
             }
@@ -4719,6 +4727,45 @@ public class CaseFileDashboardService {
         }
         return java.text.NumberFormat.getNumberInstance(java.util.Locale.FRANCE)
                 .format(amount.setScale(0, java.math.RoundingMode.HALF_UP));
+    }
+
+    /**
+     * F-291 / SF-291-01 — compose la ligne secondaire du comparateur d'indemnités
+     * (branche Macron). Si le salaire mensuel et les deux bornes légales (plancher /
+     * plafond en mois, L.1235-3) sont disponibles, renvoie le barème légal calculé
+     * suivi de la mention « fourchette jurisprudentielle indicative » :
+     * {@code "Barème légal L.1235-3 : 3–8 mois (10 500 – 28 000 €) · fourchette
+     * jurisprudentielle indicative"}. À défaut d'une de ces valeurs, conserve le
+     * {@code baremeSource} d'origine (fail-open, pas de bornes légales injectées).
+     */
+    private static String formatBaremeSecondary(IndemniteComparatifResult r) {
+        BigDecimal salaire = r.salaireMensuel();
+        BigDecimal plancherMois = r.baremePlancherMois();
+        BigDecimal plafondMois = r.baremePlafondMois();
+        if (salaire == null || plancherMois == null || plafondMois == null) {
+            return r.baremeSource();
+        }
+        BigDecimal plancherMontant = salaire.multiply(plancherMois);
+        BigDecimal plafondMontant = salaire.multiply(plafondMois);
+        return "Barème légal L.1235-3 : "
+                + formatMois(plancherMois) + "–" + formatMois(plafondMois) + " mois ("
+                + formatEuros(plancherMontant) + " – " + formatEuros(plafondMontant) + " €)"
+                + " · fourchette jurisprudentielle indicative";
+    }
+
+    /**
+     * F-291 / SF-291-01 — formate un nombre de mois sans décimale superflue
+     * (ex. {@code 3}, {@code 8}, {@code 3,5}). Robuste au {@code null} (→ chaîne vide).
+     */
+    private static String formatMois(BigDecimal mois) {
+        if (mois == null) {
+            return "";
+        }
+        BigDecimal stripped = mois.stripTrailingZeros();
+        if (stripped.scale() < 0) {
+            stripped = stripped.setScale(0);
+        }
+        return stripped.toPlainString();
     }
 
 }
