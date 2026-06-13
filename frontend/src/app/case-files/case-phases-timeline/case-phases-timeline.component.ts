@@ -21,6 +21,7 @@ import { CasePhaseService } from '../../core/services/case-phase.service';
 import {
   CASE_PHASE_OPTIONS,
   CasePhase,
+  CasePhaseSuggestion,
   CasePhaseTimeline,
   CasePhaseType,
   casePhaseLabel,
@@ -59,7 +60,20 @@ export class CasePhasesTimelineComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  readonly phaseOptions = CASE_PHASE_OPTIONS;
+  /**
+   * SF-283-03 — suggestions de phases (domaine × pays du dossier), ordonnées,
+   * chargées au démarrage. Tant qu'elles ne sont pas là, on retombe sur les
+   * options civiles FR travail (CASE_PHASE_OPTIONS) — aucun écran vide.
+   */
+  readonly suggestions = signal<CasePhaseSuggestion[]>([]);
+
+  readonly phaseOptions = computed<ReadonlyArray<{ value: CasePhaseType; label: string }>>(() => {
+    const s = this.suggestions();
+    if (s.length === 0) {
+      return CASE_PHASE_OPTIONS;
+    }
+    return s.map((sug) => ({ value: sug.type, label: sug.defaultLabel }));
+  });
 
   readonly timeline = signal<CasePhaseTimeline | null>(null);
   readonly loading = signal(true);
@@ -79,6 +93,37 @@ export class CasePhasesTimelineComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.loadSuggestions();
+  }
+
+  private loadSuggestions(): void {
+    this.service.suggestions(this.caseFileId).subscribe({
+      next: (s) => {
+        this.suggestions.set(s);
+        this.cdr.markForCheck();
+      },
+      // Échec → on garde le fallback statique (CASE_PHASE_OPTIONS), pas de blocage.
+      error: () => {},
+    });
+  }
+
+  /**
+   * SF-283-03 — à la sélection d'un type, pré-remplit le libellé avec le
+   * defaultLabel de la suggestion (éditable). Ne touche pas un libellé déjà
+   * saisi manuellement par l'avocat.
+   */
+  onPhaseTypeChange(type: CasePhaseType): void {
+    const current = (this.form.controls.label.value ?? '').trim();
+    const known = new Set(this.suggestions().map((s) => s.defaultLabel));
+    // On ne remplace que si vide ou si la valeur courante est un defaultLabel
+    // (donc non personnalisé par l'avocat).
+    if (current !== '' && !known.has(current)) {
+      return;
+    }
+    const match = this.suggestions().find((s) => s.type === type);
+    if (match) {
+      this.form.controls.label.setValue(match.defaultLabel);
+    }
   }
 
   private load(): void {
@@ -98,7 +143,14 @@ export class CasePhasesTimelineComponent implements OnInit {
 
   openAdd(): void {
     this.editingId.set(null);
-    this.form.reset({ phase: 'SAISINE', label: '', enteredAt: '', note: '' });
+    const first = this.suggestions()[0];
+    const defaultType: CasePhaseType = first?.type ?? 'SAISINE';
+    this.form.reset({
+      phase: defaultType,
+      label: first?.defaultLabel ?? '',
+      enteredAt: '',
+      note: '',
+    });
     this.showForm.set(true);
   }
 

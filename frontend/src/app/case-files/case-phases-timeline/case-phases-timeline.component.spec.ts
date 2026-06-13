@@ -5,7 +5,10 @@ import {
 } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CasePhasesTimelineComponent } from './case-phases-timeline.component';
-import { CasePhaseTimeline } from '../../core/models/case-phase.model';
+import {
+  CasePhaseSuggestion,
+  CasePhaseTimeline,
+} from '../../core/models/case-phase.model';
 
 describe('CasePhasesTimelineComponent', () => {
   let fixture: ComponentFixture<CasePhasesTimelineComponent>;
@@ -14,6 +17,18 @@ describe('CasePhasesTimelineComponent', () => {
 
   const CASE_ID = 'case-1';
   const URL = `/api/v1/case-files/${CASE_ID}/phases`;
+  const SUGGESTIONS_URL = `${URL}/suggestions`;
+
+  const SUGGESTIONS: CasePhaseSuggestion[] = [
+    { type: 'RECOURS_PREALABLE', defaultLabel: 'Recours gracieux / hiérarchique' },
+    { type: 'TRIBUNAL_ADMINISTRATIF', defaultLabel: 'Recours contentieux (Tribunal administratif)' },
+    { type: 'CONSEIL_ETAT', defaultLabel: 'Cassation (Conseil d’État)' },
+  ];
+
+  /** Vide la requête de suggestions déclenchée par ngOnInit (ordre indépendant du timeline). */
+  function flushSuggestions(s: CasePhaseSuggestion[] = SUGGESTIONS): void {
+    httpMock.expectOne(SUGGESTIONS_URL).flush(s);
+  }
 
   function timeline(overrides: Partial<CasePhaseTimeline> = {}): CasePhaseTimeline {
     return {
@@ -48,6 +63,7 @@ describe('CasePhasesTimelineComponent', () => {
   it('charge et rend les phases + la phase courante', () => {
     fixture.detectChanges();
     httpMock.expectOne(URL).flush(timeline());
+    flushSuggestions();
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
@@ -59,6 +75,7 @@ describe('CasePhasesTimelineComponent', () => {
   it('met en exergue la dernière phase comme phase courante', () => {
     fixture.detectChanges();
     httpMock.expectOne(URL).flush(timeline());
+    flushSuggestions();
     fixture.detectChanges();
 
     const last = (fixture.nativeElement as HTMLElement)
@@ -69,6 +86,7 @@ describe('CasePhasesTimelineComponent', () => {
   it('état initial vide : montre « Phase 1 — Saisine »', () => {
     fixture.detectChanges();
     httpMock.expectOne(URL).flush({ phases: [], currentPhase: null } as CasePhaseTimeline);
+    flushSuggestions();
     fixture.detectChanges();
 
     const txt = (fixture.nativeElement as HTMLElement).textContent ?? '';
@@ -79,6 +97,7 @@ describe('CasePhasesTimelineComponent', () => {
   it('ajoute une phase (POST) puis recharge', () => {
     fixture.detectChanges();
     httpMock.expectOne(URL).flush({ phases: [], currentPhase: null } as CasePhaseTimeline);
+    flushSuggestions();
 
     component.openAdd();
     component.form.patchValue({ phase: 'CONCILIATION', enteredAt: '2026-02-15' });
@@ -88,7 +107,7 @@ describe('CasePhasesTimelineComponent', () => {
     expect(post.request.body.phase).toBe('CONCILIATION');
     post.flush({ id: 'p3', phase: 'CONCILIATION', label: null, enteredAt: '2026-02-15', note: null, createdAt: '', updatedAt: '' });
 
-    // rechargement
+    // rechargement (timeline seul ; les suggestions ne sont pas rechargées au save)
     httpMock.expectOne(URL).flush(timeline());
     expect(component.showForm()).toBe(false);
   });
@@ -96,9 +115,62 @@ describe('CasePhasesTimelineComponent', () => {
   it('le formulaire est invalide sans date d’entrée', () => {
     fixture.detectChanges();
     httpMock.expectOne(URL).flush({ phases: [], currentPhase: null } as CasePhaseTimeline);
+    flushSuggestions();
 
     component.openAdd();
     component.form.patchValue({ phase: 'SAISINE', enteredAt: '' });
     expect(component.form.invalid).toBe(true);
+  });
+
+  it('SF-283-03 : peuple le sélecteur avec les suggestions (domaine × pays)', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(URL).flush({ phases: [], currentPhase: null } as CasePhaseTimeline);
+    flushSuggestions();
+    fixture.detectChanges();
+
+    const opts = component.phaseOptions();
+    expect(opts.map((o) => o.value)).toEqual([
+      'RECOURS_PREALABLE',
+      'TRIBUNAL_ADMINISTRATIF',
+      'CONSEIL_ETAT',
+    ]);
+    expect(opts[0].label).toBe('Recours gracieux / hiérarchique');
+  });
+
+  it('SF-283-03 : sélectionner un type pré-remplit le libellé (éditable)', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(URL).flush({ phases: [], currentPhase: null } as CasePhaseTimeline);
+    flushSuggestions();
+
+    component.openAdd();
+    // openAdd pré-remplit déjà avec la 1re suggestion
+    expect(component.form.controls.label.value).toBe('Recours gracieux / hiérarchique');
+
+    // changer de type → met à jour le libellé par défaut
+    component.form.controls.phase.setValue('CONSEIL_ETAT');
+    component.onPhaseTypeChange('CONSEIL_ETAT');
+    expect(component.form.controls.label.value).toBe('Cassation (Conseil d’État)');
+  });
+
+  it('SF-283-03 : ne réécrit pas un libellé personnalisé par l’avocat', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(URL).flush({ phases: [], currentPhase: null } as CasePhaseTimeline);
+    flushSuggestions();
+
+    component.openAdd();
+    component.form.controls.label.setValue('Mon libellé à moi');
+    component.onPhaseTypeChange('CONSEIL_ETAT');
+    expect(component.form.controls.label.value).toBe('Mon libellé à moi');
+  });
+
+  it('SF-283-03 : fallback options statiques si suggestions vides', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(URL).flush({ phases: [], currentPhase: null } as CasePhaseTimeline);
+    flushSuggestions([]);
+    fixture.detectChanges();
+
+    // CASE_PHASE_OPTIONS = 8 phases civiles FR travail
+    expect(component.phaseOptions().length).toBe(8);
+    expect(component.phaseOptions()[0].value).toBe('SAISINE');
   });
 });

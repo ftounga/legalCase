@@ -75,8 +75,9 @@
         <div class="phase-form-grid">
           <mat-form-field appearance="outline">
             <mat-label>Phase</mat-label>
-            <mat-select formControlName="phase">
-              @for (opt of phaseOptions; track opt.value) {
+            <mat-select formControlName="phase"
+                        (selectionChange)="onPhaseTypeChange($event.value)">
+              @for (opt of phaseOptions(); track opt.value) {
                 <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
               }
             </mat-select>

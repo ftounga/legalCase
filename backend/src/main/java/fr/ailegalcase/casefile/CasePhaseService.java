@@ -48,6 +48,19 @@ public class CasePhaseService {
                 currentPhase(phases));
     }
 
+    /**
+     * SF-283-03 — phases suggérées pour le formulaire, résolues sur
+     * (domaine du dossier × pays du workspace). Lecture seule, isolation via le
+     * dossier. Combinaison inconnue → fallback civil FR (cf. catalogue).
+     */
+    @Transactional(readOnly = true)
+    public List<CasePhaseSuggestion> suggestions(UUID caseFileId, OidcUser oidcUser, Principal principal) {
+        User user = resolveUser(oidcUser, principal);
+        CaseFile caseFile = resolveCaseFileForUser(caseFileId, user);
+        String country = caseFile.getWorkspace().getCountry();
+        return CasePhaseSuggestionCatalog.forDomainAndCountry(caseFile.getLegalDomain(), country);
+    }
+
     @Transactional
     public CasePhaseResponse create(UUID caseFileId, CasePhaseRequest request,
                                     OidcUser oidcUser, Principal principal) {
