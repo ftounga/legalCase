@@ -86,9 +86,14 @@
 18. `[ ]` **Modifier** la date de « Mise en état » à `20/05/2026`.
     - **RA** : réordonnancement correct, badge « EN COURS » conservé sur la plus récente.
 
-> **Cas IMMIGRATION / BELGIQUE (réserve connue)** : sur un dossier immigration (ou BE), les *types* proposés (`SAISINE/CONCILIATION/MISE_EN_ETAT/CASSATION`) sont du vocabulaire civil FR.
-> 19. `[ ]` Vérifier que l'on peut **quand même** créer une phase en utilisant le **libellé libre** (ex. type `SAISINE` + libellé `Recours gracieux préfecture` pour l'immigration).
->     - **RA** : la frise fonctionne (libellé libre affiché), mais les *suggestions de type* ne sont pas métier-justes → suivi backlog F-283c si besoin.
+> **Cas IMMIGRATION / BELGIQUE (corrigé par SF-283-03)** : les suggestions de phases sont désormais adaptées au domaine du dossier × pays du workspace.
+> 19. `[ ]` Sur un dossier **immigration FR**, ouvrir le formulaire d'ajout de phase.
+>     - **RA** : le sélecteur propose la **procédure administrative** : *Recours gracieux/hiérarchique → Tribunal administratif → CNDA (asile) → Cour administrative d'appel → Conseil d'État → Exécution* ; sélectionner un type **pré-remplit le libellé** (éditable).
+> 20. `[ ]` Sur un dossier **travail BE** (workspace Belgique), idem.
+>     - **RA** : *Introduction (citation/requête) → Mise en état (art. 747 C. jud.) → Audience de plaidoiries → Jugement → **Cour du travail** → Cassation → Exécution* (plus de « conciliation BCO »).
+> 21. `[ ]` Combinaison non couverte (autre domaine/pays) → **RA** : fallback sur la liste civile FR (8 phases), aucun écran vide.
+
+> ⚠️ La numérotation ci-dessous (§4+) est décalée de +2 après l'ajout des étapes 20-21.
 
 ---
 
