@@ -307,6 +307,7 @@ document_analyses
 case_analyses
 case_conclusions
 conclusion_composition_exclusion
+adverse_moyen
 case_jurisprudence_citations
 tool_jurisprudence_mappings
 jurisprudence_watch_flags
@@ -681,6 +682,35 @@ created_at (timestamptz)
 
 Contrainte unique uq_conclusion_composition_exclusion (case_file_id, dimension, item_key).
 Index idx_conclusion_composition_exclusion_case_file (case_file_id).
+
+---
+
+## adverse_moyen
+
+Moyens de la partie adverse **persistés** (F-261 / SF-261-05). Un moyen = un argument
+soutenu par l'adversaire (thèse + fondements juridiques + pièces invoquées), extrait des
+documents marqués « écritures adverses » (`adverse_pleadings`, SF-261-01) par
+`AdverseMoyensExtractor` (LLM gaté `AiCallContext`). **Avant SF-261-05** les moyens étaient
+ré-extraits à chaque génération (record éphémère, sans ID) ; désormais ils sont **persistés
+avec un ID stable** : `CaseConclusionService.prepare` lit le set persisté
+(`AdverseMoyenPersistenceService.loadOrExtract` — extraction-si-absent en fallback, fail-open)
+au lieu de ré-extraire → modal de composition et génération lisent les **mêmes** moyens.
+**Replace-set** par dossier (delete+insert ordonné) : les ID ne changent qu'au `refresh`
+explicite, ce qui rend l'exclusion durable (F-288 vague 3, dimension `ADVERSE_MOYEN` de
+`conclusion_composition_exclusion`, `item_key` = id du moyen). Isolation workspace via
+`case_file_id`. **Limite MVP** : pas d'auto-refresh à l'ajout d'une nouvelle écriture adverse.
+
+Champs :
+
+id (uuid)
+case_file_id (FK → case_files, ON DELETE CASCADE)
+these (text — thèse de l'adversaire)
+fondements (text — JSON array des bases juridiques)
+pieces_invoquees (text — JSON array des pièces invoquées)
+ordre (int — ordre d'extraction)
+created_at (timestamptz)
+
+Index idx_adverse_moyen_case_file (case_file_id).
 
 ---
 

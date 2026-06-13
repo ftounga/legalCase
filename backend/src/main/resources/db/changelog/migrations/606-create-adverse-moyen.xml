@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="606-create-adverse-moyen" author="legalcase">
+        <comment>
+            F-261 / SF-261-05 — persistance des moyens de la partie adverse extraits
+            (SF-261-02). Chaque ligne = un moyen extrait des écritures adverses d'un
+            dossier, avec un ID STABLE réutilisable. La génération lit désormais ce set
+            persisté (replace-set : delete + insert ordonné) au lieu de ré-extraire par
+            LLM à chaque génération. Pré-requis de la curation des moyens (F-288 vague 3),
+            qui lira ces lignes par leur id. fondements / pieces_invoquees sont des
+            tableaux JSON sérialisés en texte. Isolation workspace via case_file_id.
+        </comment>
+
+        <createTable tableName="adverse_moyen">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="these" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fondements" type="text"/>
+            <column name="pieces_invoquees" type="text"/>
+            <column name="ordre" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="adverse_moyen" baseColumnNames="case_file_id"
+                referencedTableName="case_files" referencedColumnNames="id"
+                constraintName="fk_adverse_moyen_case_file" onDelete="CASCADE"/>
+
+        <createIndex tableName="adverse_moyen"
+                     indexName="idx_adverse_moyen_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="adverse_moyen"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
