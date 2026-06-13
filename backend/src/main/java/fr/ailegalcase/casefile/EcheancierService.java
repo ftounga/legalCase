@@ -64,11 +64,17 @@ public class EcheancierService {
                     EcheancierKind.DEADLINE, d.getSource()));
         }
 
-        // 2) Échéances de réponse des rounds contradictoires (fail-open sur responseDueAt null).
-        for (ContradictoireRound r : roundRepository.findByCaseFileIdOrderByRoundNumberAsc(caseFile.getId())) {
-            if (r.getResponseDueAt() == null) continue;
-            items.add(toItem(r.getId(), responseLabel(r), r.getResponseDueAt(), today,
-                    EcheancierKind.CONTRADICTOIRE, "CONTRADICTOIRE"));
+        // 2) Échéance de réponse du DERNIER round contradictoire uniquement (SF-290-04).
+        // Une échéance de réponse dont un round postérieur existe est considérée *satisfaite*
+        // (la réponse attendue est arrivée) → on ne l'affiche plus comme due/dépassée. Seul le
+        // dernier round (aucun round postérieur) porte encore une échéance de réponse vivante.
+        var rounds = roundRepository.findByCaseFileIdOrderByRoundNumberAsc(caseFile.getId());
+        if (!rounds.isEmpty()) {
+            ContradictoireRound last = rounds.get(rounds.size() - 1);
+            if (last.getResponseDueAt() != null) {
+                items.add(toItem(last.getId(), responseLabel(last), last.getResponseDueAt(), today,
+                        EcheancierKind.CONTRADICTOIRE, "CONTRADICTOIRE"));
+            }
         }
 
         items.sort(Comparator.comparing(EcheancierItem::dueDate));
