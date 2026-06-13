@@ -185,6 +185,36 @@ class EcheancierControllerIT {
                 .andExpect(jsonPath("$.items.length()").value(0));
     }
 
+    // SF-290-04 : l'échéance de réponse d'un round est satisfaite par un round postérieur
+    // → seule l'échéance du DERNIER round subsiste (round 1 dépassé n'apparaît plus).
+    @Test
+    void roundResponseDeadlineSatisfiedByLaterRound() throws Exception {
+        LocalDate today = LocalDate.now();
+        saveRound(1, "Nos conclusions de saisine", today.minusDays(54)); // échéance passée (J+54 dépassé)
+        saveRound(2, "Conclusions adverses", today.plusDays(20));        // round postérieur = réponse arrivée
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/echeancier", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))   // round 1 (satisfait) exclu
+                .andExpect(jsonPath("$.items[0].source").value("CONTRADICTOIRE"))
+                .andExpect(jsonPath("$.items[0].urgency").value("UPCOMING"))
+                .andExpect(jsonPath("$.counts.overdue").value(0));  // plus d'OVERDUE fantôme
+    }
+
+    // SF-290-04 : si le dernier round n'a pas d'échéance de réponse, aucune échéance de round n'apparaît.
+    @Test
+    void lastRoundWithoutDueAt_noRoundEcheance() throws Exception {
+        LocalDate today = LocalDate.now();
+        saveRound(1, "Nos conclusions", today.minusDays(54)); // satisfait par le round 2
+        saveRound(2, "Notre réplique", null);                 // dernier round, sans échéance
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/echeancier", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
     private CaseDeadline saveDeadline(String label, LocalDate dueDate, String source, String aiStatus) {
         CaseDeadline d = new CaseDeadline();
         d.setCaseFile(caseFile);
