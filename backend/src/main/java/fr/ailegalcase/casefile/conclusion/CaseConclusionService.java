@@ -78,6 +78,23 @@ public class CaseConclusionService {
     private final DocumentRepository documentRepository;
     private final DocumentExtractionRepository documentExtractionRepository;
     private final AdverseMoyensExtractor adverseMoyensExtractor;
+    private final ConclusionStreamPublisher streamPublisher;
+
+    /**
+     * SF-287-01 — intervalle minimal (ms) entre deux événements {@code progress}
+     * publiés vers les emitters SSE (throttling). Évite de saturer la connexion :
+     * un fragment de texte Anthropic peut arriver toutes les quelques ms.
+     */
+    private static final long PROGRESS_THROTTLE_MS = 250L;
+
+    /**
+     * SF-287-01 — estimation des tokens de sortie à partir du nombre de caractères
+     * accumulés (~4 caractères / token pour le français). Sert uniquement à
+     * l'avancement perçu ({@code percent}) ; le décompte exact ({@code completionTokens})
+     * provient de l'{@code AnthropicResult} en fin de flux et reste persisté tel quel
+     * (contenu et tokens finaux strictement inchangés vs mode non-streamé).
+     */
+    private static final double CHARS_PER_TOKEN = 4.0;
 
     /** Auto-référence pour franchir le proxy transactionnel depuis le listener. */
     @Lazy
@@ -97,7 +114,8 @@ public class CaseConclusionService {
                                  fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext,
                                  DocumentRepository documentRepository,
                                  DocumentExtractionRepository documentExtractionRepository,
-                                 AdverseMoyensExtractor adverseMoyensExtractor) {
+                                 AdverseMoyensExtractor adverseMoyensExtractor,
+                                 ConclusionStreamPublisher streamPublisher) {
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.strategicOptionRepository = strategicOptionRepository;
@@ -112,6 +130,7 @@ public class CaseConclusionService {
         this.documentRepository = documentRepository;
         this.documentExtractionRepository = documentExtractionRepository;
         this.adverseMoyensExtractor = adverseMoyensExtractor;
+        this.streamPublisher = streamPublisher;
     }
 
     @RabbitListener(queues = CaseConclusionRabbitMQConfig.CASE_CONCLUSION_QUEUE, concurrency = "2")
@@ -137,13 +156,21 @@ public class CaseConclusionService {
 
         AnthropicResult result = null;
         Exception failure = null;
+        UUID caseFileId = prepared.caseFileId();
         try {
             log.info("Conclusion generation START — conclusion={} ({} chars user message)",
                     caseConclusionId, prepared.userMessage().length());
             AiCallContext ctx = AiCallContext.systemLevel(
-                    JobType.SYSTEM_CASE_CONCLUSION, prepared.caseFileId());
-            result = anthropicService.analyzeWithSystemCache(
-                    ctx, prepared.systemPrompt(), prepared.userMessage(), MAX_TOKENS);
+                    JobType.SYSTEM_CASE_CONCLUSION, caseFileId);
+            // SF-287-01 — appel STREAMÉ (réutilise la variante F-185). Le prompt, le
+            // modèle, MAX_TOKENS et le gate AiCallContext sont strictement inchangés :
+            // le content agrégé renvoyé est identique au mode non-streamé. Le callback
+            // de fragment ne fait que publier des événements `progress` (throttlés) vers
+            // les emitters SSE du dossier — il n'altère ni le texte ni la finalisation.
+            StreamProgressBroadcaster broadcaster = new StreamProgressBroadcaster(caseFileId);
+            result = anthropicService.analyzeWithSystemCacheStreaming(
+                    ctx, prepared.systemPrompt(), prepared.userMessage(), MAX_TOKENS,
+                    broadcaster::onTextDelta);
             if (result.content() == null || result.content().isBlank()) {
                 throw new IllegalStateException("Réponse IA vide");
             }
@@ -154,6 +181,52 @@ public class CaseConclusionService {
 
         self.finalize(caseConclusionId, result, failure, prepared.styleApplied(),
                 prepared.pieces());
+
+        // SF-287-01 — événement terminal SSE (best-effort, hors transaction). Le content
+        // final + bordereau est relu par le front via GET .../conclusions ; ici on ne
+        // transmet que le statut + numéro de version (sur done) ou le message (sur failed).
+        if (failure == null && result != null) {
+            streamPublisher.publishDone(caseFileId, prepared.versionNumber());
+        } else {
+            streamPublisher.publishFailed(caseFileId,
+                    "Échec de la génération des conclusions.");
+        }
+    }
+
+    /**
+     * SF-287-01 — accumule le markdown partiel reçu en streaming et publie un
+     * événement {@code progress} throttlé (≤ 1 / {@value #PROGRESS_THROTTLE_MS} ms)
+     * vers les emitters SSE du dossier. État local au traitement d'une génération
+     * (pas de partage entre threads ; chaque {@code generate} a le sien).
+     */
+    private final class StreamProgressBroadcaster {
+
+        private final UUID caseFileId;
+        private final StringBuilder partial = new StringBuilder();
+        private long lastEmitAt = 0L;
+
+        StreamProgressBroadcaster(UUID caseFileId) {
+            this.caseFileId = caseFileId;
+        }
+
+        void onTextDelta(String chunk) {
+            if (chunk == null || chunk.isEmpty()) {
+                return;
+            }
+            partial.append(chunk);
+            long now = System.currentTimeMillis();
+            if (now - lastEmitAt < PROGRESS_THROTTLE_MS) {
+                return;
+            }
+            lastEmitAt = now;
+            // Estimation des tokens de sortie reçus à partir de la longueur accumulée
+            // (le callback ne fournit pas de compteur SDK par fragment). Sert au
+            // pourcentage perçu ; le décompte exact est persisté en finalisation.
+            int estimatedTokens = (int) Math.round(partial.length() / CHARS_PER_TOKEN);
+            // Publication best-effort : toute erreur d'envoi est avalée par le
+            // publisher (fail-open) — le streaming ne doit jamais casser la génération.
+            streamPublisher.publishProgress(caseFileId, partial.toString(), estimatedTokens, MAX_TOKENS);
+        }
     }
 
     /**
@@ -219,7 +292,7 @@ public class CaseConclusionService {
         String systemPrompt = promptBuilder.buildSystemPrompt(key, styleSignatures);
         String userMessage = promptBuilder.buildUserMessage(input);
         return new PreparedConclusion(systemPrompt, userMessage, !styleSignatures.isEmpty(),
-                caseFileId, numberedPieces);
+                caseFileId, numberedPieces, conclusion.getVersionNumber());
     }
 
     /**
@@ -567,9 +640,13 @@ public class CaseConclusionService {
      *                     {@link AiCallContext} pour traçabilité {@code usage_events}
      * @param pieces       SF-98-57 — pièces numérotées chargées une seule fois, partagées
      *                     entre le prompt et l'assemblage du bordereau (source unique)
+     * @param versionNumber SF-287-01 — numéro de version de la ligne en cours, transmis
+     *                     dans l'événement SSE {@code done} (le content final est relu
+     *                     côté front via {@code GET .../conclusions})
      */
     record PreparedConclusion(String systemPrompt, String userMessage, boolean styleApplied,
                               UUID caseFileId,
-                              List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> pieces) {
+                              List<CaseConclusionPromptBuilder.ConclusionPromptInput.NumberedPiece> pieces,
+                              int versionNumber) {
     }
 }
