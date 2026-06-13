@@ -59,6 +59,7 @@ import { ProcedureStageSectionComponent } from '../procedure-stage-section/proce
 import { CaseIntakeSectionComponent } from '../case-intake-section/case-intake-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseStrategyComponent } from '../case-strategy/case-strategy.component';
+import { CaseOverviewComponent, CaseOverviewSnack, OverviewNavigation } from '../case-overview/case-overview.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { CaseDashboardStepperComponent, DashboardStep, StepActivation } from '../case-dashboard-stepper/case-dashboard-stepper.component';
@@ -147,15 +148,33 @@ function isSupportedFileExtension(file: File): boolean {
 }
 
 /**
- * F-244 SF-244-01 — index des 4 onglets (`mat-tab-group`) du détail dossier.
+ * F-244 SF-244-01 — index des onglets (`mat-tab-group`) du détail dossier.
  * Onglets en état UI (signal `selectedTabIndex`), non routés. Le `case-dashboard-stepper`
  * et le scroll par query param `?section=` s'appuient sur ces constantes pour basculer
  * sur le bon onglet avant de scroller vers une ancre.
+ *
+ * F-289 SF-289-01 — insertion de l'onglet « Vue d'ensemble » en index 0 (actif
+ * par défaut) : les 4 onglets historiques sont décalés à 1-4. Toute référence à
+ * un index d'onglet passe par ces constantes (aucun index en dur) pour absorber
+ * le décalage en un seul endroit.
  */
-export const TAB_DOSSIER = 0;
-export const TAB_ANALYSE = 1;
-export const TAB_DECISION = 2;
-export const TAB_SUIVI = 3;
+export const TAB_OVERVIEW = 0;
+export const TAB_DOSSIER = 1;
+export const TAB_ANALYSE = 2;
+export const TAB_DECISION = 3;
+export const TAB_SUIVI = 4;
+
+/**
+ * F-289 SF-289-01 — table de correspondance `OverviewTargetTab` (contrat
+ * d'agrégation) → index d'onglet. Sert au routage demandé par les actions /
+ * raccourcis de la vue d'ensemble.
+ */
+export const OVERVIEW_TAB_BY_NAME: Record<string, number> = {
+  dossier: TAB_DOSSIER,
+  analyse: TAB_ANALYSE,
+  decision: TAB_DECISION,
+  suivi: TAB_SUIVI,
+};
 
 @Component({
   selector: 'app-case-file-detail',
@@ -171,7 +190,7 @@ export const TAB_SUIVI = 3;
     ProcedureStageSectionComponent,
     CaseIntakeSectionComponent,
     TimerWidgetComponent,
-    CaseDashboardComponent, CaseStrategyComponent, AnalysisPipelineComponent,
+    CaseDashboardComponent, CaseStrategyComponent, CaseOverviewComponent, AnalysisPipelineComponent,
     DecisionToolsPanelComponent,
     QuotaErrorBannerComponent,
     DisabledIfPendingPaymentDirective
@@ -180,7 +199,20 @@ export const TAB_SUIVI = 3;
   styleUrl: './case-file-detail.component.scss',
   animations: [fadeInUp, listStagger],
   host: { '[@fadeInUp]': '' },
-  providers: [CaseDashboardRefreshService, DecisionalToolsProgressService],
+  providers: [
+    CaseDashboardRefreshService,
+    DecisionalToolsProgressService,
+    // F-289 SF-289-01 — branche les erreurs non bloquantes de la vue d'ensemble
+    // (ex. échec d'export) sur le MatSnackBar du détail dossier.
+    {
+      provide: CaseOverviewSnack,
+      useFactory: (snack: MatSnackBar): CaseOverviewSnack => ({
+        error: (message: string) =>
+          snack.open(message, 'Fermer', { duration: 4000, panelClass: ['snack-error'] }),
+      }),
+      deps: [MatSnackBar],
+    },
+  ],
 })
 export class CaseFileDetailComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
@@ -207,12 +239,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   // mais aucun état n'est sauvegardé entre rechargements.
   readonly docsCollapsed = signal(false);
   /**
-   * F-244 SF-244-01 — onglet actif du `mat-tab-group` (Dossier / Analyse /
-   * Décision / Suivi). État UI pur, non routé : réinitialisé à `TAB_DOSSIER`
-   * à chaque ouverture de dossier. Piloté par le clic d'étape du
-   * `case-dashboard-stepper` et par le query param `?section=`.
+   * F-244 SF-244-01 — onglet actif du `mat-tab-group`. État UI pur, non routé.
+   * F-289 SF-289-01 — défaut = `TAB_OVERVIEW` (« Vue d'ensemble », index 0) :
+   * la 1ʳᵉ question de l'avocat (« où en étais-je ? ») reçoit sa réponse sans
+   * clic. Piloté par le clic d'étape du `case-dashboard-stepper` et par le
+   * query param `?section=`.
    */
-  readonly selectedTabIndex = signal(TAB_DOSSIER);
+  readonly selectedTabIndex = signal(TAB_OVERVIEW);
   /**
    * F-244 SF-244-02 — Total agrégé des champs pré-remplis par l'IA sur les
    * outils visibles de l'onglet « Décision ». Alimenté par l'`@Output`
@@ -743,6 +776,27 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     if (activation.anchorId) {
       const anchorId = activation.anchorId;
       setTimeout(() => this.scrollAndHighlight(anchorId), 0);
+    }
+  }
+
+  /**
+   * F-289 SF-289-01 — handler de l'`@Output() navigate` de la vue d'ensemble.
+   * Une action / un raccourci de l'onglet « Vue d'ensemble » demande soit un
+   * routage interne (onglet + ancre, mécanisme `selectedTabIndex` + scroll),
+   * soit la navigation vers une page dédiée (`route`). Réutilise le pont
+   * inter-onglets existant — aucune logique d'action « lourde » ici (V1 route).
+   */
+  onOverviewNavigate(nav: OverviewNavigation): void {
+    if (nav.route) {
+      this.router.navigateByUrl(nav.route);
+      return;
+    }
+    if (nav.targetTab && OVERVIEW_TAB_BY_NAME[nav.targetTab] !== undefined) {
+      this.selectedTabIndex.set(OVERVIEW_TAB_BY_NAME[nav.targetTab]);
+    }
+    if (nav.anchor) {
+      const anchor = nav.anchor;
+      setTimeout(() => this.scrollAndHighlight(anchor), 0);
     }
   }
 

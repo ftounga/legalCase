@@ -1,0 +1,295 @@
+<!-- F-289 / SF-289-01 — Vue d'ensemble du dossier : 3 registres hiérarchisés
+     (Piloter → Parcourir → Approfondir). Lecture seule ; les actions routent. -->
+
+@if (loading()) {
+  <div class="ov-loading" data-testid="overview-loading">
+    <mat-spinner diameter="32"></mat-spinner>
+    <span>Chargement de la vue d'ensemble…</span>
+  </div>
+} @else if (loadError()) {
+  <!-- Échec non bloquant : message + relance, pas d'écran blanc. -->
+  <div class="ov-error" data-testid="overview-error">
+    <mat-icon class="ov-error__icon">cloud_off</mat-icon>
+    <p>La vue d'ensemble n'a pas pu être chargée.</p>
+    <button mat-stroked-button (click)="loadOverview()">
+      <mat-icon>refresh</mat-icon>
+      Réessayer
+    </button>
+  </div>
+} @else if (overview()) {
+  @if (overview(); as ov) {
+
+  @if (isEmpty()) {
+    <!-- État vide honnête : dossier neuf → invite à qualifier, rien d'inventé. -->
+    <div class="ov-empty" data-testid="overview-empty">
+      <mat-icon class="ov-empty__icon">folder_open</mat-icon>
+      <h2 class="ov-empty__title">Ce dossier démarre</h2>
+      <p class="ov-empty__text">
+        Qualifiez le dossier et ajoutez vos premières pièces pour voir apparaître
+        l'état, les échéances et le fil chronologique.
+      </p>
+      <button mat-flat-button color="primary"
+              data-testid="overview-empty-intake"
+              (click)="goToShortcut('dossier', 'section-intake')">
+        <mat-icon>edit</mat-icon>
+        Qualifier le dossier
+      </button>
+    </div>
+  } @else {
+
+    <!-- ───────────── ① PILOTER ───────────── -->
+    <section class="ov-pilotage" data-testid="overview-pilotage" aria-label="Pilotage">
+      <div class="ov-banner">
+        <div class="ov-banner__item">
+          <span class="ov-banner__label">Phase</span>
+          <span class="ov-banner__value">
+            {{ ov.pilotage.currentPhaseLabel || '—' }}
+          </span>
+        </div>
+        <div class="ov-banner__item">
+          <span class="ov-banner__label">À qui le tour</span>
+          <span class="ov-banner__value">
+            @switch (ov.pilotage.awaitingParty) {
+              @case ('OURS') { <span class="ov-party ov-party--ours">À vous de jouer</span> }
+              @case ('ADVERSE') { <span class="ov-party ov-party--adverse">Partie adverse</span> }
+              @default { <span class="ov-party ov-party--none">—</span> }
+            }
+          </span>
+        </div>
+        <div class="ov-banner__item">
+          <span class="ov-banner__label">Prochain couperet</span>
+          @if (ov.pilotage.nextDeadline; as dl) {
+            <span class="ov-deadline" [class]="urgencyClass(dl.urgency)">
+              <mat-icon class="ov-deadline__icon">event</mat-icon>
+              <span class="ov-deadline__label">{{ dl.label }}</span>
+              <span class="ov-deadline__date">{{ dl.dueDate | date:'dd/MM/yyyy' }}</span>
+              <span class="ov-deadline__days">J{{ dl.daysUntil >= 0 ? '−' + dl.daysUntil : '+' + (-dl.daysUntil) }}</span>
+            </span>
+          } @else {
+            <span class="ov-banner__value ov-banner__value--muted">Aucun délai imminent</span>
+          }
+        </div>
+      </div>
+
+      <!-- Santé : recevabilité / prescription / risque avocat -->
+      <div class="ov-health">
+        <span class="ov-health__chip">
+          <span class="ov-health__k">Recevabilité</span>
+          <span class="ov-health__v">{{ ov.pilotage.sante.admissibility || '—' }}</span>
+        </span>
+        <span class="ov-health__chip">
+          <span class="ov-health__k">Prescription</span>
+          <span class="ov-health__v">{{ ov.pilotage.sante.prescriptionStatus || '—' }}</span>
+        </span>
+        <span class="ov-health__chip">
+          <span class="ov-health__k">Risque</span>
+          <span class="ov-health__v">{{ ov.pilotage.sante.riskLevelAvocat || '—' }}</span>
+        </span>
+      </div>
+
+      <!-- Bloc « ce qui requiert ton attention » -->
+      <div class="ov-attention" data-testid="overview-attention">
+        <h2 class="ov-attention__title">
+          <mat-icon class="ov-attention__title-icon">priority_high</mat-icon>
+          Ce qui requiert ton attention
+        </h2>
+        @if (visibleAttention().length === 0) {
+          <p class="ov-attention__empty">Rien d'urgent. Le dossier est à jour.</p>
+        } @else {
+          <ul class="ov-attention__list">
+            @for (item of visibleAttention(); track $index) {
+              <li class="ov-attention__item" [class]="urgencyClass(item.urgency)"
+                  data-testid="attention-item">
+                <span class="ov-attention__dot"></span>
+                <span class="ov-attention__label">{{ item.label }}</span>
+                @if (item.action) {
+                  <button mat-stroked-button class="ov-attention__action"
+                          data-testid="attention-action"
+                          (click)="runAction(item.action)">
+                    <mat-icon>{{ actionIcon(item.action) }}</mat-icon>
+                    {{ actionLabel(item.action) }}
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+          @if (hiddenAttentionCount() > 0 && !attentionExpanded()) {
+            <button mat-button class="ov-attention__more"
+                    data-testid="attention-more"
+                    (click)="toggleAttention()">
+              +{{ hiddenAttentionCount() }} autre(s)
+            </button>
+          } @else if (attentionExpanded() && (overview()!.attention.length > ATTENTION_MAX)) {
+            <button mat-button class="ov-attention__more"
+                    (click)="toggleAttention()">
+              Réduire
+            </button>
+          }
+        }
+      </div>
+    </section>
+
+    <!-- ───────────── ② PARCOURIR ───────────── -->
+    <section class="ov-fil" data-testid="overview-fil" aria-label="Fil chronologique">
+      <header class="ov-fil__head">
+        <h2 class="ov-fil__title">
+          <mat-icon class="ov-fil__title-icon">timeline</mat-icon>
+          Fil du dossier
+        </h2>
+        <!-- Chips de filtre par voie (défaut = Tout) -->
+        <div class="ov-chips" role="tablist" aria-label="Filtrer par voie">
+          @for (chip of voieChips; track chip.value) {
+            <button class="ov-chip"
+                    [class.ov-chip--active]="voieFilter() === chip.value"
+                    data-testid="voie-chip"
+                    [attr.data-voie]="chip.value"
+                    (click)="selectVoie(chip.value)">
+              {{ chip.label }}
+            </button>
+          }
+        </div>
+      </header>
+
+      @if (pastEvents().length === 0 && futureEvents().length === 0) {
+        <p class="ov-fil__empty">Aucun événement pour ce filtre.</p>
+      } @else {
+        <ol class="ov-line">
+
+          <!-- Passé (replié au-delà du seuil) -->
+          @if (hiddenPastCount() > 0) {
+            <li class="ov-line__more" data-testid="past-collapsed">
+              <button mat-button (click)="togglePast()">
+                <mat-icon>history</mat-icon>
+                Voir l'historique complet (+{{ hiddenPastCount() }})
+              </button>
+            </li>
+          }
+          @for (event of visiblePastEvents(); track eventKey(event)) {
+            <ng-container [ngTemplateOutlet]="node"
+                          [ngTemplateOutletContext]="{ $implicit: event }"></ng-container>
+          }
+
+          <!-- Repère AUJOURD'HUI (ligne dorée) -->
+          <li class="ov-today" data-testid="overview-today">
+            <span class="ov-today__line"></span>
+            <span class="ov-today__label">AUJOURD'HUI</span>
+            <span class="ov-today__line"></span>
+          </li>
+
+          <!-- Futur (style pointillé) -->
+          @for (event of futureEvents(); track eventKey(event)) {
+            <ng-container [ngTemplateOutlet]="node"
+                          [ngTemplateOutletContext]="{ $implicit: event }"></ng-container>
+          }
+        </ol>
+      }
+    </section>
+
+    <!-- ───────────── ③ APPROFONDIR ───────────── -->
+    <section class="ov-deep" data-testid="overview-deep" aria-label="Approfondir">
+      <div class="ov-shortcuts">
+        <button mat-stroked-button class="ov-shortcut"
+                data-testid="shortcut-strategie"
+                (click)="goToShortcut('decision', 'section-tableau-bord')">
+          <mat-icon>insights</mat-icon> Stratégie
+        </button>
+        <button mat-stroked-button class="ov-shortcut"
+                data-testid="shortcut-outils"
+                (click)="goToShortcut('decision', 'section-outils-decisionnels')">
+          <mat-icon>tune</mat-icon>
+          Outils {{ ov.pilotage.toolsCalculated }}/{{ ov.pilotage.toolsVisible }}
+        </button>
+        <button mat-stroked-button class="ov-shortcut"
+                data-testid="shortcut-conclusions"
+                (click)="goToShortcut('decision', 'section-tableau-bord')">
+          <mat-icon>description</mat-icon> Conclusions
+        </button>
+        <button mat-stroked-button class="ov-shortcut"
+                data-testid="shortcut-synthese"
+                (click)="goToShortcut('analyse', 'section-analyse')">
+          <mat-icon>summarize</mat-icon> Synthèse
+        </button>
+        <button mat-stroked-button class="ov-shortcut"
+                data-testid="shortcut-jurisprudence"
+                (click)="goToShortcut('analyse', 'section-analyse')">
+          <mat-icon>balance</mat-icon> Jurisprudence
+        </button>
+      </div>
+      <button mat-flat-button color="primary" class="ov-export"
+              data-testid="overview-export"
+              (click)="exportZip()">
+        <mat-icon>download</mat-icon>
+        Exporter le dossier
+      </button>
+    </section>
+
+  }
+  }
+} @else {
+  <div class="ov-error">
+    <p>Vue d'ensemble indisponible.</p>
+  </div>
+}
+
+<!-- ── Template d'un nœud du fil (passé ou futur) ── -->
+<ng-template #node let-event>
+  <li class="ov-node" [class]="acteurClass(event)"
+      [class.ov-node--future]="event.temps !== 'PASSE'"
+      [class.ov-node--today]="event.temps === 'AUJOURDHUI'"
+      data-testid="fil-event">
+    <span class="ov-node__dot"></span>
+    <div class="ov-node__body">
+      <div class="ov-node__row">
+        <mat-icon class="ov-node__voie-icon" [matTooltip]="event.voie">{{ voieIcon(event.voie) }}</mat-icon>
+        <span class="ov-node__titre">{{ event.titre }}</span>
+        @if (event.attachments?.length) {
+          <button class="ov-node__toggle"
+                  data-testid="event-accordion-toggle"
+                  (click)="toggleEvent(event)"
+                  [attr.aria-expanded]="isEventExpanded(event)">
+            <mat-icon>{{ isEventExpanded(event) ? 'expand_less' : 'expand_more' }}</mat-icon>
+            {{ event.attachments.length }} pièce(s)
+          </button>
+        }
+      </div>
+      <div class="ov-node__meta">
+        <span class="ov-node__date">{{ event.date | date:'dd/MM/yyyy' }}</span>
+        @if (event.detail) {
+          <span class="ov-node__detail">{{ event.detail }}</span>
+        }
+      </div>
+
+      <!-- Accordéon des pièces (fermé par défaut) -->
+      @if (event.attachments?.length && isEventExpanded(event)) {
+        <ul class="ov-attach" data-testid="event-attachments">
+          @for (att of event.attachments; track att.documentId) {
+            <li class="ov-attach__item">
+              <mat-icon class="ov-attach__icon">insert_drive_file</mat-icon>
+              <span class="ov-attach__name">{{ att.filename }}</span>
+              <button mat-button class="ov-attach__btn"
+                      data-testid="attachment-preview"
+                      (click)="previewDocument(att.documentId)">
+                <mat-icon>visibility</mat-icon> aperçu
+              </button>
+              <a mat-button class="ov-attach__btn"
+                 data-testid="attachment-download"
+                 [href]="downloadHref(att.documentId)" target="_blank" rel="noopener">
+                <mat-icon>download</mat-icon> télécharger
+              </a>
+            </li>
+          }
+        </ul>
+      }
+
+      <!-- Action inline (route vers l'écran dédié en V1) -->
+      @if (event.action) {
+        <button mat-stroked-button class="ov-node__action"
+                data-testid="event-action"
+                (click)="runAction(event.action)">
+          <mat-icon>{{ actionIcon(event.action) }}</mat-icon>
+          {{ actionLabel(event.action) }}
+        </button>
+      }
+    </div>
+  </li>
+</ng-template>

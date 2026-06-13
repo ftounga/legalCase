@@ -1200,9 +1200,10 @@ describe('CaseFileDetailComponent', () => {
       fixture.detectChanges();
       const outils = component.dashboardSteps().find(s => s.id === 'outils')!;
       const tableau = component.dashboardSteps().find(s => s.id === 'tableau-bord')!;
-      expect(outils.tabIndex).toBe(2);
+      // F-289 SF-289-01 : Décision décalé à l'index 3 (Vue d'ensemble en 0).
+      expect(outils.tabIndex).toBe(3);
       expect(outils.anchorId).toBe('section-outils-decisionnels');
-      expect(tableau.tabIndex).toBe(2);
+      expect(tableau.tabIndex).toBe(3);
       expect(tableau.anchorId).toBe('section-tableau-bord');
     });
 
@@ -1247,12 +1248,13 @@ describe('CaseFileDetailComponent', () => {
       expect(fixture.nativeElement.querySelector('[data-testid="decision-to-synthesis-link"]')).toBeNull();
     });
 
-    it('SF-244-04-T03: ?section=decision → bascule sur l\'onglet Décision (index 2)', () => {
+    it('SF-244-04-T03: ?section=decision → bascule sur l\'onglet Décision (index 3)', () => {
+      // F-289 SF-289-01 : Décision décalé à l'index 3.
       const route = TestBed.inject(ActivatedRoute);
       (route as any).queryParamMap = of(convertToParamMap({ section: 'decision' }));
       const freshFixture = TestBed.createComponent(CaseFileDetailComponent);
       freshFixture.detectChanges();
-      expect(freshFixture.componentInstance.selectedTabIndex()).toBe(2);
+      expect(freshFixture.componentInstance.selectedTabIndex()).toBe(3);
     });
 
     it('SF-244-04-T04: ?section= valeur inconnue → onglet inchangé (reste Dossier, index 0)', () => {
@@ -1309,12 +1311,12 @@ describe('CaseFileDetailComponent', () => {
   // ----- F-244 SF-244-01 : structure en 4 onglets -----
 
   describe('F-244 SF-244-01 structure en onglets', () => {
-    it('SF-244-01-T01: 4 onglets rendus avec les bons libellés', () => {
+    it('SF-244-01-T01: 5 onglets rendus avec les bons libellés (F-289 : Vue d\'ensemble en tête)', () => {
       fixture.detectChanges();
       const labels = Array.from(
         fixture.nativeElement.querySelectorAll('.mat-mdc-tab .mdc-tab__text-label')
       ).map((el: any) => el.textContent.trim());
-      expect(labels).toEqual(['Dossier', 'Analyse', 'Décision', 'Suivi']);
+      expect(labels).toEqual(["Vue d'ensemble", 'Dossier', 'Analyse', 'Décision', 'Suivi']);
     });
 
     it('SF-244-01-T02: un sélecteur représentatif présent dans chaque onglet', () => {
@@ -1360,12 +1362,12 @@ describe('CaseFileDetailComponent', () => {
 
     it('SF-244-01-T05: clic d\'étape stepper → selectedTabIndex mis à jour', () => {
       fixture.detectChanges();
-      // Étape « Délais légaux » → onglet Suivi (index 3).
-      component.onStepActivated({ tabIndex: 3, anchorId: 'section-deadlines' });
-      expect(component.selectedTabIndex()).toBe(3);
-      // Étape « Analyse » → onglet Analyse (index 1).
-      component.onStepActivated({ tabIndex: 1, anchorId: 'section-analyse' });
-      expect(component.selectedTabIndex()).toBe(1);
+      // F-289 SF-289-01 : indices décalés (Suivi=4, Analyse=2). Le handler
+      // propage simplement l'index porté par l'étape.
+      component.onStepActivated({ tabIndex: 4, anchorId: 'section-deadlines' });
+      expect(component.selectedTabIndex()).toBe(4);
+      component.onStepActivated({ tabIndex: 2, anchorId: 'section-analyse' });
+      expect(component.selectedTabIndex()).toBe(2);
     });
 
     it('SF-244-01-T06: .detail-grid / .bottom-sections absents du DOM', () => {
@@ -2341,12 +2343,13 @@ describe('CaseFileDetailComponent', () => {
 
   // SF-121-06 : échec d'extraction actionnable côté écran
   describe('SF-121-06 — échec d\'extraction actionnable', () => {
-    it('U-CFD-121-06-01 : onManageFailedDocuments() → selectedTabIndex passe à TAB_DOSSIER (0)', () => {
-      component.selectedTabIndex.set(1);
+    it('U-CFD-121-06-01 : onManageFailedDocuments() → selectedTabIndex passe à TAB_DOSSIER (1)', () => {
+      // F-289 SF-289-01 : Dossier décalé à l'index 1 (Vue d'ensemble en 0).
+      component.selectedTabIndex.set(2);
 
       component.onManageFailedDocuments();
 
-      expect(component.selectedTabIndex()).toBe(0);
+      expect(component.selectedTabIndex()).toBe(1);
     });
 
     it('U-CFD-121-06-02 : onManageFailedDocuments() → scrollAndHighlight("section-documents") appelé', () => {
@@ -2361,11 +2364,12 @@ describe('CaseFileDetailComponent', () => {
     });
 
     it('U-CFD-121-06-03 : appel alors que l\'onglet Dossier est déjà actif → idempotent', () => {
-      component.selectedTabIndex.set(0);
+      // F-289 SF-289-01 : Dossier = index 1.
+      component.selectedTabIndex.set(1);
 
       component.onManageFailedDocuments();
 
-      expect(component.selectedTabIndex()).toBe(0);
+      expect(component.selectedTabIndex()).toBe(1);
     });
 
     it('U-CFD-121-06-04 : doc FAILED OCR_UNSUPPORTED_SIZE → message de récupération spécifique rendu', () => {

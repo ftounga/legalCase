@@ -65,6 +65,8 @@
     class="case-detail-tabs"
     [selectedIndex]="selectedTabIndex()"
     (selectedIndexChange)="selectedTabIndex.set($event)">
+    <!-- F-289 SF-289-01 : onglet « Vue d'ensemble » en tête (index 0), actif par défaut. -->
+    <mat-tab label="Vue d'ensemble"></mat-tab>
     <mat-tab label="Dossier"></mat-tab>
     <mat-tab label="Analyse"></mat-tab>
     <!-- F-244 SF-244-02 : l'onglet « Décision » porte un badge auto_awesome
@@ -91,8 +93,19 @@
 
   <div class="case-detail-tab-bodies">
 
+    <!-- F-289 SF-289-01 — Onglet 0 : Vue d'ensemble (poste de pilotage / journal).
+         Monté non-lazy comme les autres panneaux, masqué via [hidden]. -->
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 0" data-tab-panel="overview">
+      <div class="tab-panel-inner">
+        <app-case-overview
+          [caseFileId]="caseFile()!.id"
+          (navigate)="onOverviewNavigate($event)">
+        </app-case-overview>
+      </div>
+    </section>
+
     <!-- Onglet 1 : Dossier -->
-    <section class="tab-panel" [hidden]="selectedTabIndex() !== 0" data-tab-panel="dossier">
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 1" data-tab-panel="dossier">
       <div class="tab-panel-inner" [@listStagger]="3">
         <!-- F-285 / SF-285-01 : qualification d'entrée du dossier (intake guidé) —
              en tête de l'onglet Dossier, au-dessus de l'identité (groupe « identité »,
@@ -503,7 +516,7 @@
     </section>
 
     <!-- Onglet 2 : Analyse -->
-    <section class="tab-panel" [hidden]="selectedTabIndex() !== 1" data-tab-panel="analyse">
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 2" data-tab-panel="analyse">
       <div class="tab-panel-inner">
         <div id="section-analyse" class="section-header section-header--first">
           <h2 class="section-title">Analyse du dossier</h2>
@@ -617,7 +630,7 @@
                 <span>
                   {{ outdatedDocuments().length }} pièce(s) ajoutée(s) depuis la dernière synthèse ne sont pas encore prises en compte.
                   <button mat-button color="primary" type="button" class="outdated-link"
-                          data-testid="goto-pieces-wave" (click)="selectedTabIndex.set(0)">
+                          data-testid="goto-pieces-wave" (click)="selectedTabIndex.set(1)">
                     Voir les pièces récentes
                   </button>
                 </span>
@@ -656,7 +669,7 @@
     </section>
 
     <!-- Onglet 3 : Décision -->
-    <section class="tab-panel" [hidden]="selectedTabIndex() !== 2" data-tab-panel="decision">
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 3" data-tab-panel="decision">
       <div class="tab-panel-inner">
 
         <!-- F-244 SF-244-02 : bandeau de couplage — explicite que renseigner un
@@ -771,7 +784,7 @@
     </section>
 
     <!-- Onglet 4 : Suivi -->
-    <section class="tab-panel" [hidden]="selectedTabIndex() !== 3" data-tab-panel="suivi">
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 4" data-tab-panel="suivi">
       <div class="tab-panel-inner">
         <!-- F-284 / SF-284-02 : échéancier proactif — en tête de Suivi (prochain couperet) -->
         <div id="section-echeancier">
@@ -791,7 +804,7 @@
         <div id="section-contradictoire">
           <app-contradictoire-timeline
             [caseFileId]="caseFile()!.id"
-            (generateReplyRequested)="selectedTabIndex.set(2)">
+            (generateReplyRequested)="selectedTabIndex.set(3)">
           </app-contradictoire-timeline>
         </div>
 

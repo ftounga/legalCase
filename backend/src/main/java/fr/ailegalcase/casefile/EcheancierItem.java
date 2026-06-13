@@ -19,9 +19,9 @@ public record EcheancierItem(
         EcheancierKind kind,
         String source
 ) {
-    enum EcheancierKind { DEADLINE, CONTRADICTOIRE }
+    public enum EcheancierKind { DEADLINE, CONTRADICTOIRE }
 
-    enum EcheancierUrgency { OVERDUE, CRITICAL, SOON, UPCOMING }
+    public enum EcheancierUrgency { OVERDUE, CRITICAL, SOON, UPCOMING }
 
     static EcheancierUrgency urgencyOf(long daysUntil) {
         if (daysUntil < 0) return EcheancierUrgency.OVERDUE;
