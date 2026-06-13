@@ -634,4 +634,57 @@ describe('DecisionToolCardComponent', () => {
       ).toBe('Indemnité : 3 200 € (brut)');
     });
   });
+
+  // ── F-292 SF-292-01 — état « prêt à calculer » (pré-rempli non calculé) ──
+  describe('F-292 — états visuels pré-rempli / calculé', () => {
+    function card(): HTMLElement {
+      return fixture.nativeElement.querySelector('.tool-card');
+    }
+    function placeholderText(): string | undefined {
+      return fixture.debugElement
+        .query(By.css('.tool-card__placeholder'))
+        ?.nativeElement.textContent.trim();
+    }
+
+    it('prêt à calculer : prefillCount > 0 + non calculé → classe pending + CTA', () => {
+      component.prefillCount = 3;
+      component.summary = null;
+      fixture.detectChanges();
+
+      expect(card().classList.contains('tool-card--prefilled-pending')).toBe(true);
+      expect(card().classList.contains('tool-card--prefilled')).toBe(true);
+      expect(placeholderText()).toBe('Prêt à valider — cliquer pour calculer');
+    });
+
+    it('calculé : prefillCount > 0 + verdict → pas de classe pending, verdict affiché', () => {
+      component.prefillCount = 3;
+      component.summary = { label: 'Verdict', primaryValue: 'Conforme', alertLevel: 'OK' };
+      fixture.detectChanges();
+
+      expect(card().classList.contains('tool-card--prefilled-pending')).toBe(false);
+      expect(card().classList.contains('tool-card--prefilled')).toBe(true);
+      const verdict = fixture.debugElement.query(By.css('.tool-card__verdict'));
+      expect(verdict.nativeElement.textContent.trim()).toBe('Verdict : Conforme');
+      expect(fixture.debugElement.query(By.css('.tool-card__placeholder'))).toBeNull();
+    });
+
+    it('vierge : prefillCount 0 + non calculé → placeholder inchangé, aucune classe prefill', () => {
+      component.prefillCount = 0;
+      component.summary = null;
+      fixture.detectChanges();
+
+      expect(card().classList.contains('tool-card--prefilled-pending')).toBe(false);
+      expect(card().classList.contains('tool-card--prefilled')).toBe(false);
+      expect(placeholderText()).toBe('Cliquer pour utiliser');
+    });
+
+    it('summary à primaryValue vide + prefillCount > 0 → traité « prêt à calculer »', () => {
+      component.prefillCount = 2;
+      component.summary = { label: 'Verdict', primaryValue: '' };
+      fixture.detectChanges();
+
+      expect(card().classList.contains('tool-card--prefilled-pending')).toBe(true);
+      expect(placeholderText()).toBe('Prêt à valider — cliquer pour calculer');
+    });
+  });
 });

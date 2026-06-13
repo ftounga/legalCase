@@ -203,6 +203,45 @@ export class DecisionToolCardComponent {
     return this.showPrefillBadge ? 'tool-card--prefilled' : '';
   }
 
+  /**
+   * F-292 SF-292-01 — un outil est « calculé » dès qu'il expose un verdict
+   * affichable (`summary` avec `primaryValue` non vide). Sert à distinguer
+   * l'état « prêt à calculer » (pré-rempli mais pas encore cliqué) du calculé.
+   */
+  protected get isCalculated(): boolean {
+    return formatSummary(this.summary) !== null;
+  }
+
+  /**
+   * F-292 SF-292-01 — état « prêt à calculer » : l'IA a pré-rempli les champs
+   * (`prefillCount > 0`) mais l'avocat n'a pas encore calculé l'outil. C'est le
+   * chaînon manquant de F-258 rendu visible sur la carte.
+   */
+  protected get prefilledPending(): boolean {
+    return this.showPrefillBadge && !this.isCalculated;
+  }
+
+  /**
+   * F-292 SF-292-01 — overlay « prêt à calculer » (outline or pointillé). Ajouté
+   * EN PLUS de `tool-card--prefilled` pour que l'état calculé conserve l'outline
+   * plein (SF-177-13) et que seul le pending bascule en pointillé. Palette or,
+   * aucune 4ᵉ couleur sémantique ; n'altère pas la bordure gauche de verdict.
+   */
+  protected get prefilledPendingClass(): string {
+    return this.prefilledPending ? 'tool-card--prefilled-pending' : '';
+  }
+
+  /**
+   * F-292 SF-292-01 — placeholder du corps. En état « prêt à calculer », appelle
+   * explicitement à l'action (distinct du « Cliquer pour utiliser » d'un outil
+   * vierge). En calculé, le corps affiche le verdict (ce texte n'est pas rendu).
+   */
+  protected get placeholderText(): string {
+    return this.prefilledPending
+      ? 'Prêt à valider — cliquer pour calculer'
+      : 'Cliquer pour utiliser';
+  }
+
   protected get prefillAriaLabel(): string {
     const count = this.prefillCount ?? 0;
     return `Pré-rempli par l'IA, ${count} champ${count > 1 ? 's' : ''}`;

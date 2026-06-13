@@ -61,6 +61,21 @@
     }
   }
 
+  /* F-292 SF-292-01 — état « prêt à calculer » : pré-rempli par l'IA mais pas
+     encore calculé. Outline or POINTILLÉ (override de l'outline plein `--prefilled`)
+     = « préparé, en attente de ton clic », distinct au coup d'œil de l'outil
+     calculé (outline plein + verdict). Palette or, n'altère pas le `border-left`
+     de verdict. */
+  &--prefilled-pending {
+    outline-style: dashed;
+
+    .tool-card__placeholder {
+      color: #7A5D1F;
+      font-style: normal;
+      font-weight: 600;
+    }
+  }
+
   &--flashing {
     animation: decisionToolFlash 1500ms ease-out 1;
   }
