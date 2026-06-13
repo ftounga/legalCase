@@ -135,6 +135,7 @@ export class ContradictoireTimelineComponent implements OnInit {
   openAdd(party: ContradictoireParty): void {
     this.editingId.set(null);
     this.form.reset({ party, label: '', datedAt: '', responseDueAt: '', sourceDocumentId: null });
+    this.loadDocuments(); // rafraîchit la liste (des pièces ont pu être uploadées depuis le montage de l'onglet)
     this.showForm.set(true);
   }
 
@@ -147,6 +148,7 @@ export class ContradictoireTimelineComponent implements OnInit {
       responseDueAt: round.responseDueAt ?? '',
       sourceDocumentId: round.sourceDocumentId ?? null,
     });
+    this.loadDocuments(); // rafraîchit la liste (des pièces ont pu être uploadées depuis le montage de l'onglet)
     this.showForm.set(true);
   }
 

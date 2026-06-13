@@ -108,6 +108,7 @@ describe('ContradictoireTimelineComponent', () => {
     flushInit(timeline({ rounds: [], summary: { currentRoundNumber: 0, awaitingParty: 'OURS', nextDeadline: null } }));
 
     component.openAdd('ADVERSE');
+    httpMock.expectOne(DOCS_URL).flush(docs()); // rechargement docs à l'ouverture (fix refresh)
     component.form.patchValue({ party: 'ADVERSE', datedAt: '2026-06-14', responseDueAt: '2026-07-14' });
     component.save();
 
@@ -128,6 +129,7 @@ describe('ContradictoireTimelineComponent', () => {
     expect(component.documentsUnavailable()).toBe(false);
 
     component.openAdd('ADVERSE');
+    httpMock.expectOne(DOCS_URL).flush(docs()); // rechargement docs à l'ouverture (fix refresh)
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="contra-source-field"]')).toBeTruthy();
   });
@@ -136,6 +138,7 @@ describe('ContradictoireTimelineComponent', () => {
     flushInit(timeline({ rounds: [], summary: { currentRoundNumber: 0, awaitingParty: 'OURS', nextDeadline: null } }));
 
     component.openAdd('ADVERSE');
+    httpMock.expectOne(DOCS_URL).flush(docs()); // rechargement docs à l'ouverture (fix refresh)
     component.form.patchValue({ party: 'ADVERSE', datedAt: '2026-06-14', sourceDocumentId: 'doc-1' });
     component.save();
 
@@ -153,6 +156,7 @@ describe('ContradictoireTimelineComponent', () => {
       datedAt: '2026-06-14', responseDueAt: '2026-07-14',
       sourceDocumentId: 'doc-2', sourceConclusionId: null, createdAt: '', updatedAt: '',
     });
+    httpMock.expectOne(DOCS_URL).flush(docs()); // rechargement docs à l'ouverture (fix refresh)
     expect(component.form.controls.sourceDocumentId.value).toBe('doc-2');
 
     component.save();
@@ -195,7 +199,20 @@ describe('ContradictoireTimelineComponent', () => {
 
     // Le formulaire reste utilisable
     component.openAdd('ADVERSE');
+    httpMock.expectOne(DOCS_URL).flush('boom', { status: 500, statusText: 'Server Error' }); // rechargement docs (toujours KO)
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="contra-form"]')).toBeTruthy();
+  });
+
+  it('SF-282-03 (fix) : rouvrir le dialogue rafraîchit la liste des documents', () => {
+    flushInit(); // init : 2 docs
+    expect(component.documents().length).toBe(2);
+
+    component.openAdd('ADVERSE'); // doit re-fetch la liste (pièces ajoutées depuis le montage)
+    httpMock.expectOne(DOCS_URL).flush([
+      ...docs(),
+      { id: 'doc-3', caseFileId: CASE_ID, originalFilename: 'piece-ajoutee.pdf', contentType: 'application/pdf', fileSize: 500, createdAt: '' },
+    ]);
+    expect(component.documents().length).toBe(3);
   });
 });
