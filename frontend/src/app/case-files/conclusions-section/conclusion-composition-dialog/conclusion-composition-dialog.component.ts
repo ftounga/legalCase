@@ -15,15 +15,25 @@ import {
 /** Donnée d'entrée du modal : la composition lue via `GET …/composition`. */
 export interface ConclusionCompositionDialogData {
   composition: Composition;
+  /**
+   * F-258 / SF-258-02 — Nombre d'outils décisionnels **proposés** mais **non
+   * calculés** pour ce dossier (réutilise `missingToolsCount`, F-258/SF-258-01).
+   * `> 0` ⇒ un bloc d'avertissement fort en tête de la modale + bouton « Aller
+   * compléter ces outils ». `0` ⇒ aucun bloc (modale identique à F-288).
+   */
+  missingToolsCount: number;
 }
 
 /**
- * Résultat de fermeture « Confirmer & générer » : l'ensemble des exclusions
- * (cases décochées). Une fermeture par « Annuler » renvoie `undefined`.
+ * Résultat de fermeture du modal :
+ * - « Confirmer & générer » → `{ exclusions }` (cases décochées).
+ * - F-258 / SF-258-02 « Aller compléter ces outils » → `{ navigateToTools: true }`
+ *   (le parent défile vers les outils, **sans générer**).
+ * - « Annuler » → `undefined`.
  */
-export type ConclusionCompositionDialogResult = {
-  exclusions: CompositionExclusion[];
-};
+export type ConclusionCompositionDialogResult =
+  | { exclusions: CompositionExclusion[] }
+  | { navigateToTools: true };
 
 /** État local d'un item dans le modal (case cochée = intégré). */
 interface DialogItem {
@@ -79,6 +89,13 @@ export class ConclusionCompositionDialogComponent {
     this.dimensions().every((d) => d.items.every((i) => !i.checked)),
   );
 
+  /**
+   * F-258 / SF-258-02 — Nombre d'outils proposés non calculés. `> 0` ⇒ bloc
+   * d'avertissement fort en tête de la modale (avertissement, **pas** une
+   * erreur : encart navy/or, jamais rouge).
+   */
+  readonly missingToolsCount = signal(0);
+
   constructor(
     private readonly dialogRef: MatDialogRef<
       ConclusionCompositionDialogComponent,
@@ -86,6 +103,7 @@ export class ConclusionCompositionDialogComponent {
     >,
     @Inject(MAT_DIALOG_DATA) data: ConclusionCompositionDialogData,
   ) {
+    this.missingToolsCount.set(data.missingToolsCount ?? 0);
     this.dimensions.set(
       (data.composition?.dimensions ?? []).map((dim) => ({
         key: dim.key,
@@ -139,6 +157,15 @@ export class ConclusionCompositionDialogComponent {
   /** « Annuler » : ferme sans générer (résultat `undefined`). */
   cancel(): void {
     this.dialogRef.close(undefined);
+  }
+
+  /**
+   * F-258 / SF-258-02 — « Aller compléter ces outils » : ferme la modale **sans
+   * générer** et signale au parent de défiler vers les outils décisionnels
+   * (`viewToolsRequested`). L'avocat complète + calcule à la main puis relance.
+   */
+  navigateToTools(): void {
+    this.dialogRef.close({ navigateToTools: true });
   }
 
   /**

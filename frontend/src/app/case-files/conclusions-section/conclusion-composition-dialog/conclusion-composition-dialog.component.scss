@@ -96,6 +96,49 @@
   margin: 0;
 }
 
+// F-258 / SF-258-02 — Avertissement fort « outils non calculés » en tête de
+// modale. Avertissement, PAS erreur → encart navy/or (jamais rouge).
+.ccd__missing {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: rgba(201, 151, 58, 0.12);
+  border: 1px solid rgba(201, 151, 58, 0.45);
+  border-left: 4px solid var(--color-accent, #C9973A);
+  border-radius: 8px;
+}
+
+.ccd__missing-icon {
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+  color: var(--color-accent, #C9973A);
+  flex: 0 0 auto;
+}
+
+.ccd__missing-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ccd__missing-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-primary, #1A3A5C);
+}
+
+.ccd__missing-btn {
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--color-primary, #1A3A5C);
+  border-color: rgba(26, 58, 92, 0.4);
+}
+
 .ccd__warning {
   display: flex;
   align-items: center;
