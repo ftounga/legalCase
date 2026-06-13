@@ -699,7 +699,14 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
                 this.cdr.markForCheck();
                 return;
               }
-              this.persistThenGenerate(result.exclusions, fromScratch);
+              // SF-288-04 : déclarer toutes les dimensions affichées pour que le
+              // backend les remette à plat même quand aucune n'est exclue (« tout
+              // recoché » doit ré-inclure ce qui l'était).
+              this.persistThenGenerate(
+                result.exclusions,
+                dimensions.map((d) => d.key),
+                fromScratch,
+              );
             },
           );
       },
@@ -719,10 +726,11 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    */
   private persistThenGenerate(
     exclusions: CompositionExclusion[],
+    dimensionKeys: string[],
     fromScratch: boolean,
   ): void {
     this.compositionService
-      .saveComposition(this.caseFileId, exclusions)
+      .saveComposition(this.caseFileId, exclusions, dimensionKeys)
       .subscribe({
         next: () => {
           this.generate(fromScratch);
