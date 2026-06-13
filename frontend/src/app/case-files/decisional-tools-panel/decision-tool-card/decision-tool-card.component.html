@@ -1,5 +1,5 @@
 <div
-  [ngClass]="['tool-card', alertLevelClass, disabled ? 'tool-card--disabled' : '', prefilledClass, flashing ? 'tool-card--flashing' : '']"
+  [ngClass]="['tool-card', alertLevelClass, disabled ? 'tool-card--disabled' : '', prefilledClass, prefilledPendingClass, flashing ? 'tool-card--flashing' : '']"
   role="button"
   [attr.tabindex]="disabled ? -1 : 0"
   [attr.aria-label]="title"
@@ -96,7 +96,7 @@
     @if (formattedSummary) {
       <span class="tool-card__verdict">{{ formattedSummary }}</span>
     } @else {
-      <span class="tool-card__placeholder">Cliquer pour utiliser</span>
+      <span class="tool-card__placeholder">{{ placeholderText }}</span>
     }
   </div>
 </div>
