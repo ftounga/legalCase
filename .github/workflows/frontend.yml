@@ -6,9 +6,13 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
+  workflow_dispatch:
 
 concurrency:
-  group: staging-deploy
+  # F-293 SF-293-01 — groupe propre au frontend : un push backend (y compris un
+  # push docs qui déclenche backend.yml) ne peut plus évincer un déploiement
+  # frontend en file, et inversement.
+  group: staging-deploy-frontend
   cancel-in-progress: false
 
 env:

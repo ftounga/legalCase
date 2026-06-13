@@ -12,7 +12,9 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: staging-deploy
+  # F-293 SF-293-01 — groupe propre au backend (séparé du frontend) pour éviter
+  # l'éviction mutuelle des runs pending dans un groupe partagé.
+  group: staging-deploy-backend
   cancel-in-progress: false
 
 env:
