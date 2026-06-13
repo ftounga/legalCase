@@ -43,11 +43,15 @@
 
   <app-timer-widget [caseFileId]="caseFile()!.id"></app-timer-widget>
 
-  <app-case-dashboard-stepper
-    [steps]="dashboardSteps()"
-    [caseFileId]="caseFile()!.id"
-    (stepActivated)="onStepActivated($event)">
-  </app-case-dashboard-stepper>
+  <!-- F-289 SF-289-06 — stepper masqué sur l'onglet Vue d'ensemble (le bandeau
+       pilotage tient le rôle d'orientation) ; inchangé sur les autres onglets. -->
+  @if (selectedTabIndex() !== TAB_OVERVIEW) {
+    <app-case-dashboard-stepper
+      [steps]="dashboardSteps()"
+      [caseFileId]="caseFile()!.id"
+      (stepActivated)="onStepActivated($event)">
+    </app-case-dashboard-stepper>
+  }
 
   <!-- SF-171-02 : bandeau quota persistant — hors onglets (F-244 SF-244-01),
        reste visible quel que soit l'onglet actif. -->
@@ -99,6 +103,7 @@
       <div class="tab-panel-inner">
         <app-case-overview
           [caseFileId]="caseFile()!.id"
+          [caseTitle]="caseFile()!.title"
           (navigate)="onOverviewNavigate($event)">
         </app-case-overview>
       </div>

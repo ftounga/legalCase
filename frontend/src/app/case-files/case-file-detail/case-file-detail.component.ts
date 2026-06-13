@@ -247,6 +247,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
    */
   readonly selectedTabIndex = signal(TAB_OVERVIEW);
   /**
+   * F-289 SF-289-06 — index de l'onglet « Vue d'ensemble », exposé au template
+   * pour masquer le `case-dashboard-stepper` quand cet onglet est actif (le
+   * bandeau pilotage de la vue tient alors le rôle d'orientation). Le stepper
+   * reste affiché sur tous les autres onglets (décision PO 2026-06-13).
+   */
+  readonly TAB_OVERVIEW = TAB_OVERVIEW;
+  /**
    * F-244 SF-244-02 — Total agrégé des champs pré-remplis par l'IA sur les
    * outils visibles de l'onglet « Décision ». Alimenté par l'`@Output`
    * `prefillTotalChange` du `decisional-tools-panel`. Porté en badge

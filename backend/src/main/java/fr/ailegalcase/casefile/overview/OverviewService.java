@@ -271,7 +271,8 @@ public class OverviewService {
                 if ("OVERDUE".equals(urgency) || "CRITICAL".equals(urgency)) {
                     items.add(new OverviewResponse.AttentionItem(
                             "ECHEANCE", e.label(), urgency,
-                            new OverviewResponse.Action("VALIDATE_DEADLINE", "suivi", "echeancier", null)));
+                            new OverviewResponse.Action("VALIDATE_DEADLINE", "suivi", "echeancier", null),
+                            null, null));
                 }
             }
         }
@@ -284,20 +285,26 @@ public class OverviewService {
                             "PIECE_MANQUANTE",
                             "Pièce à obtenir : " + safeLabel(p.pieceLibelle()),
                             "SOON",
-                            new OverviewResponse.Action("MARK_PIECE", "analyse", "pieces-manquantes", null)));
+                            new OverviewResponse.Action("MARK_PIECE", "analyse", "pieces-manquantes", null),
+                            null, p.pieceLibelle()));
                 }
             }
         }
 
         // Questions IA sans réponse → 1 item agrégé.
-        long unanswered = questions == null ? 0
-                : questions.stream().filter(q -> isBlank(q.answerText())).count();
+        List<AiQuestionResponse> unansweredQuestions = questions == null ? List.of()
+                : questions.stream().filter(q -> isBlank(q.answerText())).toList();
+        long unanswered = unansweredQuestions.size();
         if (unanswered > 0) {
+            // SF-289-02 — une seule question sans réponse → on porte son id pour
+            // permettre la réponse inline ; plusieurs → questionId null (routage).
+            UUID questionId = unanswered == 1 ? unansweredQuestions.get(0).id() : null;
             items.add(new OverviewResponse.AttentionItem(
                     "QUESTION_IA",
                     unanswered + (unanswered > 1 ? " questions sans réponse" : " question sans réponse"),
                     "SOON",
-                    new OverviewResponse.Action("ANSWER_QUESTION", "analyse", "ai-questions", null)));
+                    new OverviewResponse.Action("ANSWER_QUESTION", "analyse", "ai-questions", null),
+                    questionId, null));
         }
 
         // Analyse obsolète (pièces en attente).
@@ -309,7 +316,8 @@ public class OverviewService {
                     "INFO",
                     new OverviewResponse.Action(
                             "RELAUNCH_ANALYSIS", "analyse", null,
-                            "/api/v1/case-files/{caseFileId}/re-analyze")));
+                            "/api/v1/case-files/{caseFileId}/re-analyze"),
+                    null, null));
         }
 
         items.sort(Comparator.comparingInt(i -> URGENCY_RANK.getOrDefault(i.urgency(), 99)));
@@ -327,17 +335,30 @@ public class OverviewService {
                                                           LocalDate today) {
         List<OverviewResponse.TimelineEvent> fil = new ArrayList<>();
 
-        // Phases → PROCEDURE.
+        // Phases → PROCEDURE (avec pièces versées dans la fenêtre de chaque phase).
         if (phases != null && phases.phases() != null) {
-            for (CasePhaseResponse p : phases.phases()) {
-                if (p.enteredAt() == null) {
-                    continue;
-                }
+            // Phases datées, triées par enteredAt → permet de calculer les fenêtres
+            // [enteredAt(phase), enteredAt(phase suivante)[ (dernière phase : ouverte).
+            List<CasePhaseResponse> dated = phases.phases().stream()
+                    .filter(p -> p.enteredAt() != null)
+                    .sorted(Comparator.comparing(CasePhaseResponse::enteredAt))
+                    .toList();
+            // Documents du dossier, lus une fois (fail-open : si jette, fenêtres vides).
+            List<Document> caseDocuments = safe(
+                    () -> documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId),
+                    List.of());
+            for (int i = 0; i < dated.size(); i++) {
+                CasePhaseResponse p = dated.get(i);
+                LocalDate windowStart = p.enteredAt();
+                // Borne haute exclusive = entrée de la phase suivante ; dernière phase → +∞.
+                LocalDate windowEnd = i + 1 < dated.size() ? dated.get(i + 1).enteredAt() : null;
+                List<OverviewResponse.Attachment> attachments =
+                        documentsInWindow(caseDocuments, windowStart, windowEnd);
                 fil.add(new OverviewResponse.TimelineEvent(
                         p.enteredAt(), "PROCEDURE", "SYSTEME",
                         p.label() != null ? p.label() : p.phase().name(),
                         p.note(), temps(p.enteredAt(), today), null,
-                        List.of(),
+                        attachments,
                         new OverviewResponse.Action("NAVIGATE", "suivi", "phases", null)));
             }
         }
@@ -443,6 +464,35 @@ public class OverviewService {
         });
 
         return events;
+    }
+
+    /**
+     * SF-289-03 — pièces dont la date de création tombe dans la fenêtre d'une phase
+     * {@code [windowStart, windowEnd[} ({@code windowEnd == null} → fenêtre ouverte
+     * jusqu'à maintenant, pour la dernière phase). La comparaison se fait au jour (la
+     * date de la phase est un {@link LocalDate}). Triées de la plus récente à la plus
+     * ancienne (l'entrée repository l'est déjà). Fail-open : un document à date nulle
+     * est ignoré ; deux phases de même date → fenêtre vide acceptable.
+     */
+    private List<OverviewResponse.Attachment> documentsInWindow(List<Document> caseDocuments,
+                                                                LocalDate windowStart,
+                                                                LocalDate windowEnd) {
+        if (caseDocuments == null || caseDocuments.isEmpty()) {
+            return List.of();
+        }
+        List<OverviewResponse.Attachment> attachments = new ArrayList<>();
+        for (Document d : caseDocuments) {
+            LocalDate created = toLocalDate(d.getCreatedAt());
+            if (created == null || created.isBefore(windowStart)) {
+                continue;
+            }
+            // Borne haute exclusive : created < windowEnd (sauf dernière phase, ouverte).
+            if (windowEnd != null && !created.isBefore(windowEnd)) {
+                continue;
+            }
+            attachments.add(new OverviewResponse.Attachment(d.getId(), d.getOriginalFilename()));
+        }
+        return attachments;
     }
 
     private List<OverviewResponse.Attachment> roundAttachments(ContradictoireRoundResponse r) {

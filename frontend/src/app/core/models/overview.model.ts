@@ -82,6 +82,17 @@ export interface AttentionItem {
   label: string;
   urgency: string;
   action: OverviewAction;
+  /**
+   * SF-289-02 — id de la question IA à répondre inline. Non null uniquement
+   * pour un item `QUESTION_IA` portant UNE seule question sans réponse
+   * (plusieurs questions agrégées → null → l'avocat est routé vers l'écran).
+   */
+  questionId?: string | null;
+  /**
+   * SF-289-02 — libellé original exact de la pièce manquante (clé du PUT
+   * `/pieces-manquantes/status`). Non null pour un item `PIECE_MANQUANTE`.
+   */
+  pieceLibelle?: string | null;
 }
 
 /** Pièce attachée à un événement du fil (vague, round sourcé). */

@@ -76,12 +76,21 @@ public record OverviewResponse(
      *
      * @param type    ECHEANCE | PIECE_MANQUANTE | QUESTION_IA | ANALYSE_OBSOLETE
      * @param urgency OVERDUE | CRITICAL | SOON | UPCOMING | INFO
+     * @param questionId  SF-289-02 — id de la question IA à répondre <b>inline</b>
+     *                    (non null uniquement pour un item {@code QUESTION_IA}
+     *                    portant <b>une seule</b> question sans réponse ; null si
+     *                    plusieurs questions sont agrégées → l'avocat est routé).
+     * @param pieceLibelle SF-289-02 — libellé original exact de la pièce manquante
+     *                    (clé d'upsert du PUT {@code /pieces-manquantes/status}),
+     *                    non null pour un item {@code PIECE_MANQUANTE}.
      */
     public record AttentionItem(
             String type,
             String label,
             String urgency,
-            Action action
+            Action action,
+            UUID questionId,
+            String pieceLibelle
     ) {}
 
     /**
