@@ -13,7 +13,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -38,6 +38,9 @@ import {
 // lazy-loadée par le composant lui-même).
 import { ConclusionWysiwygEditorComponent } from '../conclusion-wysiwyg-editor/conclusion-wysiwyg-editor.component';
 import { ConclusionsService } from '../../core/services/conclusions.service';
+// SF-287-01 — streaming SSE de la génération + barre de progression précise.
+import { ConclusionStreamService } from '../../core/services/conclusion-stream.service';
+import { ConclusionGenerationProgressComponent } from '../conclusion-generation-progress/conclusion-generation-progress.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
 import { JurisprudenceCheckService } from '../../core/services/jurisprudence-check.service';
@@ -141,6 +144,7 @@ const LIFECYCLE_ORDER: readonly ConclusionLifecycleStatus[] = [
     MatSelectModule,
     RouterLink,
     ConclusionDocumentComponent,
+    ConclusionGenerationProgressComponent,
     MarkdownToolbarComponent,
     ConclusionWysiwygEditorComponent,
   ],
@@ -210,6 +214,22 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly draftContent = signal('');
   /** SF-98-49 — Enregistrement du texte édité en cours (PATCH). */
   readonly savingContent = signal(false);
+
+  // ── SF-287-01 — Streaming de la génération + barre de progression ──────────
+  /** Pourcentage d'avancement réel (tokens reçus / maxTokens), 0..100. */
+  readonly streamPercent = signal(0);
+  /** Dernier titre de section détecté dans le flux (ou null avant le 1er titre). */
+  readonly streamSection = signal<string | null>(null);
+  /** Index 1-based de la section en cours (indicatif), ou null. */
+  readonly streamSectionIndex = signal<number | null>(null);
+  /** Markdown partiel reçu en direct, rendu dans l'aperçu pendant la génération. */
+  readonly streamPartial = signal<string>('');
+  /**
+   * Vrai dès qu'au moins un événement `progress` a été reçu pour la génération
+   * en cours : pilote l'affichage de la barre + de l'aperçu live (au lieu du
+   * spinner muet). Remis à false en fin de génération et au fallback polling.
+   */
+  readonly streaming = signal(false);
 
   /**
    * F-279 / SF-279-01 — Dernier contenu **confirmé côté serveur** pour la
@@ -412,6 +432,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly lifecycleOptions = LIFECYCLE_ORDER;
 
   private readonly conclusionsService = inject(ConclusionsService);
+  private readonly conclusionStreamService = inject(ConclusionStreamService);
   private readonly caseFileService = inject(CaseFileService);
   private readonly caseDashboardService = inject(CaseDashboardService);
   private readonly documentService = inject(DocumentService);
@@ -433,6 +454,12 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   /** Handle du polling actif (null = aucun polling en cours). */
   private pollHandle: ReturnType<typeof setInterval> | null = null;
+
+  /**
+   * SF-287-01 — Abonnement au flux SSE de génération (null = pas de stream actif).
+   * Fermé (et l'EventSource avec) au DONE/FAILED, au fallback polling et au destroy.
+   */
+  private streamSub: Subscription | null = null;
 
   /**
    * F-279 / SF-279-01 — Handle du timer d'autosave local (debounce). `null`
@@ -520,7 +547,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         this.selectedVersionId.set(res.id);
         this.loading.set(false);
         if (res.status === 'PENDING' || res.status === 'PROCESSING') {
-          this.startPolling();
+          this.startGenerationTracking();
         }
         this.cdr.markForCheck();
         this.refreshVersions();
@@ -540,6 +567,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPolling();
+    this.stopStream();
     this.cancelAutosave();
   }
 
@@ -654,7 +682,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         });
         // La nouvelle version devient la version suivie par défaut.
         this.selectedVersionId.set(null);
-        this.startPolling();
+        this.startGenerationTracking();
         this.cdr.markForCheck();
         this.refreshVersions();
       },
@@ -1602,6 +1630,107 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /**
+   * SF-287-01 — Démarre le suivi d'une génération en cours : streaming SSE en
+   * primaire (barre de progression + aperçu live). Le polling n'est démarré
+   * qu'en repli si le flux SSE échoue/expire (jamais d'écran bloqué). Idempotent.
+   */
+  private startGenerationTracking(): void {
+    if (this.streamSub !== null || this.pollHandle !== null) {
+      return;
+    }
+    this.resetStreamState();
+    this.streamSub = this.conclusionStreamService
+      .stream(this.caseFileId)
+      .subscribe({
+        next: (event) => this.onStreamEvent(event),
+        // Erreur SSE (connexion définitivement perdue) → repli sur le polling
+        // existant. On nettoie l'état de streaming pour réafficher le spinner.
+        error: () => this.fallbackToPolling(),
+        // L'Observable complète sur DONE/FAILED (gérés dans next) : rien à faire.
+        complete: () => {
+          this.streamSub = null;
+        },
+      });
+  }
+
+  /**
+   * SF-287-01 — Traite un événement du flux SSE de génération.
+   *  - `progress` : met à jour la barre (pourcentage + section) et l'aperçu live ;
+   *  - `done` : recharge la version finale (content + bordereau) via le GET ;
+   *  - `failed` : recharge l'état (statut FAILED + message d'erreur existant).
+   */
+  private onStreamEvent(
+    event:
+      | { type: 'progress'; percent: number; currentSection: string | null; sectionIndex: number | null; partialContent: string }
+      | { type: 'done'; versionNumber: number }
+      | { type: 'failed'; message: string },
+  ): void {
+    if (event.type === 'progress') {
+      this.streaming.set(true);
+      this.streamPercent.set(event.percent);
+      this.streamSection.set(event.currentSection);
+      this.streamSectionIndex.set(event.sectionIndex);
+      this.streamPartial.set(event.partialContent);
+      this.cdr.markForCheck();
+      return;
+    }
+    // États terminaux : on ferme le flux et on recharge l'état serveur réel
+    // (le content final + bordereau provient du GET, pas du flux).
+    this.stopStream();
+    this.reloadAfterGeneration();
+  }
+
+  /**
+   * SF-287-01 — Recharge l'état des conclusions après la fin du streaming
+   * (DONE/FAILED). Réutilise la logique de fin de polling : version finale,
+   * historique, mention adverse. En cas d'échec réseau, l'avocat peut recharger.
+   */
+  private reloadAfterGeneration(): void {
+    this.conclusionsService.getConclusion(this.caseFileId).subscribe({
+      next: (res) => {
+        this.conclusion.set(res);
+        this.selectedVersionId.set(res.id);
+        this.refreshVersions();
+        this.refreshAdverseMarkedCount();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * SF-287-01 — Repli sur le polling existant quand le flux SSE est indisponible
+   * (connexion perdue/expirée). On efface l'état de streaming (retour au spinner)
+   * puis on démarre le polling — jamais d'écran bloqué.
+   */
+  private fallbackToPolling(): void {
+    this.streamSub = null;
+    this.resetStreamState();
+    this.cdr.markForCheck();
+    this.startPolling();
+  }
+
+  /** SF-287-01 — Ferme le flux SSE (et l'EventSource) s'il est actif. */
+  private stopStream(): void {
+    if (this.streamSub !== null) {
+      this.streamSub.unsubscribe();
+      this.streamSub = null;
+    }
+    this.streaming.set(false);
+  }
+
+  /** SF-287-01 — Réinitialise les signaux de progression (nouvelle génération / repli). */
+  private resetStreamState(): void {
+    this.streaming.set(false);
+    this.streamPercent.set(0);
+    this.streamSection.set(null);
+    this.streamSectionIndex.set(null);
+    this.streamPartial.set('');
   }
 
   /** Démarre le polling de l'état (idempotent). */

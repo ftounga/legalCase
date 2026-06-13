@@ -1,0 +1,19 @@
+<div class="cgp" data-testid="conclusion-generation-progress">
+  <div class="cgp-header">
+    <span class="cgp-label" data-testid="cgp-section">
+      Rédaction : {{ sectionLabel }}
+    </span>
+    <span class="cgp-percent" data-testid="cgp-percent">{{ clampedPercent }} %</span>
+  </div>
+
+  <mat-progress-bar
+    class="cgp-bar"
+    mode="determinate"
+    [value]="clampedPercent"
+    [attr.aria-valuenow]="clampedPercent"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    aria-label="Avancement de la rédaction des conclusions"
+    data-testid="cgp-bar"
+  ></mat-progress-bar>
+</div>

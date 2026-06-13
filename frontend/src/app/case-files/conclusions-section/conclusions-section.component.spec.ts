@@ -11,8 +11,12 @@ import {
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
-import { of } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { provideRouter } from '@angular/router';
+import {
+  ConclusionStreamEvent,
+  ConclusionStreamService,
+} from '../../core/services/conclusion-stream.service';
 import {
   ConclusionsSectionComponent,
   extractPlaceholders,
@@ -39,6 +43,11 @@ describe('ConclusionsSectionComponent', () => {
   let docxSpy: jasmine.SpyObj<DocxExportService>;
   let pdfSpy: jasmine.SpyObj<PdfExportService>;
   let dialogSpy: jasmine.SpyObj<MatDialog>;
+  // SF-287-01 — flux SSE injectable. Par défaut il ERREUR à la souscription :
+  // le composant retombe alors sur le polling existant, ce qui préserve le
+  // comportement des tests antérieurs (polling). Les tests de streaming
+  // remplacent `streamFactory` par un Subject pour piloter progress/done/failed.
+  let streamFactory: (caseFileId: string) => Observable<ConclusionStreamEvent>;
 
   const CASE_ID = 'case-1';
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
@@ -131,6 +140,12 @@ describe('ConclusionsSectionComponent', () => {
     dialogSpy.open.and.returnValue({
       afterClosed: () => of(true),
     } as never);
+    // SF-287-01 — par défaut, le flux SSE erreur immédiatement → fallback polling
+    // (comportement historique préservé). Surchargé dans les tests de streaming.
+    streamFactory = () => throwError(() => new Error('no sse'));
+    const streamServiceMock: Partial<ConclusionStreamService> = {
+      stream: (caseFileId: string) => streamFactory(caseFileId),
+    };
     await TestBed.configureTestingModule({
       imports: [
         ConclusionsSectionComponent,
@@ -142,6 +157,7 @@ describe('ConclusionsSectionComponent', () => {
         { provide: DocxExportService, useValue: docxSpy },
         { provide: PdfExportService, useValue: pdfSpy },
         { provide: MatDialog, useValue: dialogSpy },
+        { provide: ConclusionStreamService, useValue: streamServiceMock },
         provideRouter([]),
       ],
     }).compileComponents();
@@ -658,6 +674,127 @@ describe('ConclusionsSectionComponent', () => {
 
     component.ngOnDestroy();
   }));
+
+  // ---------------------------------------------------------------------------
+  // SF-287-01 — Streaming SSE + barre de progression précise
+  // ---------------------------------------------------------------------------
+
+  describe('SF-287-01 — streaming de la génération', () => {
+    let stream$: Subject<ConclusionStreamEvent>;
+
+    beforeEach(() => {
+      stream$ = new Subject<ConclusionStreamEvent>();
+      streamFactory = () => stream$.asObservable();
+    });
+
+    it('montage en PROCESSING → souscrit au SSE ; progress affiche barre + aperçu live', () => {
+      fixture.detectChanges();
+      flushInitialLoad(response({ status: 'PROCESSING' }));
+      fixture.detectChanges();
+
+      stream$.next({
+        type: 'progress',
+        tokens: 4000,
+        maxTokens: 8000,
+        percent: 50,
+        currentSection: 'II. DISCUSSION',
+        sectionIndex: 2,
+        partialContent: '## II. DISCUSSION\nEn cours…',
+      });
+      fixture.detectChanges();
+
+      expect(component.streaming()).toBe(true);
+      expect(component.streamPercent()).toBe(50);
+      expect(component.streamSection()).toBe('II. DISCUSSION');
+
+      // Barre + aperçu live rendus, spinner muet absent.
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="cgp-bar"]'),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="live-generation-preview"]'),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="generating-indicator"]'),
+      ).toBeNull();
+
+      component.ngOnDestroy();
+    });
+
+    it('done → recharge la version finale via GET et ferme le flux', () => {
+      fixture.detectChanges();
+      flushInitialLoad(response({ status: 'PROCESSING' }));
+      fixture.detectChanges();
+
+      stream$.next({
+        type: 'progress', tokens: 100, maxTokens: 8000, percent: 1,
+        currentSection: null, sectionIndex: null, partialContent: '# POUR',
+      });
+      stream$.next({ type: 'done', status: 'DONE', versionNumber: 2 });
+      fixture.detectChanges();
+
+      // À done : reload via GET .../conclusions + historique + décompte adverse.
+      httpMock.expectOne(GET_URL).flush(doneResponse());
+      httpMock.expectOne(VERSIONS_URL).flush(versionList());
+      httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
+
+      expect(component.status()).toBe('DONE');
+      expect(component.streaming()).toBe(false);
+
+      component.ngOnDestroy();
+    });
+
+    it('failed → recharge l’état (statut FAILED) et ferme le flux', () => {
+      fixture.detectChanges();
+      flushInitialLoad(response({ status: 'PROCESSING' }));
+      fixture.detectChanges();
+
+      stream$.next({ type: 'failed', status: 'FAILED', message: 'boom' });
+      fixture.detectChanges();
+
+      httpMock.expectOne(GET_URL).flush(
+        response({ status: 'FAILED', errorMessage: 'boom' }),
+      );
+      httpMock.expectOne(VERSIONS_URL).flush(versionList());
+      httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
+
+      expect(component.status()).toBe('FAILED');
+      expect(component.streaming()).toBe(false);
+
+      component.ngOnDestroy();
+    });
+
+    it('erreur SSE → repli sur le polling existant (jamais d’écran bloqué)', fakeAsync(() => {
+      fixture.detectChanges();
+      flushInitialLoad(response({ status: 'PROCESSING' }));
+      fixture.detectChanges();
+
+      // Le flux SSE échoue → fallback polling.
+      stream$.error(new Error('sse closed'));
+      fixture.detectChanges();
+
+      expect(component.streaming()).toBe(false);
+
+      // Le polling existant prend le relais.
+      tick(3000);
+      httpMock.expectOne(GET_URL).flush(doneResponse());
+      httpMock.expectOne(VERSIONS_URL).flush(versionList());
+      httpMock.expectOne(CHECKS_URL).flush({ checks: [] });
+      expect(component.status()).toBe('DONE');
+
+      component.ngOnDestroy();
+    }));
+
+    it('ngOnDestroy ferme l’abonnement au flux SSE', () => {
+      fixture.detectChanges();
+      flushInitialLoad(response({ status: 'PROCESSING' }));
+      fixture.detectChanges();
+
+      expect(stream$.observed).toBe(true);
+      component.ngOnDestroy();
+      expect(stream$.observed).toBe(false);
+    });
+  });
 
   // ---------------------------------------------------------------------------
   // SF-98-49 — Éditeur de relecture
