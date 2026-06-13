@@ -840,6 +840,116 @@ describe('ConclusionsSectionComponent', () => {
     component.ngOnDestroy();
   }));
 
+  // ---------------------------------------------------------------------------
+  // F-258 / SF-258-02 — avertissement « outils non calculés » DANS le checkpoint
+  // ---------------------------------------------------------------------------
+
+  /**
+   * SF-258-02 — `flushInitialLoad` avec une visibilité (alwaysOn/contextual) et
+   * des tiles telles que `missingToolsCount = N`. Ici 2 proposés, 0 calculé ⇒ N=2.
+   */
+  function flushInitialLoadWithMissing(): void {
+    flushInitialLoad(
+      response(),
+      [],
+      { alwaysOn: ['A', 'B'], contextual: [], catalog: [] },
+      [],
+    );
+  }
+
+  it('SF-258-02 — missing>0 & 0 curable → la modale s’ouvre (avant : génération directe) (C1)', fakeAsync(() => {
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of(undefined),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoadWithMissing(); // N=2
+    fixture.detectChanges();
+    expect(component.missingToolsCount()).toBe(2);
+
+    component.requestGenerate();
+    flushComposition([]); // 0 dimension curable
+
+    // La modale s'ouvre malgré l'absence de curable (checkpoint non contournable).
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    const opened = dialogSpy.open.calls.mostRecent().args[0];
+    expect(opened).toBe(ConclusionCompositionDialogComponent);
+    // missingToolsCount passé au modal.
+    const data = dialogSpy.open.calls.mostRecent().args[1]?.data as {
+      missingToolsCount: number;
+    };
+    expect(data.missingToolsCount).toBe(2);
+    httpMock.expectNone(GENERATE_URL);
+
+    component.ngOnDestroy();
+  }));
+
+  it('SF-258-02 — « Aller compléter ces outils » → viewToolsRequested, ni PUT ni generate (C3)', fakeAsync(() => {
+    const spy = jasmine.createSpy('viewTools');
+    component.viewToolsRequested.subscribe(spy);
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of({ navigateToTools: true }),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoadWithMissing();
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    flushComposition([]); // 0 curable, modale ouverte pour les non-calculés
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    httpMock.expectNone(COMPOSITION_URL); // pas de PUT
+    httpMock.expectNone(GENERATE_URL); // pas de génération
+
+    component.ngOnDestroy();
+  }));
+
+  it('SF-258-02 — « Confirmer & générer » avec missing>0 (0 curable) → PUT puis generate (C4)', fakeAsync(() => {
+    dialogSpy.open.and.returnValue({
+      afterClosed: () => of({ exclusions: [] }),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoadWithMissing();
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    flushComposition([]); // 0 curable
+
+    // dimensions vides ⇒ PUT { dimensions: [], exclusions: [] } puis génération.
+    const putReq = httpMock.expectOne(COMPOSITION_URL);
+    expect(putReq.request.method).toBe('PUT');
+    expect(putReq.request.body).toEqual({ dimensions: [], exclusions: [] });
+    putReq.flush({ dimensions: [] });
+
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 1 });
+    httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
+  it('SF-258-02 — missing=0 & 0 curable → pas de modale, génération directe (C5, non-régression)', fakeAsync(() => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad(); // N=0
+    fixture.detectChanges();
+    expect(component.missingToolsCount()).toBe(0);
+
+    component.requestGenerate();
+    flushComposition([]); // 0 curable
+
+    expect(dialogSpy.open).not.toHaveBeenCalled();
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 1 });
+    httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
   // ── SF-271-03 — un seul bouton honnête « Régénérer » (confirmation obligatoire) ──
 
   it('SF-271-03 — « Régénérer » → confirmation honnête puis POST fromScratch=false', fakeAsync(() => {

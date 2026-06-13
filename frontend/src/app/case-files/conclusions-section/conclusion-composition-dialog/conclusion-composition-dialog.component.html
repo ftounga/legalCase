@@ -11,6 +11,26 @@
   </header>
 
   <div mat-dialog-content class="ccd__content">
+    @if (missingToolsCount() > 0) {
+      <section class="ccd__missing" role="alert" data-testid="composition-missing-tools-warning">
+        <mat-icon class="ccd__missing-icon">warning</mat-icon>
+        <div class="ccd__missing-body">
+          <p class="ccd__missing-text">
+            <strong>{{ missingToolsCount() }}</strong>
+            {{ missingToolsCount() > 1 ? 'outils pertinents ne sont pas calculés' : 'outil pertinent n\'est pas calculé' }}.
+            Ils ne nourriront pas l'acte tant qu'ils ne sont pas complétés et calculés.
+          </p>
+          <button mat-stroked-button type="button"
+                  class="ccd__missing-btn"
+                  data-testid="composition-go-complete-tools-btn"
+                  (click)="navigateToTools()">
+            <mat-icon>arrow_forward</mat-icon>
+            Aller compléter ces outils
+          </button>
+        </div>
+      </section>
+    }
+
     @for (dim of dimensions(); track dim.key) {
       <section class="ccd__dimension" [attr.data-testid]="'composition-dimension-' + dim.key">
         <div class="ccd__dimension-head">

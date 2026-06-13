@@ -679,8 +679,12 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       next: (composition) => {
         const dimensions = composition?.dimensions ?? [];
         const hasCurable = dimensions.some((d) => (d.items?.length ?? 0) > 0);
-        if (!hasCurable) {
-          // Aucun outil calculé → pas de modal, génération directe.
+        // F-258 / SF-258-02 : le checkpoint ne doit plus être contournable tant
+        // qu'il reste des outils proposés non calculés → on ouvre la modale même
+        // sans élément curable s'il reste des non-calculés (avertissement fort).
+        const missing = this.missingToolsCount();
+        if (!hasCurable && missing === 0) {
+          // Ni curable, ni non-calculé → pas de modal, génération directe.
           this.generate(fromScratch);
           this.cdr.markForCheck();
           return;
@@ -689,7 +693,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
           .open(ConclusionCompositionDialogComponent, {
             width: '620px',
             maxWidth: '95vw',
-            data: { composition },
+            data: { composition, missingToolsCount: missing },
           })
           .afterClosed()
           .subscribe(
@@ -699,9 +703,18 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
                 this.cdr.markForCheck();
                 return;
               }
+              if ('navigateToTools' in result) {
+                // F-258 / SF-258-02 « Aller compléter ces outils » : on défile
+                // vers les outils, sans persister ni générer.
+                this.viewToolsRequested.emit();
+                this.cdr.markForCheck();
+                return;
+              }
               // SF-288-04 : déclarer toutes les dimensions affichées pour que le
               // backend les remette à plat même quand aucune n'est exclue (« tout
-              // recoché » doit ré-inclure ce qui l'était).
+              // recoché » doit ré-inclure ce qui l'était). Quand la modale est
+              // ouverte uniquement à cause des non-calculés (0 curable),
+              // `dimensions` est vide ⇒ rien à persister, on génère.
               this.persistThenGenerate(
                 result.exclusions,
                 dimensions.map((d) => d.key),
