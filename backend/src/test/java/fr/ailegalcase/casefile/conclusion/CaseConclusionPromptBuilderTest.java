@@ -1062,4 +1062,43 @@ class CaseConclusionPromptBuilderTest {
         assertThat(CaseConclusionPromptBuilder.appliesAdversePiecesGuard(DEFENDEUR_BE_KEY)).isFalse();
         assertThat(CaseConclusionPromptBuilder.appliesAdversePiecesGuard(null)).isFalse();
     }
+
+    // ── F-291 / SF-291-02 — garde « citations & chiffres » ───────────────────
+
+    @Test
+    void buildSystemPrompt_includesCitationsFiguresGuard() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        // En-tête de la garde + principe « silence > erreur » (marqueur [à vérifier]).
+        assertThat(system).contains("Garde citations & chiffres");
+        assertThat(system).contains("[à vérifier]");
+        // Anti-affirmation non sourcée : article / durée conventionnelle / montant.
+        assertThat(system).contains("durée conventionnelle");
+        // Exécution provisoire prud'homale épinglée sur les bons articles.
+        assertThat(system).contains("article 514 du Code de procédure civile");
+        assertThat(system).contains("R. 1454-28");
+        assertThat(system).contains("N'utilise JAMAIS l'article 515");
+        // Solde de tout compte : article L. 1234-20.
+        assertThat(system).contains("L. 1234-20");
+    }
+
+    @Test
+    void buildSystemPrompt_citationsFiguresGuard_coexistsWithOtherGuards() {
+        // Non-régression : la garde s'ajoute sans remplacer les gardes existantes.
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        assertThat(system).contains("Garde citations & chiffres");
+        assertThat(system).contains("Garde jurisprudence");          // F-242
+        assertThat(system).contains("Aucun jargon interne");          // SF-98-55
+        assertThat(system).contains("Garde de qualité rédactionnelle");
+    }
+
+    @Test
+    void citationsFiguresGuard_doesNotLeakToolCodeOrFeatureId() {
+        // Anti-jargon (non-régression SF-98-55) : aucun code outil ni identifiant de feature.
+        assertThat(CaseConclusionPromptBuilder.CITATIONS_FIGURES_GUARD)
+                .doesNotContainIgnoringCase("F-291")
+                .doesNotContainIgnoringCase("F-DT-")
+                .doesNotContainIgnoringCase("SF-291");
+    }
 }

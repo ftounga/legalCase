@@ -228,6 +228,34 @@ public class CaseConclusionPromptBuilder {
                     + "libellé interne ni de nom de fichier. À défaut d'élément fondant l'une de ces "
                     + "demandes, n'ajoute pas de rubrique vide.";
 
+    /**
+     * F-291 / SF-291-02 — garde transverse « citations &amp; chiffres ». Interdit au modèle
+     * d'affirmer un numéro d'article, une durée conventionnelle ou un montant qui ne lui sont
+     * pas explicitement fournis dans les données du dossier (principe « silence &gt; erreur »
+     * partagé avec F-179 / F-IA), et épingle les articles fiables sur deux points où le modèle
+     * comblait par une référence périmée ou inventée : l'exécution provisoire prud'homale
+     * (art. 514 CPC / R. 1454-28 CT, jamais l'art. 515 abrogé) et le solde de tout compte
+     * (art. L. 1234-20 CT). Mécanisme symétrique de {@link #JURISPRUDENCE_GUARD} et
+     * {@link #REDACTION_QUALITY_GUARD} : appliquée par-dessus le prompt de base, jamais
+     * dupliquée provider par provider.
+     */
+    static final String CITATIONS_FIGURES_GUARD =
+            "Garde citations & chiffres (impérative) :\n"
+                    + "1. N'affirme JAMAIS un numéro d'article de loi, une durée conventionnelle "
+                    + "(préavis, etc.) ou un montant chiffré qui ne te sont pas explicitement "
+                    + "fournis dans les données du dossier ci-dessus. À défaut de donnée fournie, "
+                    + "emploie une formulation générique (renvoi à la convention collective "
+                    + "applicable / aux textes en vigueur) et marque la précision manquante par la "
+                    + "mention [à vérifier]. Mieux vaut une formulation prudente qu'une affirmation "
+                    + "fausse.\n"
+                    + "2. Exécution provisoire (prud'hommes) : vise l'article 514 du Code de "
+                    + "procédure civile (exécution provisoire de droit) et, le cas échéant, "
+                    + "l'article R. 1454-28 du Code du travail. N'utilise JAMAIS l'article 515 "
+                    + "(abrogé/obsolète).\n"
+                    + "3. Solde de tout compte : si tu le cites, l'article est L. 1234-20 du Code "
+                    + "du travail (jamais un article relatif à la rupture conventionnelle "
+                    + "collective).";
+
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
 
@@ -263,6 +291,9 @@ public class CaseConclusionPromptBuilder {
         sb.append('\n').append(JURISPRUDENCE_GUARD).append('\n');
         // SF-98-55 — garde de qualité rédactionnelle commune (anti-jargon, syllogisme, dispositif).
         sb.append('\n').append(REDACTION_QUALITY_GUARD).append('\n');
+        // SF-291-02 — garde « citations & chiffres » (anti-affirmation non sourcée, articles
+        // exécution provisoire / solde de tout compte épinglés), transverse à toutes les cellules.
+        sb.append('\n').append(CITATIONS_FIGURES_GUARD).append('\n');
         // SF-272-01 — ossature in limine litis (art. 74 CPC), uniquement défendeur FR.
         if (appliesProcedureOrderGuard(key)) {
             sb.append('\n').append(PROCEDURE_ORDER_GUARD).append('\n');
