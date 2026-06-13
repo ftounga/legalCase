@@ -2062,4 +2062,81 @@ class CaseFileDashboardServiceTest {
         assertThat(f253).isNotNull();
         assertThat(f253.primaryValue()).isEqualTo("1 à creuser");
     }
+
+    // ── F-291 / SF-291-01 — bornes légales L.1235-3 dans la ligne secondaire ──
+
+    /** Élague tout espace (dont l'espace insécable U+00A0 / U+202F du format FR). */
+    private static String stripWs(String s) {
+        return s.replaceAll("[\\s\\u00a0\\u202f]", "");
+    }
+
+    /**
+     * Seed le comparateur Macron (branche jurisprudentielle) avec un salaire et des
+     * bornes légales en mois ; les montants jurisprudentiels restent la fourchette phare.
+     */
+    private void seedIndemniteComparatifMacron(BigDecimal salaire, BigDecimal plancherMois,
+            BigDecimal plafondMois) {
+        try {
+            IndemniteComparatif e = new IndemniteComparatif();
+            IndemniteComparatifResult r = new IndemniteComparatifResult(
+                    "FR", "LICENCIEMENT", 8, 45,
+                    salaire, "STANDARD",
+                    plancherMois, plafondMois,
+                    new BigDecimal("4"), new BigDecimal("5.4"), new BigDecimal("6.8"),
+                    new BigDecimal("14008"), new BigDecimal("18900"), new BigDecimal("23896"),
+                    new BigDecimal("9000"), "Barème Macron (art. L.1235-3)",
+                    "commentaire", List.of());
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(indemniteRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    private DashboardTile comparateurTile() {
+        return service.assembleTiles(UUID.randomUUID()).stream()
+                .filter(t -> "F-DT-09-comparateur-indemnites".equals(t.toolId()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Tile F-DT-09 absente"));
+    }
+
+    @Test
+    void comparateurMacron_secondaryExposeLesBornesLegales() {
+        // salaire 3 500 € × bornes 3–8 mois → 10 500 € – 28 000 €.
+        seedIndemniteComparatifMacron(new BigDecimal("3500"),
+                new BigDecimal("3"), new BigDecimal("8"));
+
+        DashboardTile tile = comparateurTile();
+
+        // Ligne secondaire = barème LÉGAL calculé + mention « jurisprudentielle indicative ».
+        assertThat(tile.secondaryValue())
+                .contains("Barème légal L.1235-3")
+                .contains("8 mois (")
+                .contains("fourchette jurisprudentielle indicative");
+        // Les montants prouvent l'usage des bornes (3×3500=10 500 ; 8×3500=28 000).
+        assertThat(stripWs(tile.secondaryValue())).contains("10500").contains("28000");
+        // primaryValue inchangée : la fourchette jurisprudentielle reste l'estimation phare.
+        assertThat(stripWs(tile.primaryValue())).contains("14008").contains("23896");
+        assertThat(tile.primaryValue()).doesNotContain("Barème légal");
+    }
+
+    @Test
+    void comparateurMacron_bornesNulles_conserveLeBaremeSourceOrigine() {
+        // Fail-open : plafond absent → on conserve le libellé d'origine, sans bornes injectées.
+        seedIndemniteComparatifMacron(new BigDecimal("3500"), new BigDecimal("3"), null);
+
+        DashboardTile tile = comparateurTile();
+
+        assertThat(tile.secondaryValue()).isEqualTo("Barème Macron (art. L.1235-3)");
+        assertThat(tile.secondaryValue()).doesNotContain("Barème légal L.1235-3 :");
+    }
+
+    @Test
+    void comparateurRuptureConv_gardeSonLibelleSansBornesMacron() {
+        // L'autre branche (rupture conventionnelle) n'est pas touchée par SF-291-01.
+        seedRuptureConvIndemnite();
+
+        DashboardTile tile = comparateurTile();
+
+        assertThat(tile.secondaryValue()).isEqualTo("Indemnité légale de licenciement (art. R1234-2)");
+        assertThat(tile.secondaryValue()).doesNotContain("Barème légal L.1235-3");
+    }
 }
