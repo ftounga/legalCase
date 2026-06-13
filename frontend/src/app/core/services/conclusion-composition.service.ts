@@ -67,16 +67,23 @@ export class ConclusionCompositionService {
   }
 
   /**
-   * Remplace l'ensemble d'exclusions des dimensions fournies puis renvoie la
+   * Remplace l'ensemble d'exclusions des dimensions gérées puis renvoie la
    * composition à jour (même corps que `getComposition`).
+   *
+   * `dimensions` = les clés des dimensions que le modal a affichées et gère
+   * autoritairement. Indispensable (SF-288-04) pour que « tout recocher » (zéro
+   * exclusion) efface réellement les exclusions précédentes : sans cette liste, un
+   * body `exclusions: []` ne remettrait à plat aucune dimension côté backend et
+   * l'exclusion resterait collée.
    */
   saveComposition(
     caseFileId: string,
     exclusions: CompositionExclusion[],
+    dimensions: string[],
   ): Observable<Composition> {
     return this.http.put<Composition>(
       `/api/v1/case-files/${caseFileId}/conclusions/composition`,
-      { exclusions },
+      { dimensions, exclusions },
     );
   }
 }
