@@ -680,6 +680,75 @@ describe('ConclusionsSectionComponent', () => {
     component.ngOnDestroy();
   }));
 
+  /**
+   * F-288 / SF-288-03 — Composition à 2 dimensions : outils décisionnels
+   * (vague 1) + moyens adverses (`ADVERSE_MOYEN`).
+   */
+  function compositionWithMoyens(): {
+    dimensions: {
+      key: string;
+      label: string;
+      items: { key: string; label: string; included: boolean }[];
+    }[];
+  } {
+    return {
+      dimensions: [
+        {
+          key: 'DECISION_TOOL',
+          label: 'Outils décisionnels',
+          items: [{ key: 'tool-a', label: 'Indemnité', included: true }],
+        },
+        {
+          key: 'ADVERSE_MOYEN',
+          label: 'Moyens adverses',
+          items: [
+            { key: 'moyen-1', label: 'Faute grave…', included: true },
+            { key: 'moyen-2', label: 'Procédure régulière…', included: true },
+          ],
+        },
+      ],
+    };
+  }
+
+  it('SF-288-03 — 2 dimensions (outils + moyens) → modal reçoit les 2, PUT inclut l’exclusion ADVERSE_MOYEN', fakeAsync(() => {
+    // L'avocat décoche un moyen adverse (moyen-2).
+    dialogSpy.open.and.returnValue({
+      afterClosed: () =>
+        of({ exclusions: [{ dimension: 'ADVERSE_MOYEN', itemKey: 'moyen-2' }] }),
+    } as never);
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    component.requestGenerate();
+    flushComposition(compositionWithMoyens().dimensions);
+
+    // Le modal reçoit bien les 2 dimensions.
+    const data = dialogSpy.open.calls.mostRecent().args[1]?.data as {
+      composition: { dimensions: { key: string }[] };
+    };
+    expect(data.composition.dimensions.map((d) => d.key)).toEqual([
+      'DECISION_TOOL',
+      'ADVERSE_MOYEN',
+    ]);
+
+    // PUT avec l'exclusion ADVERSE_MOYEN choisie, AVANT la génération.
+    const putReq = httpMock.expectOne(COMPOSITION_URL);
+    expect(putReq.request.method).toBe('PUT');
+    expect(putReq.request.body).toEqual({
+      exclusions: [{ dimension: 'ADVERSE_MOYEN', itemKey: 'moyen-2' }],
+    });
+    putReq.flush(compositionWithMoyens());
+
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 1 });
+    httpMock.expectOne(VERSIONS_URL).flush([]);
+
+    component.ngOnDestroy();
+  }));
+
   it('F-288 — annuler le modal → ni PUT ni génération', fakeAsync(() => {
     dialogSpy.open.and.returnValue({
       afterClosed: () => of(undefined),

@@ -519,6 +519,79 @@ class CaseConclusionServiceTest {
                 argThat(m -> !m.contains("MOYENS ADVERSES À RÉFUTER")), anyInt(), any());
     }
 
+    // ── SF-288-03 — curation des moyens adverses (exclusion durable) ────────────
+
+    @Test
+    void generate_excludedAdverseMoyen_absentFromPrompt() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+
+        UUID excludedId = UUID.randomUUID();
+        UUID keptId = UUID.randomUUID();
+        when(adverseMoyenPersistenceService.loadOrExtract(caseFileId, "DROIT_DU_TRAVAIL", "FRANCE"))
+                .thenReturn(List.of(
+                        new AdverseMoyenWithId(excludedId, new AdverseMoyen(
+                                "MOYEN CONCEDE par l'avocat.", List.of(), List.of())),
+                        new AdverseMoyenWithId(keptId, new AdverseMoyen(
+                                "MOYEN A REFUTER absolument.", List.of(), List.of()))));
+        // L'avocat a exclu le 1er moyen (dimension ADVERSE_MOYEN).
+        ConclusionCompositionExclusion exclusion = new ConclusionCompositionExclusion();
+        exclusion.setCaseFileId(caseFileId);
+        exclusion.setDimension("ADVERSE_MOYEN");
+        exclusion.setItemKey(excludedId.toString());
+        when(compositionExclusionRepository.findByCaseFileIdAndDimension(caseFileId, "ADVERSE_MOYEN"))
+                .thenReturn(List.of(exclusion));
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        // le moyen concédé est absent ; le moyen retenu reste injecté.
+        verify(anthropicService).analyzeWithSystemCacheStreaming(
+                any(AiCallContext.class), any(),
+                argThat(m -> !m.contains("MOYEN CONCEDE par l'avocat.")), anyInt(), any());
+        verify(anthropicService).analyzeWithSystemCacheStreaming(
+                any(AiCallContext.class), any(),
+                contains("MOYEN A REFUTER absolument."), anyInt(), any());
+    }
+
+    @Test
+    void generate_noAdverseMoyenExclusion_allMoyensInjected() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+
+        when(adverseMoyenPersistenceService.loadOrExtract(caseFileId, "DROIT_DU_TRAVAIL", "FRANCE"))
+                .thenReturn(List.of(
+                        new AdverseMoyenWithId(UUID.randomUUID(), new AdverseMoyen(
+                                "Premier moyen adverse.", List.of(), List.of())),
+                        new AdverseMoyenWithId(UUID.randomUUID(), new AdverseMoyen(
+                                "Second moyen adverse.", List.of(), List.of()))));
+        // Aucune exclusion ADVERSE_MOYEN (findByCaseFileIdAndDimension renvoie empty par défaut).
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        verify(anthropicService).analyzeWithSystemCacheStreaming(
+                any(AiCallContext.class), any(),
+                contains("Premier moyen adverse."), anyInt(), any());
+        verify(anthropicService).analyzeWithSystemCacheStreaming(
+                any(AiCallContext.class), any(),
+                contains("Second moyen adverse."), anyInt(), any());
+    }
+
     // ── F-271 / SF-271-02 — conclusions récapitulatives (texte de l'avocat préservé) ──
 
     @Test
