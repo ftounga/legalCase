@@ -112,17 +112,47 @@
       }
 
       <!-- ── Génération en cours ───────────────────────────────── -->
+      <!-- SF-287-01 — pendant PENDING/PROCESSING : si le flux SSE est actif
+           (`streaming()`), l'acte se construit en direct sous une barre de
+           progression précise ; sinon (avant 1er fragment ou repli polling)
+           on garde le spinner muet existant. -->
       @case ('PENDING') {
-        <div class="cs-loading" data-testid="generating-indicator">
-          <mat-spinner diameter="22"></mat-spinner>
-          <span>Génération en cours…</span>
-        </div>
+        @if (streaming()) {
+          <app-conclusion-generation-progress
+            [percent]="streamPercent()"
+            [currentSection]="streamSection()"
+            [sectionIndex]="streamSectionIndex()"
+          ></app-conclusion-generation-progress>
+          <app-conclusion-document
+            [content]="streamPartial()"
+            [pieces]="pieceRefs()"
+            data-testid="live-generation-preview"
+          ></app-conclusion-document>
+        } @else {
+          <div class="cs-loading" data-testid="generating-indicator">
+            <mat-spinner diameter="22"></mat-spinner>
+            <span>Génération en cours…</span>
+          </div>
+        }
       }
       @case ('PROCESSING') {
-        <div class="cs-loading" data-testid="generating-indicator">
-          <mat-spinner diameter="22"></mat-spinner>
-          <span>Génération en cours…</span>
-        </div>
+        @if (streaming()) {
+          <app-conclusion-generation-progress
+            [percent]="streamPercent()"
+            [currentSection]="streamSection()"
+            [sectionIndex]="streamSectionIndex()"
+          ></app-conclusion-generation-progress>
+          <app-conclusion-document
+            [content]="streamPartial()"
+            [pieces]="pieceRefs()"
+            data-testid="live-generation-preview"
+          ></app-conclusion-document>
+        } @else {
+          <div class="cs-loading" data-testid="generating-indicator">
+            <mat-spinner diameter="22"></mat-spinner>
+            <span>Génération en cours…</span>
+          </div>
+        }
       }
 
       <!-- ── Terminé ───────────────────────────────────────────── -->

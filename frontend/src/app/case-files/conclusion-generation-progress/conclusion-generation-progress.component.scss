@@ -1,0 +1,55 @@
+// SF-287-01 — Barre de progression de la génération des conclusions.
+// Design system : piste marine (#1A3A5C), remplissage or (#C9973A), visible.
+
+:host {
+  display: block;
+}
+
+.cgp {
+  margin: 0 0 1rem;
+}
+
+.cgp-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.cgp-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a3a5c;
+}
+
+.cgp-percent {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #c9973a;
+  font-variant-numeric: tabular-nums;
+}
+
+// Barre confortable (10px), arrondie, marine en piste, or en remplissage,
+// transition fluide sur la largeur (pas de saut brutal).
+.cgp-bar {
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+
+  // Material 3 (MDC) — la piste et le remplissage sont stylés via les variables
+  // de thème de la barre. On force la palette design system.
+  --mdc-linear-progress-track-color: #1a3a5c;
+  --mdc-linear-progress-active-indicator-color: #c9973a;
+
+  ::ng-deep .mdc-linear-progress__bar-inner {
+    border-color: #c9973a;
+    transition: transform 250ms ease;
+  }
+
+  ::ng-deep .mdc-linear-progress__buffer-bar,
+  ::ng-deep .mdc-linear-progress__track {
+    background-color: #1a3a5c;
+  }
+}
