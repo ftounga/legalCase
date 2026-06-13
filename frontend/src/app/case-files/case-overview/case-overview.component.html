@@ -1,5 +1,55 @@
 <!-- F-289 / SF-289-01 — Vue d'ensemble du dossier : 3 registres hiérarchisés
-     (Piloter → Parcourir → Approfondir). Lecture seule ; les actions routent. -->
+     (Piloter → Parcourir → Approfondir). Lecture seule ; les actions routent.
+     SF-289-05 — l'aperçu d'une pièce ouvre un drawer latéral (mat-drawer) au
+     lieu d'un onglet navigateur, sans perte de contexte. -->
+
+<mat-drawer-container class="ov-drawer-container" autosize hasBackdrop="true">
+  <mat-drawer #previewDrawer mode="over" position="end" class="ov-preview-drawer"
+              data-testid="overview-preview-drawer"
+              [opened]="previewDoc() !== null"
+              (closed)="closePreview()">
+    @if (previewDoc(); as doc) {
+      <header class="ov-preview__head">
+        <span class="ov-preview__name" [matTooltip]="doc.filename">{{ doc.filename }}</span>
+        <button mat-icon-button aria-label="Fermer l'aperçu"
+                data-testid="overview-preview-close"
+                (click)="closePreview()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </header>
+      <div class="ov-preview__body">
+        @if (previewLoading()) {
+          <div class="ov-preview__state">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement de l'aperçu…</span>
+          </div>
+        } @else if (previewError()) {
+          <div class="ov-preview__state ov-preview__state--error"
+               data-testid="overview-preview-error">
+            <mat-icon>cloud_off</mat-icon>
+            <p>Cette pièce n'est plus disponible.</p>
+          </div>
+        } @else if (previewUrl()) {
+          <iframe class="ov-preview__frame" [src]="previewUrl()"
+                  data-testid="overview-preview-frame"
+                  title="Aperçu de la pièce"></iframe>
+        }
+      </div>
+      <footer class="ov-preview__foot">
+        <button mat-stroked-button (click)="openPreviewInTab()"
+                data-testid="overview-preview-open-tab">
+          <mat-icon>open_in_new</mat-icon> Ouvrir dans un onglet
+        </button>
+        <a mat-stroked-button [href]="downloadHref(doc.documentId)"
+           data-testid="overview-preview-download"
+           target="_blank" rel="noopener">
+          <mat-icon>download</mat-icon> Télécharger
+        </a>
+      </footer>
+    }
+  </mat-drawer>
+
+  <mat-drawer-content class="ov-drawer-content">
 
 @if (loading()) {
   <div class="ov-loading" data-testid="overview-loading">
@@ -100,15 +150,44 @@
             @for (item of visibleAttention(); track $index) {
               <li class="ov-attention__item" [class]="urgencyClass(item.urgency)"
                   data-testid="attention-item">
-                <span class="ov-attention__dot"></span>
-                <span class="ov-attention__label">{{ item.label }}</span>
-                @if (item.action) {
-                  <button mat-stroked-button class="ov-attention__action"
-                          data-testid="attention-action"
-                          (click)="runAction(item.action)">
-                    <mat-icon>{{ actionIcon(item.action) }}</mat-icon>
-                    {{ actionLabel(item.action) }}
-                  </button>
+                <div class="ov-attention__row">
+                  <span class="ov-attention__dot"></span>
+                  <span class="ov-attention__label">{{ item.label }}</span>
+                  @if (item.action) {
+                    <button mat-stroked-button class="ov-attention__action"
+                            data-testid="attention-action"
+                            [disabled]="actionBusyIndex() === $index"
+                            (click)="onAttentionAction(item, $index)">
+                      <mat-icon>{{ actionIcon(item.action) }}</mat-icon>
+                      {{ actionLabel(item.action) }}
+                    </button>
+                  }
+                </div>
+
+                <!-- SF-289-02 — champ de réponse inline (question IA) ouvert à la demande -->
+                @if (item.type === 'QUESTION_IA' && item.questionId && answerOpenIndex() === $index) {
+                  <div class="ov-answer" data-testid="attention-answer">
+                    <mat-form-field appearance="outline" class="ov-answer__field">
+                      <mat-label>Votre réponse</mat-label>
+                      <textarea matInput rows="3"
+                                data-testid="attention-answer-input"
+                                [ngModel]="answerDraft()"
+                                (ngModelChange)="answerDraft.set($event)"
+                                [disabled]="actionBusyIndex() === $index"></textarea>
+                    </mat-form-field>
+                    <div class="ov-answer__actions">
+                      <button mat-button type="button"
+                              [disabled]="actionBusyIndex() === $index"
+                              (click)="cancelAnswer()">Annuler</button>
+                      <button mat-flat-button color="primary" type="button"
+                              data-testid="attention-answer-submit"
+                              [disabled]="!answerDraft().trim() || actionBusyIndex() === $index"
+                              (click)="submitAnswer(item, $index)">
+                        <mat-icon>send</mat-icon>
+                        Envoyer
+                      </button>
+                    </div>
+                  </div>
                 }
               </li>
             }
@@ -215,12 +294,21 @@
           <mat-icon>balance</mat-icon> Jurisprudence
         </button>
       </div>
-      <button mat-flat-button color="primary" class="ov-export"
-              data-testid="overview-export"
-              (click)="exportZip()">
-        <mat-icon>download</mat-icon>
-        Exporter le dossier
-      </button>
+      <div class="ov-deep__exports">
+        <button mat-stroked-button class="ov-export"
+                data-testid="overview-export-journal"
+                [disabled]="!overview()"
+                (click)="exportJournal()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Exporter le journal (PDF)
+        </button>
+        <button mat-flat-button color="primary" class="ov-export"
+                data-testid="overview-export"
+                (click)="exportZip()">
+          <mat-icon>download</mat-icon>
+          Exporter le dossier
+        </button>
+      </div>
     </section>
 
   }
@@ -230,6 +318,9 @@
     <p>Vue d'ensemble indisponible.</p>
   </div>
 }
+
+  </mat-drawer-content>
+</mat-drawer-container>
 
 <!-- ── Template d'un nœud du fil (passé ou futur) ── -->
 <ng-template #node let-event>
@@ -268,7 +359,7 @@
               <span class="ov-attach__name">{{ att.filename }}</span>
               <button mat-button class="ov-attach__btn"
                       data-testid="attachment-preview"
-                      (click)="previewDocument(att.documentId)">
+                      (click)="previewDocument(att)">
                 <mat-icon>visibility</mat-icon> aperçu
               </button>
               <a mat-button class="ov-attach__btn"

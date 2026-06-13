@@ -31,6 +31,7 @@ import fr.ailegalcase.casefile.PiecesWaveService;
 import fr.ailegalcase.casefile.PrescriptionStatus;
 import fr.ailegalcase.casefile.conclusion.CaseConclusionRepository;
 import fr.ailegalcase.casefile.strategy.CaseStrategyRepository;
+import fr.ailegalcase.document.Document;
 import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
@@ -47,6 +48,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import java.security.Principal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -199,8 +201,9 @@ class OverviewServiceTest {
 
     @Test
     void unansweredQuestionsAndPiecesAndStaleProduceAttention() {
+        UUID q1Id = UUID.randomUUID();
         when(aiQuestionQueryService.listQuestions(any(), any(), any(), any())).thenReturn(List.of(
-                new AiQuestionResponse(UUID.randomUUID(), 0, "Q1 ?", null, null, null),
+                new AiQuestionResponse(q1Id, 0, "Q1 ?", null, null, null),
                 new AiQuestionResponse(UUID.randomUUID(), 1, "Q2 ?", "réponse", null, null)));
         when(pieceManquanteAlignmentService.getForLatestAnalysis(any(), any(), any())).thenReturn(List.of(
                 new PieceManquanteAlignment("Contrat de travail", "A_DEMANDER", "client", null),
@@ -212,11 +215,29 @@ class OverviewServiceTest {
 
         assertThat(r.attention()).extracting(OverviewResponse.AttentionItem::type)
                 .contains("QUESTION_IA", "PIECE_MANQUANTE", "ANALYSE_OBSOLETE");
-        // 1 seule question non répondue (Q1) → libellé singulier.
+        // 1 seule question non répondue (Q1) → libellé singulier + id porté (SF-289-02 inline).
         assertThat(r.attention()).anyMatch(a -> "QUESTION_IA".equals(a.type())
-                && a.label().equals("1 question sans réponse"));
+                && a.label().equals("1 question sans réponse")
+                && q1Id.equals(a.questionId()));
+        // SF-289-02 — la pièce A_DEMANDER porte son libellé original (clé du PUT statut).
+        assertThat(r.attention()).anyMatch(a -> "PIECE_MANQUANTE".equals(a.type())
+                && "Contrat de travail".equals(a.pieceLibelle()));
         assertThat(r.pilotage().analysisStale()).isTrue();
         assertThat(r.pilotage().pendingPiecesCount()).isEqualTo(2);
+    }
+
+    @Test
+    void multipleUnansweredQuestions_questionIdNull_routedNotInline() {
+        // SF-289-02 — ≥ 2 questions sans réponse → item agrégé sans id (l'avocat est routé).
+        when(aiQuestionQueryService.listQuestions(any(), any(), any(), any())).thenReturn(List.of(
+                new AiQuestionResponse(UUID.randomUUID(), 0, "Q1 ?", null, null, null),
+                new AiQuestionResponse(UUID.randomUUID(), 1, "Q2 ?", null, null, null)));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(r.attention()).anyMatch(a -> "QUESTION_IA".equals(a.type())
+                && a.label().equals("2 questions sans réponse")
+                && a.questionId() == null);
     }
 
     @Test
@@ -238,5 +259,113 @@ class OverviewServiceTest {
         // L'échéancier étant tombé : pas de prochain couperet, pas d'item ECHEANCE.
         assertThat(r.pilotage().nextDeadline()).isNull();
         assertThat(r.attention()).noneMatch(a -> "ECHEANCE".equals(a.type()));
+    }
+
+    // ── SF-289-03 : documents versés pendant une phase ──────────────────────────
+
+    /** Document daté à {@code date} (00h, fuseau système → LocalDate stable). */
+    private Document doc(UUID id, String filename, LocalDate date) {
+        Document d = new Document();
+        d.setId(id);
+        d.setOriginalFilename(filename);
+        d.setCreatedAt(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        return d;
+    }
+
+    @Test
+    void phaseEvents_attachDocumentsInTheirWindow() {
+        // 3 phases : P1 (01/01), P2 (01/03), P3 (01/05, courante).
+        CasePhaseResponse p1 = new CasePhaseResponse(UUID.randomUUID(), CasePhaseType.SAISINE,
+                "Saisine", LocalDate.of(2026, 1, 1), null, null, null);
+        CasePhaseResponse p2 = new CasePhaseResponse(UUID.randomUUID(), CasePhaseType.MISE_EN_ETAT,
+                "Mise en état", LocalDate.of(2026, 3, 1), null, null, null);
+        CasePhaseResponse p3 = new CasePhaseResponse(UUID.randomUUID(), CasePhaseType.FOND,
+                "Jugement au fond", LocalDate.of(2026, 5, 1), null, null, null);
+        // Phases volontairement non triées en entrée → le service doit les ordonner.
+        when(casePhaseService.timeline(any(), any(), any())).thenReturn(new CasePhaseTimelineResponse(
+                List.of(p3, p1, p2), CasePhaseType.FOND));
+
+        UUID dA = UUID.randomUUID();   // dans P1
+        UUID dB = UUID.randomUUID();   // dans P2 (à la borne basse exacte)
+        UUID dC = UUID.randomUUID();   // dans P2
+        UUID dD = UUID.randomUUID();   // dans P3 (courante, après aujourd'hui non testé)
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_ID)).thenReturn(List.of(
+                doc(dD, "audience.pdf", LocalDate.of(2026, 6, 1)),
+                doc(dC, "piece2.pdf", LocalDate.of(2026, 4, 15)),
+                doc(dB, "piece1.pdf", LocalDate.of(2026, 3, 1)),
+                doc(dA, "contrat.pdf", LocalDate.of(2026, 1, 10))));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        OverviewResponse.TimelineEvent e1 = filEvent(r, LocalDate.of(2026, 1, 1));
+        OverviewResponse.TimelineEvent e2 = filEvent(r, LocalDate.of(2026, 3, 1));
+        OverviewResponse.TimelineEvent e3 = filEvent(r, LocalDate.of(2026, 5, 1));
+
+        // P1 = [01/01, 01/03[ → contrat seul.
+        assertThat(e1.attachments()).extracting(OverviewResponse.Attachment::documentId)
+                .containsExactlyInAnyOrder(dA);
+        // P2 = [01/03, 01/05[ → piece1 (borne basse incluse) + piece2.
+        assertThat(e2.attachments()).extracting(OverviewResponse.Attachment::documentId)
+                .containsExactlyInAnyOrder(dB, dC);
+        // P3 = [01/05, +∞[ → audience (postérieure).
+        assertThat(e3.attachments()).extracting(OverviewResponse.Attachment::documentId)
+                .containsExactlyInAnyOrder(dD);
+        assertThat(e1.attachments()).first()
+                .extracting(OverviewResponse.Attachment::filename).isEqualTo("contrat.pdf");
+    }
+
+    @Test
+    void phaseEvents_lastPhaseCapturesDocumentsUpToNow() {
+        // Une seule phase ancienne → fenêtre ouverte jusqu'à maintenant : capte tout.
+        when(casePhaseService.timeline(any(), any(), any())).thenReturn(new CasePhaseTimelineResponse(
+                List.of(new CasePhaseResponse(UUID.randomUUID(), CasePhaseType.SAISINE,
+                        "Saisine", LocalDate.now().minusDays(30), null, null, null)),
+                CasePhaseType.SAISINE));
+        UUID dOld = UUID.randomUUID();
+        UUID dRecent = UUID.randomUUID();
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_ID)).thenReturn(List.of(
+                doc(dRecent, "recent.pdf", LocalDate.now()),
+                doc(dOld, "old.pdf", LocalDate.now().minusDays(10))));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        OverviewResponse.TimelineEvent phase = filEvent(r, LocalDate.now().minusDays(30));
+        assertThat(phase.attachments()).extracting(OverviewResponse.Attachment::documentId)
+                .containsExactlyInAnyOrder(dOld, dRecent);
+    }
+
+    @Test
+    void noPhase_behaviourUnchanged_noProcedureEvent() {
+        // Aucune phase → aucun event PROCEDURE, et le repo documents n'est pas requis.
+        when(casePhaseService.timeline(any(), any(), any())).thenReturn(new CasePhaseTimelineResponse(
+                List.of(), null));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(r.fil()).noneMatch(e -> "PROCEDURE".equals(e.voie()));
+    }
+
+    @Test
+    void phaseEvents_documentResolutionThrows_failOpen_phaseEventsWithoutAttachments() {
+        when(casePhaseService.timeline(any(), any(), any())).thenReturn(new CasePhaseTimelineResponse(
+                List.of(new CasePhaseResponse(UUID.randomUUID(), CasePhaseType.MISE_EN_ETAT,
+                        "Mise en état", LocalDate.of(2026, 2, 1), null, null, null)),
+                CasePhaseType.MISE_EN_ETAT));
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_ID))
+                .thenThrow(new RuntimeException("boom documents"));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        // Fail-open : l'agrégat reste servi, l'event de phase existe mais sans pièces.
+        OverviewResponse.TimelineEvent phase = filEvent(r, LocalDate.of(2026, 2, 1));
+        assertThat(phase.voie()).isEqualTo("PROCEDURE");
+        assertThat(phase.attachments()).isEmpty();
+    }
+
+    private static OverviewResponse.TimelineEvent filEvent(OverviewResponse r, LocalDate date) {
+        return r.fil().stream()
+                .filter(e -> "PROCEDURE".equals(e.voie()) && date.equals(e.date()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Aucun event PROCEDURE à la date " + date));
     }
 }

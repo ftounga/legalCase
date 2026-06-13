@@ -1164,10 +1164,32 @@ describe('CaseFileDetailComponent', () => {
     expect(component.deadlines()).toEqual([]);
   });
 
-  it('SF101-C-13 (adapté F-244 SF-244-03): stepper rendu dans le DOM', () => {
+  it('SF101-C-13 (adapté F-244 SF-244-03 / F-289 SF-289-06): stepper rendu hors Vue d\'ensemble', () => {
+    // F-289 SF-289-06 — le stepper est masqué sur l'onglet Vue d'ensemble (0),
+    // donc on bascule sur un autre onglet pour vérifier qu'il est bien rendu.
+    component.selectedTabIndex.set(1);
     fixture.detectChanges();
     const stepper = fixture.nativeElement.querySelector('app-case-dashboard-stepper');
     expect(stepper).not.toBeNull();
+  });
+
+  // ----- F-289 SF-289-06 : stepper masqué sur la Vue d'ensemble -----
+
+  describe('F-289 SF-289-06 stepper masqué sur Vue d\'ensemble', () => {
+    it('SF-289-06-T01: stepper absent quand l\'onglet Vue d\'ensemble (0) est actif', () => {
+      component.selectedTabIndex.set(0);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-case-dashboard-stepper')).toBeNull();
+    });
+
+    it('SF-289-06-T02: stepper présent sur chaque autre onglet (1..4)', () => {
+      for (const tab of [1, 2, 3, 4]) {
+        component.selectedTabIndex.set(tab);
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('app-case-dashboard-stepper'))
+          .not.toBeNull();
+      }
+    });
   });
 
   // ----- F-244 SF-244-03 : stepper étendu (Synthèse / Outils / Tableau de bord) -----
@@ -1341,6 +1363,9 @@ describe('CaseFileDetailComponent', () => {
     });
 
     it('SF-244-01-T03: en-tête (titre + stepper + quota banner) rendu hors du mat-tab-group', () => {
+      // F-289 SF-289-06 — stepper masqué sur l'onglet Vue d'ensemble : on bascule
+      // sur un autre onglet pour vérifier qu'il est rendu hors du mat-tab-group.
+      component.selectedTabIndex.set(1);
       fixture.detectChanges();
       const tabGroup = fixture.nativeElement.querySelector('mat-tab-group');
       expect(tabGroup).not.toBeNull();

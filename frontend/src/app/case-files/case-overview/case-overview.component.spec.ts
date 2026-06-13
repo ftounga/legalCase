@@ -7,7 +7,10 @@ import { CaseOverviewComponent, CaseOverviewSnack, OverviewNavigation } from './
 import { OverviewService } from '../../core/services/overview.service';
 import { DocumentService } from '../../core/services/document.service';
 import { CaseFileService } from '../../core/services/case-file.service';
-import { OverviewResponse, TimelineEvent } from '../../core/models/overview.model';
+import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
+import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
+import { OverviewJournalPdfService } from '../../core/services/overview-journal-pdf.service';
+import { AttentionItem, OverviewResponse, TimelineEvent } from '../../core/models/overview.model';
 
 /** Construit un événement de fil minimal. */
 function event(p: Partial<TimelineEvent>): TimelineEvent {
@@ -56,6 +59,9 @@ describe('CaseOverviewComponent', () => {
   let overviewServiceSpy: jest.Mocked<OverviewService>;
   let documentServiceSpy: jest.Mocked<DocumentService>;
   let caseFileServiceSpy: jest.Mocked<CaseFileService>;
+  let answerServiceSpy: jest.Mocked<AiQuestionAnswerService>;
+  let pieceServiceSpy: jest.Mocked<PieceManquanteStatusService>;
+  let journalPdfSpy: jest.Mocked<OverviewJournalPdfService>;
   let snackErrors: string[];
 
   async function setup(response: OverviewResponse | Error = fullResponse()): Promise<void> {
@@ -70,6 +76,9 @@ describe('CaseOverviewComponent', () => {
       preview: jest.fn().mockReturnValue(of({} as any)),
     } as any;
     caseFileServiceSpy = { exportZip: jest.fn().mockReturnValue(of(new Blob())) } as any;
+    answerServiceSpy = { submitAnswer: jest.fn().mockReturnValue(of(undefined)) } as any;
+    pieceServiceSpy = { updateStatus: jest.fn().mockReturnValue(of({} as any)) } as any;
+    journalPdfSpy = { export: jest.fn() } as any;
     snackErrors = [];
 
     await TestBed.configureTestingModule({
@@ -78,6 +87,9 @@ describe('CaseOverviewComponent', () => {
         { provide: OverviewService, useValue: overviewServiceSpy },
         { provide: DocumentService, useValue: documentServiceSpy },
         { provide: CaseFileService, useValue: caseFileServiceSpy },
+        { provide: AiQuestionAnswerService, useValue: answerServiceSpy },
+        { provide: PieceManquanteStatusService, useValue: pieceServiceSpy },
+        { provide: OverviewJournalPdfService, useValue: journalPdfSpy },
         { provide: CaseOverviewSnack, useValue: { error: (m: string) => snackErrors.push(m) } },
         provideAnimationsAsync(),
         provideHttpClient(),
@@ -166,7 +178,7 @@ describe('CaseOverviewComponent', () => {
     expect(component.isEventExpanded(evt)).toBe(true);
     expect(q('[data-testid="event-attachments"]')).not.toBeNull();
 
-    component.previewDocument('d1');
+    component.previewDocument({ documentId: 'd1', filename: 'piece.pdf' });
     expect(documentServiceSpy.preview).toHaveBeenCalledWith('cf1', 'd1');
     expect(component.downloadHref('d1')).toContain('/download');
     expect(documentServiceSpy.downloadUrl).toHaveBeenCalledWith('cf1', 'd1');
@@ -219,10 +231,139 @@ describe('CaseOverviewComponent', () => {
     expect(q('[data-testid="overview-pilotage"]')).not.toBeNull();
   });
 
-  it('preview d\'une pièce supprimée → snack non bloquant, pas d\'ouverture', async () => {
+  // ── SF-289-05 — drawer d'aperçu ──
+
+  it('aperçu ouvre le drawer et pointe l\'URL inline sur le flux /download', async () => {
+    await setup();
+    component.previewDocument({ documentId: 'd1', filename: 'piece.pdf' });
+    fixture.detectChanges();
+    expect(component.previewDoc()?.documentId).toBe('d1');
+    expect(documentServiceSpy.preview).toHaveBeenCalledWith('cf1', 'd1');
+    expect(component.previewError()).toBe(false);
+    expect(component.previewUrl()).not.toBeNull();
+    expect(documentServiceSpy.downloadUrl).toHaveBeenCalledWith('cf1', 'd1');
+    expect(q('[data-testid="overview-preview-frame"]')).not.toBeNull();
+  });
+
+  it('aperçu d\'une pièce supprimée (404) → drawer ouvert avec message, pas d\'onglet blanc', async () => {
     await setup();
     documentServiceSpy.preview.mockReturnValue(throwError(() => new Error('404')));
-    component.previewDocument('gone');
+    component.previewDocument({ documentId: 'gone', filename: 'x.pdf' });
+    fixture.detectChanges();
+    expect(component.previewDoc()?.documentId).toBe('gone');
+    expect(component.previewError()).toBe(true);
+    expect(component.previewUrl()).toBeNull();
+    expect(q('[data-testid="overview-preview-error"]')).not.toBeNull();
+  });
+
+  it('ferme le drawer (retour au fil)', async () => {
+    await setup();
+    component.previewDocument({ documentId: 'd1', filename: 'piece.pdf' });
+    component.closePreview();
+    expect(component.previewDoc()).toBeNull();
+    expect(component.previewUrl()).toBeNull();
+    expect(component.previewError()).toBe(false);
+  });
+
+  // ── SF-289-02 — actions inline (question IA / pièce manquante) ──
+
+  function question(over: Partial<AttentionItem> = {}): AttentionItem {
+    return {
+      type: 'QUESTION_IA', label: '1 question sans réponse', urgency: 'SOON',
+      action: { kind: 'ANSWER_QUESTION', targetTab: 'analyse', anchor: 'ai-questions' },
+      questionId: 'q1', pieceLibelle: null, ...over,
+    };
+  }
+  function piece(over: Partial<AttentionItem> = {}): AttentionItem {
+    return {
+      type: 'PIECE_MANQUANTE', label: 'Pièce à obtenir : Contrat', urgency: 'SOON',
+      action: { kind: 'MARK_PIECE', targetTab: 'analyse', anchor: 'pieces-manquantes' },
+      questionId: null, pieceLibelle: 'Contrat de travail', ...over,
+    };
+  }
+
+  it('QUESTION_IA avec id : ouvre le champ inline puis POST la réponse + refresh', async () => {
+    await setup(fullResponse({ attention: [question()], attentionTotal: 1 }));
+    const item = component.visibleAttention()[0];
+    expect(component.isInlineActionable(item)).toBe(true);
+
+    component.onAttentionAction(item, 0);
+    fixture.detectChanges();
+    expect(component.answerOpenIndex()).toBe(0);
+    expect(q('[data-testid="attention-answer"]')).not.toBeNull();
+
+    component.answerDraft.set('Ma réponse');
+    overviewServiceSpy.getOverview.mockClear();
+    component.submitAnswer(item, 0);
+
+    expect(answerServiceSpy.submitAnswer).toHaveBeenCalledWith('q1', 'Ma réponse');
+    expect(overviewServiceSpy.getOverview).toHaveBeenCalledWith('cf1'); // refresh
+    expect(component.answerOpenIndex()).toBe(-1);
+  });
+
+  it('QUESTION_IA réponse en échec → snack non bloquant, champ conservé', async () => {
+    await setup(fullResponse({ attention: [question()], attentionTotal: 1 }));
+    const item = component.visibleAttention()[0];
+    component.onAttentionAction(item, 0);
+    component.answerDraft.set('Ma réponse');
+    answerServiceSpy.submitAnswer.mockReturnValue(throwError(() => new Error('500')));
+    overviewServiceSpy.getOverview.mockClear();
+
+    component.submitAnswer(item, 0);
     expect(snackErrors.length).toBe(1);
+    expect(overviewServiceSpy.getOverview).not.toHaveBeenCalled();
+  });
+
+  it('QUESTION_IA multiple (sans id) : routée, pas d\'inline', async () => {
+    const multi = question({ label: '2 questions sans réponse', questionId: null });
+    await setup(fullResponse({ attention: [multi], attentionTotal: 1 }));
+    const item = component.visibleAttention()[0];
+    expect(component.isInlineActionable(item)).toBe(false);
+
+    const navs: OverviewNavigation[] = [];
+    component.navigate.subscribe(n => navs.push(n));
+    component.onAttentionAction(item, 0);
+    expect(component.answerOpenIndex()).toBe(-1);
+    expect(navs.length).toBe(1);
+    expect(navs[0].targetTab).toBe('analyse');
+  });
+
+  it('PIECE_MANQUANTE : PUT statut OBTENUE + refresh, l\'item disparaît', async () => {
+    await setup(fullResponse({ attention: [piece()], attentionTotal: 1 }));
+    const item = component.visibleAttention()[0];
+    expect(component.isInlineActionable(item)).toBe(true);
+
+    overviewServiceSpy.getOverview.mockClear();
+    component.onAttentionAction(item, 0);
+
+    expect(pieceServiceSpy.updateStatus).toHaveBeenCalledWith('cf1', 'Contrat de travail', 'OBTENUE');
+    expect(overviewServiceSpy.getOverview).toHaveBeenCalledWith('cf1'); // refresh
+  });
+
+  it('PIECE_MANQUANTE en échec → snack non bloquant, pas de refresh', async () => {
+    await setup(fullResponse({ attention: [piece()], attentionTotal: 1 }));
+    const item = component.visibleAttention()[0];
+    pieceServiceSpy.updateStatus.mockReturnValue(throwError(() => new Error('500')));
+    overviewServiceSpy.getOverview.mockClear();
+
+    component.onAttentionAction(item, 0);
+    expect(snackErrors.length).toBe(1);
+    expect(overviewServiceSpy.getOverview).not.toHaveBeenCalled();
+  });
+
+  // ── SF-289-04 — export PDF du journal ──
+
+  it('export journal appelle le générateur PDF avec l\'overview + caseFileId', async () => {
+    await setup();
+    component.caseTitle = 'Dossier Durand';
+    component.exportJournal();
+    expect(journalPdfSpy.export).toHaveBeenCalledWith(component.overview(), 'Dossier Durand', 'cf1');
+  });
+
+  it('export journal désactivé si overview non chargé', async () => {
+    await setup(new Error('500'));
+    expect(component.overview()).toBeNull();
+    component.exportJournal();
+    expect(journalPdfSpy.export).not.toHaveBeenCalled();
   });
 });

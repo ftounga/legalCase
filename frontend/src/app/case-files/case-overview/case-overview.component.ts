@@ -14,13 +14,22 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { OverviewService } from '../../core/services/overview.service';
 import { DocumentService } from '../../core/services/document.service';
 import { CaseFileService } from '../../core/services/case-file.service';
+import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
+import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
+import { OverviewJournalPdfService } from '../../core/services/overview-journal-pdf.service';
 import {
   AttentionItem,
   OverviewAction,
+  OverviewAttachment,
   OverviewResponse,
   OverviewVoie,
   TimelineEvent,
@@ -63,10 +72,14 @@ export const OVERVIEW_ATTENTION_MAX = 5;
   imports: [
     DatePipe,
     NgTemplateOutlet,
+    FormsModule,
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSidenavModule,
   ],
   templateUrl: './case-overview.component.html',
   styleUrl: './case-overview.component.scss',
@@ -75,12 +88,19 @@ export const OVERVIEW_ATTENTION_MAX = 5;
 export class CaseOverviewComponent implements OnInit {
   @Input({ required: true }) caseFileId!: string;
 
+  /** SF-289-04 — titre du dossier, utilisé comme en-tête du PDF du journal. */
+  @Input() caseTitle = '';
+
   /** Routage inter-onglets demandé par une action (le parent exécute). */
   @Output() navigate = new EventEmitter<OverviewNavigation>();
 
   private readonly overviewService = inject(OverviewService);
   private readonly documentService = inject(DocumentService);
   private readonly caseFileService = inject(CaseFileService);
+  private readonly aiQuestionAnswerService = inject(AiQuestionAnswerService);
+  private readonly pieceStatusService = inject(PieceManquanteStatusService);
+  private readonly journalPdfService = inject(OverviewJournalPdfService);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly snackHost = inject(CaseOverviewSnack, { optional: true });
 
@@ -99,6 +119,31 @@ export class CaseOverviewComponent implements OnInit {
 
   /** Ids des événements dont l'accordéon de pièces est ouvert. */
   private readonly expandedEvents = signal<Set<string>>(new Set());
+
+  // ── SF-289-02 — actions inline (réponse question IA / marquer pièce) ──
+
+  /** Index de l'item d'attention dont le champ de réponse inline est ouvert (-1 = aucun). */
+  readonly answerOpenIndex = signal(-1);
+
+  /** Brouillon de la réponse inline en cours de saisie. */
+  readonly answerDraft = signal('');
+
+  /** Index de l'item d'attention dont une action inline est en cours (POST/PUT). */
+  readonly actionBusyIndex = signal(-1);
+
+  // ── SF-289-05 — drawer d'aperçu latéral d'une pièce ──
+
+  /** Pièce actuellement prévisualisée dans le drawer (null = drawer fermé). */
+  readonly previewDoc = signal<OverviewAttachment | null>(null);
+
+  /** Vrai pendant la vérification de disponibilité de la pièce (chargement du drawer). */
+  readonly previewLoading = signal(false);
+
+  /** Vrai si la pièce prévisualisée est introuvable / supprimée (message dans le drawer). */
+  readonly previewError = signal(false);
+
+  /** URL sûre de rendu inline de la pièce prévisualisée (null tant que non vérifiée). */
+  readonly previewUrl = signal<SafeResourceUrl | null>(null);
 
   /** Constantes exposées au template. */
   readonly ATTENTION_MAX = OVERVIEW_ATTENTION_MAX;
@@ -242,23 +287,48 @@ export class CaseOverviewComponent implements OnInit {
   }
 
   /**
-   * Aperçu d'une pièce : vérifie d'abord sa disponibilité via le payload
-   * `/preview` (un document supprimé entre-temps renvoie une erreur → ligne
-   * dégradée, pas d'onglet blanc), puis ouvre le flux `/download` que le
-   * navigateur rend inline (PDF / image). Fail-open sur l'aperçu.
+   * SF-289-05 — Aperçu d'une pièce dans un **drawer latéral** (au lieu d'un
+   * onglet navigateur, V1) : ouvre le panneau, vérifie la disponibilité via
+   * `/preview` (un document supprimé → message dans le drawer, pas d'onglet
+   * blanc), puis pointe l'`iframe` sur le flux `/download` rendu inline par le
+   * navigateur. Fermeture = retour au fil. `OnPush` → `markForCheck()`.
    */
-  previewDocument(documentId: string): void {
-    this.documentService.preview(this.caseFileId, documentId).subscribe({
+  previewDocument(att: OverviewAttachment): void {
+    this.previewDoc.set(att);
+    this.previewLoading.set(true);
+    this.previewError.set(false);
+    this.previewUrl.set(null);
+    this.documentService.preview(this.caseFileId, att.documentId).subscribe({
       next: () => {
-        window.open(this.downloadHref(documentId), '_blank', 'noopener');
+        this.previewLoading.set(false);
+        this.previewUrl.set(
+          this.sanitizer.bypassSecurityTrustResourceUrl(this.downloadHref(att.documentId)),
+        );
         this.cdr.markForCheck();
       },
       error: () => {
-        // Document supprimé / indisponible : on n'ouvre rien, on signale léger.
-        this.snackHost?.error("Cette pièce n'est plus disponible.");
+        // Document supprimé / indisponible : drawer ouvert avec message dégradé.
+        this.previewLoading.set(false);
+        this.previewError.set(true);
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /** SF-289-05 — Ferme le drawer d'aperçu (retour au fil). */
+  closePreview(): void {
+    this.previewDoc.set(null);
+    this.previewUrl.set(null);
+    this.previewError.set(false);
+    this.previewLoading.set(false);
+  }
+
+  /** SF-289-05 — Ouvre la pièce prévisualisée dans un nouvel onglet (fallback conservé). */
+  openPreviewInTab(): void {
+    const doc = this.previewDoc();
+    if (doc) {
+      window.open(this.downloadHref(doc.documentId), '_blank', 'noopener');
+    }
   }
 
   // ── Actions (routage vers l'écran dédié — V1 ne fait pas l'action inline) ──
@@ -315,6 +385,102 @@ export class CaseOverviewComponent implements OnInit {
     });
   }
 
+  // ── SF-289-02 — actions inline sur le bloc « attention » ─────────────
+
+  /**
+   * Un item d'attention peut-il être traité **inline** (sans quitter la vue) ?
+   * QUESTION_IA avec un `questionId` → réponse inline ; PIECE_MANQUANTE avec
+   * un `pieceLibelle` → « marquer obtenue ». Les autres types restent routés.
+   */
+  isInlineActionable(item: AttentionItem): boolean {
+    if (item.type === 'QUESTION_IA') return !!item.questionId;
+    if (item.type === 'PIECE_MANQUANTE') return !!item.pieceLibelle;
+    return false;
+  }
+
+  /**
+   * Clic sur le bouton d'action d'un item d'attention (index `i`).
+   * - QUESTION_IA inline → ouvre le champ de réponse (toggle).
+   * - PIECE_MANQUANTE inline → marque la pièce obtenue (PUT direct).
+   * - sinon (ou inline impossible) → routage V1.
+   */
+  onAttentionAction(item: AttentionItem, i: number): void {
+    if (item.type === 'QUESTION_IA' && item.questionId) {
+      this.toggleAnswer(i);
+      return;
+    }
+    if (item.type === 'PIECE_MANQUANTE' && item.pieceLibelle) {
+      this.markPieceObtained(item, i);
+      return;
+    }
+    this.runAction(item.action);
+  }
+
+  /** Ouvre / ferme le champ de réponse inline de l'item `i` (réinitialise le brouillon). */
+  toggleAnswer(i: number): void {
+    if (this.answerOpenIndex() === i) {
+      this.answerOpenIndex.set(-1);
+    } else {
+      this.answerOpenIndex.set(i);
+      this.answerDraft.set('');
+    }
+  }
+
+  /** Annule la saisie inline en cours. */
+  cancelAnswer(): void {
+    this.answerOpenIndex.set(-1);
+    this.answerDraft.set('');
+  }
+
+  /**
+   * SF-289-02 — Envoie la réponse inline d'une question IA
+   * (`POST /api/v1/ai-questions/{questionId}/answer`). Succès → recharge
+   * l'overview (l'item disparaît) ; échec → snackbar non bloquant, item
+   * conservé. Réponse vide → ignorée (bouton désactivé côté template).
+   */
+  submitAnswer(item: AttentionItem, i: number): void {
+    const text = this.answerDraft().trim();
+    if (!item.questionId || !text || this.actionBusyIndex() === i) return;
+    this.actionBusyIndex.set(i);
+    this.aiQuestionAnswerService.submitAnswer(item.questionId, text).subscribe({
+      next: () => {
+        this.actionBusyIndex.set(-1);
+        this.answerOpenIndex.set(-1);
+        this.answerDraft.set('');
+        this.loadOverview();
+      },
+      error: () => {
+        this.actionBusyIndex.set(-1);
+        this.snackHost?.error("La réponse n'a pas pu être enregistrée. Réessayez.");
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * SF-289-02 — Marque une pièce manquante comme obtenue
+   * (`PUT /api/v1/case-files/{id}/pieces-manquantes/status`, statut OBTENUE).
+   * Succès → recharge l'overview (l'item disparaît) ; échec → snackbar non
+   * bloquant, item conservé.
+   */
+  markPieceObtained(item: AttentionItem, i: number): void {
+    if (!item.pieceLibelle || this.actionBusyIndex() === i) return;
+    this.actionBusyIndex.set(i);
+    this.pieceStatusService
+      .updateStatus(this.caseFileId, item.pieceLibelle, 'OBTENUE')
+      .subscribe({
+        next: () => {
+          this.actionBusyIndex.set(-1);
+          this.loadOverview();
+        },
+        error: () => {
+          this.actionBusyIndex.set(-1);
+          this.snackHost?.error("La pièce n'a pas pu être marquée obtenue. Réessayez.");
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
   // ── Raccourcis « approfondir » ──────────────────────────────────
 
   goToShortcut(targetTab: string, anchor: string | null = null): void {
@@ -338,6 +504,17 @@ export class CaseOverviewComponent implements OnInit {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /**
+   * SF-289-04 — Exporte le **journal** du dossier en PDF (généré côté frontend
+   * à partir de l'overview déjà chargé : pilotage + attention + fil). Désactivé
+   * tant que l'overview n'est pas chargé. Nommage `journal-{caseFileId}.pdf`.
+   */
+  exportJournal(): void {
+    const ov = this.overview();
+    if (!ov) return;
+    this.journalPdfService.export(ov, this.caseTitle, this.caseFileId);
   }
 
   // ── Helpers de présentation ─────────────────────────────────────
