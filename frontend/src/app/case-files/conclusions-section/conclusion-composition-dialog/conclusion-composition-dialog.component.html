@@ -1,0 +1,76 @@
+<div class="ccd" data-testid="composition-dialog">
+  <header class="ccd__header">
+    <mat-icon class="ccd__icon">tune</mat-icon>
+    <div class="ccd__heading">
+      <h2 mat-dialog-title class="ccd__title">Composer les conclusions</h2>
+      <p class="ccd__subtitle">
+        Décochez les éléments que vous ne souhaitez pas verser dans l'acte, puis
+        confirmez pour générer.
+      </p>
+    </div>
+  </header>
+
+  <div mat-dialog-content class="ccd__content">
+    @for (dim of dimensions(); track dim.key) {
+      <section class="ccd__dimension" [attr.data-testid]="'composition-dimension-' + dim.key">
+        <div class="ccd__dimension-head">
+          <h3 class="ccd__dimension-title">{{ dim.label }}</h3>
+          @if (dim.items.length > 0) {
+            <div class="ccd__bulk">
+              <button mat-button type="button"
+                      class="ccd__bulk-btn"
+                      data-testid="check-all-btn"
+                      (click)="checkAll(dim.key)">
+                Tout cocher
+              </button>
+              <button mat-button type="button"
+                      class="ccd__bulk-btn"
+                      data-testid="uncheck-all-btn"
+                      (click)="uncheckAll(dim.key)">
+                Tout décocher
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (dim.items.length === 0) {
+          <p class="ccd__empty">Aucun élément.</p>
+        } @else {
+          <ul class="ccd__list">
+            @for (item of dim.items; track item.key) {
+              <li class="ccd__item">
+                <mat-checkbox
+                  [attr.data-testid]="'composition-item-' + item.key"
+                  [checked]="item.checked"
+                  (change)="toggle(dim.key, item.key, $event.checked)">
+                  {{ item.label }}
+                </mat-checkbox>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    @if (allUnchecked()) {
+      <p class="ccd__warning" role="status" data-testid="composition-all-unchecked-warning">
+        <mat-icon class="ccd__warning-icon">info</mat-icon>
+        <span>Aucun outil intégré — l'acte sera fondé sur les seuls faits et pièces.</span>
+      </p>
+    }
+  </div>
+
+  <div mat-dialog-actions align="end" class="ccd__actions">
+    <button mat-stroked-button type="button"
+            data-testid="composition-cancel-btn"
+            (click)="cancel()">
+      Annuler
+    </button>
+    <button mat-flat-button color="primary" type="button"
+            data-testid="composition-confirm-btn"
+            (click)="confirm()">
+      <mat-icon>auto_fix_high</mat-icon>
+      Confirmer &amp; générer
+    </button>
+  </div>
+</div>

@@ -64,6 +64,8 @@ class CaseConclusionServiceTest {
             new CaseConclusionPromptBuilder(new ObjectMapper(), promptRegistry);
 
     private final ConclusionStreamPublisher streamPublisher = mock(ConclusionStreamPublisher.class);
+    private final ConclusionCompositionExclusionRepository compositionExclusionRepository =
+            mock(ConclusionCompositionExclusionRepository.class);
 
     private final CaseConclusionService service = new CaseConclusionService(
             caseConclusionRepository, caseAnalysisRepository, strategicOptionRepository,
@@ -71,7 +73,7 @@ class CaseConclusionServiceTest {
             promptBuilder, anthropicService, styleCorpusRepository, jurisprudenceCitationRepository,
             jurisprudenceCheckRepository, toolJurisprudenceContext,
             documentRepository, documentExtractionRepository, adverseMoyensExtractor,
-            streamPublisher);
+            streamPublisher, compositionExclusionRepository);
 
     @BeforeEach
     void wireSelf() {
@@ -679,6 +681,136 @@ class CaseConclusionServiceTest {
                 any(AiCallContext.class), any(),
                 argThat(m -> !m.contains("TEXTE ACTUEL À PRÉSERVER")
                         && !m.contains("édition avocat")), anyInt(), any());
+    }
+
+    // ── F-288 / SF-288-01 — filtre de composition (outils décisionnels exclus) ──
+
+    @Test
+    void generate_excludedTool_isAbsentFromTilesInjectedIntoPrompt() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        // Deux outils calculés : F-DT-08 (exclu) et F-DT-09 (conservé).
+        when(caseFileDashboardService.assembleDecisionToolTiles(caseFileId)).thenReturn(List.of(
+                new fr.ailegalcase.casefile.DashboardTile("F-DT-08-licenciement-validity",
+                        "VALIDITE", "Validité du licenciement", "Sans cause", "2/7", "ALERT"),
+                new fr.ailegalcase.casefile.DashboardTile("F-DT-09-comparateur-indemnites",
+                        "INDEMNITES", "Comparateur d'indemnités", "18 000 €", null, "OK")));
+        when(compositionExclusionRepository.findByCaseFileIdAndDimension(
+                caseFileId, "DECISION_TOOL"))
+                .thenReturn(List.of(exclusion(caseFileId, "F-DT-08-licenciement-validity")));
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        // L'outil exclu ne figure pas au prompt ; l'outil conservé oui.
+        verify(anthropicService).analyzeWithSystemCacheStreaming(
+                any(AiCallContext.class), any(),
+                argThat(m -> m.contains("Comparateur d'indemnités")
+                        && !m.contains("Validité du licenciement")), anyInt(), any());
+    }
+
+    @Test
+    void generate_excludedTool_filtersItsDerivedJurisprudence() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        // Jurisprudence dérivée de deux outils : l'un exclu, l'autre conservé.
+        when(toolJurisprudenceContext.collectForCaseFile(caseFileId)).thenReturn(List.of(
+                new fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool(
+                        "F-DT-08-licenciement-validity", "DEFAULT",
+                        List.of(citation("Cass. soc. 25 sept. 1991, n° 90-42.000"))),
+                new fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool(
+                        "F-DT-09-comparateur-indemnites", "DEFAULT",
+                        List.of(citation("Cass. soc. 1 fév. 2017, n° 15-12.345")))));
+        when(compositionExclusionRepository.findByCaseFileIdAndDimension(
+                caseFileId, "DECISION_TOOL"))
+                .thenReturn(List.of(exclusion(caseFileId, "F-DT-08-licenciement-validity")));
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        // L'arrêt dérivé de l'outil exclu disparaît du prompt ; celui de l'outil conservé reste.
+        verify(anthropicService).analyzeWithSystemCacheStreaming(
+                any(AiCallContext.class), any(),
+                argThat(m -> m.contains("90-42.000") == false
+                        && m.contains("15-12.345")), anyInt(), any());
+    }
+
+    @Test
+    void generate_noExclusion_tilesUnchanged_nonRegression() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(caseFileDashboardService.assembleDecisionToolTiles(caseFileId)).thenReturn(List.of(
+                new fr.ailegalcase.casefile.DashboardTile("F-DT-08-licenciement-validity",
+                        "VALIDITE", "Validité du licenciement", "Sans cause", "2/7", "ALERT")));
+        // Aucune exclusion persistée (repository renvoie liste vide par défaut).
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        // Sans exclusion, l'outil calculé est injecté comme aujourd'hui.
+        verify(anthropicService).analyzeWithSystemCacheStreaming(
+                any(AiCallContext.class), any(),
+                contains("Validité du licenciement"), anyInt(), any());
+    }
+
+    @Test
+    void generate_exclusionReadFails_failsOpen_noFilter() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID caseFileId = conclusion.getCaseFile().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(caseFileDashboardService.assembleDecisionToolTiles(caseFileId)).thenReturn(List.of(
+                new fr.ailegalcase.casefile.DashboardTile("F-DT-08-licenciement-validity",
+                        "VALIDITE", "Validité du licenciement", "Sans cause", "2/7", "ALERT")));
+        // La lecture des exclusions échoue → fail-open : aucun filtre, l'outil reste injecté.
+        when(compositionExclusionRepository.findByCaseFileIdAndDimension(caseFileId, "DECISION_TOOL"))
+                .thenThrow(new RuntimeException("conclusion_composition_exclusion indisponible"));
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        verify(anthropicService).analyzeWithSystemCacheStreaming(
+                any(AiCallContext.class), any(),
+                contains("Validité du licenciement"), anyInt(), any());
+    }
+
+    private ConclusionCompositionExclusion exclusion(UUID caseFileId, String itemKey) {
+        ConclusionCompositionExclusion e = new ConclusionCompositionExclusion();
+        e.setCaseFileId(caseFileId);
+        e.setDimension("DECISION_TOOL");
+        e.setItemKey(itemKey);
+        return e;
+    }
+
+    private fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationResponse citation(String arretRef) {
+        return new fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationResponse(
+                UUID.randomUUID(), arretRef, "Cour de cassation", null, null, null, null, null, null);
     }
 
     private fr.ailegalcase.document.DocumentExtraction extraction(String text) {

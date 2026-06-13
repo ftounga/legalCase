@@ -1,0 +1,122 @@
+// F-288 / SF-288-01 — Modal de composition des conclusions.
+// Charte : marine #1A3A5C / or #C9973A, titres Merriweather, corps Inter.
+
+.ccd {
+  font-family: 'Inter', sans-serif;
+  min-width: 420px;
+  max-width: 620px;
+}
+
+.ccd__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 4px 8px 0 0;
+}
+
+.ccd__icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: var(--color-accent, #C9973A);
+  flex: 0 0 auto;
+}
+
+.ccd__heading {
+  flex: 1;
+}
+
+.ccd__title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary, #1A3A5C);
+  margin: 0 0 4px;
+}
+
+.ccd__subtitle {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-secondary, #6B7A8D);
+  margin: 0;
+}
+
+.ccd__content {
+  padding-top: 12px;
+  max-height: 60vh;
+}
+
+.ccd__dimension {
+  margin-bottom: 16px;
+}
+
+.ccd__dimension-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(26, 58, 92, 0.12);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.ccd__dimension-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary, #1A3A5C);
+  margin: 0;
+}
+
+.ccd__bulk {
+  display: flex;
+  gap: 4px;
+}
+
+.ccd__bulk-btn {
+  font-size: 12px;
+  color: var(--color-primary, #1A3A5C);
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.ccd__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ccd__item {
+  padding: 4px 0;
+}
+
+.ccd__empty {
+  font-size: 13px;
+  color: var(--color-text-secondary, #6B7A8D);
+  margin: 0;
+}
+
+.ccd__warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: rgba(201, 151, 58, 0.12);
+  border: 1px solid rgba(201, 151, 58, 0.4);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-primary, #1A3A5C);
+}
+
+.ccd__warning-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--color-accent, #C9973A);
+  flex: 0 0 auto;
+}
+
+.ccd__actions {
+  padding-top: 8px;
+}
