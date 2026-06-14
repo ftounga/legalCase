@@ -165,7 +165,7 @@ class OverviewServiceTest {
                 CasePhaseType.MISE_EN_ETAT));
         when(contradictoireService.timeline(any(), any(), any())).thenReturn(new ContradictoireTimelineResponse(
                 List.of(new ContradictoireRoundResponse(UUID.randomUUID(), 1, ContradictoireParty.ADVERSE,
-                        "Conclusions adverses", LocalDate.of(2026, 3, 1), null, null, null, null, null)),
+                        "Conclusions adverses", LocalDate.of(2026, 3, 1), null, null, null, null, null, null)),
                 new ContradictoireTimelineResponse.Summary(1, ContradictoireParty.OURS, null)));
 
         OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);

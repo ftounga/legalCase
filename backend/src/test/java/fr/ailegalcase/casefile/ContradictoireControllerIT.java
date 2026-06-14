@@ -4,6 +4,12 @@ import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.casefile.conclusion.CaseConclusion;
+import fr.ailegalcase.casefile.conclusion.CaseConclusionRepository;
+import fr.ailegalcase.casefile.conclusion.CaseConclusionStatus;
+import fr.ailegalcase.casefile.conclusion.ConclusionLifecycleStatus;
+import fr.ailegalcase.document.Document;
+import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.workspace.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +47,8 @@ class ContradictoireControllerIT {
     @Autowired private WorkspaceMemberRepository workspaceMemberRepository;
     @Autowired private CaseFileRepository caseFileRepository;
     @Autowired private ContradictoireRoundRepository roundRepository;
+    @Autowired private CaseConclusionRepository caseConclusionRepository;
+    @Autowired private DocumentRepository documentRepository;
 
     private OAuth2AuthenticationToken auth;
     private CaseFile caseFile;
@@ -50,6 +58,8 @@ class ContradictoireControllerIT {
     @BeforeEach
     void setUp() {
         roundRepository.deleteAll();
+        caseConclusionRepository.deleteAll();
+        documentRepository.deleteAll();
         caseFileRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
         workspaceRepository.deleteAll();
@@ -224,6 +234,179 @@ class ContradictoireControllerIT {
     void timeline_withoutAuth_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/case-files/{id}/contradictoire-rounds", caseFile.getId()))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ── SF-282-03 — isolation des sources + sourceLabel ────────────────────────
+
+    // I-11 : POST round OURS avec sourceConclusionId d'un AUTRE dossier (même workspace) → 400
+    @Test
+    void create_sourceConclusionFromAnotherCaseFile_returns400() throws Exception {
+        CaseFile other = saveCaseFile("Autre dossier");
+        CaseConclusion conclusion = saveConclusion(other, 3);
+
+        mockMvc.perform(post("/api/v1/case-files/{id}/contradictoire-rounds", caseFile.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"party":"OURS","datedAt":"2026-06-14","sourceConclusionId":"%s"}
+                                """.formatted(conclusion.getId()))
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-12 : PUT round avec sourceDocumentId d'un AUTRE dossier (même workspace) → 400
+    @Test
+    void update_sourceDocumentFromAnotherCaseFile_returns400() throws Exception {
+        CaseFile other = saveCaseFile("Autre dossier");
+        Document doc = saveDocument(other, "jeu-adverse.pdf");
+        ContradictoireRound r = saveRound(1, ContradictoireParty.ADVERSE, null);
+
+        mockMvc.perform(put("/api/v1/case-files/{id}/contradictoire-rounds/{rid}", caseFile.getId(), r.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"party":"ADVERSE","datedAt":"2026-06-14","sourceDocumentId":"%s"}
+                                """.formatted(doc.getId()))
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-13 : POST round OURS avec sourceDocumentId non null → 400 (source incohérente avec la partie)
+    @Test
+    void create_oursRoundWithDocument_returns400() throws Exception {
+        Document doc = saveDocument(caseFile, "jeu-adverse.pdf");
+
+        mockMvc.perform(post("/api/v1/case-files/{id}/contradictoire-rounds", caseFile.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"party":"OURS","datedAt":"2026-06-14","sourceDocumentId":"%s"}
+                                """.formatted(doc.getId()))
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-14 : POST round ADVERSE avec sourceConclusionId non null → 400
+    @Test
+    void create_adverseRoundWithConclusion_returns400() throws Exception {
+        CaseConclusion conclusion = saveConclusion(caseFile, 2);
+
+        mockMvc.perform(post("/api/v1/case-files/{id}/contradictoire-rounds", caseFile.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"party":"ADVERSE","datedAt":"2026-06-14","sourceConclusionId":"%s"}
+                                """.formatted(conclusion.getId()))
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-15 : POST round OURS avec sourceConclusionId VALIDE → 201 + sourceLabel "Conclusions v{n}"
+    @Test
+    void create_oursRoundWithValidConclusion_returnsSourceLabel() throws Exception {
+        CaseConclusion conclusion = saveConclusion(caseFile, 4);
+
+        mockMvc.perform(post("/api/v1/case-files/{id}/contradictoire-rounds", caseFile.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"party":"OURS","datedAt":"2026-06-14","sourceConclusionId":"%s"}
+                                """.formatted(conclusion.getId()))
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.sourceConclusionId").value(conclusion.getId().toString()))
+                .andExpect(jsonPath("$.sourceLabel").value("Conclusions v4"));
+    }
+
+    // I-16 : GET timeline → sourceLabel = "Conclusions vN" / fileName / null selon la source
+    @Test
+    void timeline_sourceLabelResolvedPerRound() throws Exception {
+        CaseConclusion conclusion = saveConclusion(caseFile, 5);
+        Document doc = saveDocument(caseFile, "jeu-adverse.pdf");
+
+        ContradictoireRound r1 = saveRound(1, ContradictoireParty.OURS, null);
+        r1.setSourceConclusionId(conclusion.getId());
+        roundRepository.save(r1);
+
+        ContradictoireRound r2 = saveRound(2, ContradictoireParty.ADVERSE, null);
+        r2.setSourceDocumentId(doc.getId());
+        roundRepository.save(r2);
+
+        saveRound(3, ContradictoireParty.OURS, null); // sans source
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/contradictoire-rounds", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rounds[0].sourceLabel").value("Conclusions v5"))
+                .andExpect(jsonPath("$.rounds[1].sourceLabel").value("jeu-adverse.pdf"))
+                .andExpect(jsonPath("$.rounds[2].sourceLabel").doesNotExist());
+    }
+
+    // I-17 : isolation workspace — user du workspace A → 404 sur le dossier du workspace B
+    @Test
+    void timeline_caseFileFromOtherWorkspaceUser_returns404() throws Exception {
+        User otherUser = new User();
+        otherUser.setEmail("contra-other@example.com");
+        otherUser.setStatus("ACTIVE");
+        userRepository.save(otherUser);
+
+        Workspace otherWs = new Workspace();
+        otherWs.setName("CONTRA-OTHER");
+        otherWs.setSlug("contra-other-" + System.currentTimeMillis());
+        otherWs.setOwner(otherUser);
+        otherWs.setLegalDomain("DROIT_DU_TRAVAIL");
+        otherWs.setPlanCode("STARTER");
+        otherWs.setStatus("ACTIVE");
+        workspaceRepository.save(otherWs);
+
+        WorkspaceMember otherMember = new WorkspaceMember();
+        otherMember.setWorkspace(otherWs);
+        otherMember.setUser(otherUser);
+        otherMember.setMemberRole("OWNER");
+        otherMember.setPrimary(true);
+        workspaceMemberRepository.save(otherMember);
+
+        CaseFile otherCase = new CaseFile();
+        otherCase.setTitle("Dossier workspace B");
+        otherCase.setLegalDomain("DROIT_DU_TRAVAIL");
+        otherCase.setStatus("OPEN");
+        otherCase.setWorkspace(otherWs);
+        otherCase.setCreatedBy(otherUser);
+        caseFileRepository.save(otherCase);
+
+        // user du workspace A tente d'accéder au dossier du workspace B
+        mockMvc.perform(get("/api/v1/case-files/{id}/contradictoire-rounds", otherCase.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    private CaseFile saveCaseFile(String title) {
+        CaseFile cf = new CaseFile();
+        cf.setTitle(title);
+        cf.setLegalDomain("DROIT_DU_TRAVAIL");
+        cf.setStatus("OPEN");
+        cf.setWorkspace(workspace);
+        cf.setCreatedBy(user);
+        return caseFileRepository.save(cf);
+    }
+
+    private CaseConclusion saveConclusion(CaseFile cf, int versionNumber) {
+        CaseConclusion c = new CaseConclusion();
+        c.setCaseFile(cf);
+        c.setWorkspace(workspace);
+        c.setVersionNumber(versionNumber);
+        c.setStatus(CaseConclusionStatus.DONE);
+        c.setLifecycleStatus(ConclusionLifecycleStatus.DRAFT);
+        c.setJurisdictionCode("CPH");
+        c.setStageCode("FOND");
+        c.setPositionCode("DEMANDEUR");
+        return caseConclusionRepository.save(c);
+    }
+
+    private Document saveDocument(CaseFile cf, String filename) {
+        Document d = new Document();
+        d.setCaseFile(cf);
+        d.setUploadedBy(user);
+        d.setOriginalFilename(filename);
+        d.setContentType("application/pdf");
+        d.setFileSize(1024L);
+        d.setStorageKey("test/" + filename + "-" + System.nanoTime());
+        return documentRepository.save(d);
     }
 
     private ContradictoireRound saveRound(int n, ContradictoireParty party, LocalDate dueAt) {

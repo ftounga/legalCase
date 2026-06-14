@@ -16,14 +16,20 @@ public record ContradictoireRoundResponse(
         LocalDate responseDueAt,
         UUID sourceDocumentId,
         UUID sourceConclusionId,
+        String sourceLabel,
         Instant createdAt,
         Instant updatedAt
 ) {
     static ContradictoireRoundResponse from(ContradictoireRound r) {
+        return from(r, null);
+    }
+
+    static ContradictoireRoundResponse from(ContradictoireRound r, String sourceLabel) {
         return new ContradictoireRoundResponse(
                 r.getId(), r.getRoundNumber(), r.getParty(), r.getLabel(),
                 r.getDatedAt(), r.getResponseDueAt(),
                 r.getSourceDocumentId(), r.getSourceConclusionId(),
+                sourceLabel,
                 r.getCreatedAt(), r.getUpdatedAt());
     }
 }
