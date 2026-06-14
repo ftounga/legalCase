@@ -1,3 +1,43 @@
+<!-- SF-282-04 — drawer latéral d'aperçu d'une pièce adverse liée à un round
+     (réutilise le pattern F-289 V1.1 / SF-289-05 : preview() = contrôle de
+     disponibilité, iframe sur le flux /download sanitisé). -->
+<mat-drawer-container class="contra-drawer-container" autosize hasBackdrop="true">
+  <mat-drawer #previewDrawer mode="over" position="end" class="contra-preview-drawer"
+              data-testid="contra-preview-drawer"
+              [opened]="previewRound() !== null"
+              (closed)="closePreview()">
+    @if (previewRound(); as r) {
+      <header class="contra-preview__head">
+        <span class="contra-preview__name" [matTooltip]="r.sourceLabel ?? ''">{{ r.sourceLabel }}</span>
+        <button mat-icon-button aria-label="Fermer l’aperçu"
+                data-testid="contra-preview-close"
+                (click)="closePreview()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </header>
+      <div class="contra-preview__body">
+        @if (previewLoading()) {
+          <div class="contra-preview__state">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement de l’aperçu…</span>
+          </div>
+        } @else if (previewError()) {
+          <div class="contra-preview__state contra-preview__state--error"
+               data-testid="contra-preview-error">
+            <mat-icon>cloud_off</mat-icon>
+            <p>Cette pièce n’est plus disponible.</p>
+          </div>
+        } @else if (previewUrl()) {
+          <iframe class="contra-preview__frame" [src]="previewUrl()"
+                  data-testid="contra-preview-frame"
+                  title="Aperçu de la pièce"></iframe>
+        }
+      </div>
+    }
+  </mat-drawer>
+
+  <mat-drawer-content class="contra-drawer-content">
+
 <mat-card class="contra-card" data-testid="contradictoire-timeline">
   <!-- En-tête + résumé (fil rouge) -->
   <div class="contra-head">
@@ -57,14 +97,26 @@
               </button>
             </div>
             @if (r.label) { <span class="contra-label">{{ r.label }}</span> }
-            @if (sourceDocumentName(r.sourceDocumentId); as docName) {
-              <a class="contra-source"
-                 [href]="sourceDocumentUrl(r.sourceDocumentId!)"
-                 target="_blank" rel="noopener"
-                 [attr.data-testid]="'contra-source-' + r.roundNumber">
-                <mat-icon class="contra-source-icon">attach_file</mat-icon>
-                {{ docName }}
-              </a>
+            <!-- SF-282-04 : un seul chip de source, résolu via le libellé backend.
+                 Conclusions (nous) → route F-267 ; pièce (adverse) → drawer. -->
+            @if (r.sourceLabel) {
+              @if (r.sourceConclusionId) {
+                <button type="button" class="contra-source"
+                        (click)="openConclusion(r)"
+                        matTooltip="Ouvrir l’acte"
+                        [attr.data-testid]="'contra-source-' + r.roundNumber">
+                  <mat-icon class="contra-source-icon">description</mat-icon>
+                  <span class="contra-source-text">{{ r.sourceLabel }}</span>
+                </button>
+              } @else if (r.sourceDocumentId) {
+                <button type="button" class="contra-source"
+                        (click)="openPreview(r)"
+                        matTooltip="Aperçu de la pièce"
+                        [attr.data-testid]="'contra-source-' + r.roundNumber">
+                  <mat-icon class="contra-source-icon">gavel</mat-icon>
+                  <span class="contra-source-text">{{ r.sourceLabel }}</span>
+                </button>
+              }
             }
             <div class="contra-dates">
               <span class="contra-date">{{ r.datedAt | date:'dd/MM/yyyy' }}</span>
@@ -142,22 +194,41 @@
             <input matInput type="date" lang="fr-FR" formControlName="responseDueAt" />
           </mat-form-field>
 
-          <!-- SF-282-03 : pièce source optionnelle (document du dossier). -->
-          <mat-form-field appearance="outline" class="contra-form-label" data-testid="contra-source-field">
-            <mat-label>Pièce source (optionnel)</mat-label>
-            <mat-select formControlName="sourceDocumentId"
-                        [disabled]="documentsUnavailable() || documents().length === 0">
-              <mat-option [value]="null">Aucune</mat-option>
-              @for (doc of documents(); track doc.id) {
-                <mat-option [value]="doc.id">{{ doc.originalFilename }}</mat-option>
+          <!-- SF-282-04 : source conditionnelle à la partie.
+               OURS → version de conclusions ; ADVERSE → pièce (SF-282-03). -->
+          @if (formIsOurs()) {
+            <mat-form-field appearance="outline" class="contra-form-label" data-testid="contra-conclusion-field">
+              <mat-label>Version de conclusions liée (optionnel)</mat-label>
+              <mat-select formControlName="sourceConclusionId"
+                          [disabled]="versionsUnavailable() || versions().length === 0">
+                <mat-option [value]="null">Aucune</mat-option>
+                @for (v of versions(); track v.id) {
+                  <mat-option [value]="v.id">{{ versionOptionLabel(v) }}</mat-option>
+                }
+              </mat-select>
+              @if (versionsUnavailable()) {
+                <mat-hint>Liste des versions indisponible</mat-hint>
+              } @else if (versions().length === 0) {
+                <mat-hint>Aucune version de conclusions</mat-hint>
               }
-            </mat-select>
-            @if (documentsUnavailable()) {
-              <mat-hint>Liste des pièces indisponible</mat-hint>
-            } @else if (documents().length === 0) {
-              <mat-hint>Aucune pièce dans le dossier</mat-hint>
-            }
-          </mat-form-field>
+            </mat-form-field>
+          } @else {
+            <mat-form-field appearance="outline" class="contra-form-label" data-testid="contra-source-field">
+              <mat-label>Document lié (optionnel)</mat-label>
+              <mat-select formControlName="sourceDocumentId"
+                          [disabled]="documentsUnavailable() || documents().length === 0">
+                <mat-option [value]="null">Aucune</mat-option>
+                @for (doc of documents(); track doc.id) {
+                  <mat-option [value]="doc.id">{{ doc.originalFilename }}</mat-option>
+                }
+              </mat-select>
+              @if (documentsUnavailable()) {
+                <mat-hint>Liste des pièces indisponible</mat-hint>
+              } @else if (documents().length === 0) {
+                <mat-hint>Aucune pièce dans le dossier</mat-hint>
+              }
+            </mat-form-field>
+          }
         </div>
         <div class="contra-form-actions">
           <button mat-button type="button" (click)="cancelForm()">Annuler</button>
@@ -170,3 +241,6 @@
     }
   }
 </mat-card>
+
+  </mat-drawer-content>
+</mat-drawer-container>

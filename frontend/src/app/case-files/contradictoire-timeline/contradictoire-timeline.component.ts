@@ -119,8 +119,12 @@ export class ContradictoireTimelineComponent implements OnInit {
     sourceConclusionId: this.fb.control<string | null>(null),
   });
 
-  /** SF-282-03 : true si la partie sélectionnée dans le formulaire est « Nous ». */
-  readonly formIsOurs = computed(() => this.form.controls.party.value === 'OURS');
+  /**
+   * SF-282-03/04 : true si la partie sélectionnée dans le formulaire est « Nous ».
+   * Signal piloté par `party.valueChanges` (un `computed` lisant un FormControl
+   * ne serait jamais ré-évalué : un FormControl n'est pas un signal).
+   */
+  readonly formIsOurs = signal(false);
 
   ngOnInit(): void {
     this.load();
@@ -129,6 +133,7 @@ export class ContradictoireTimelineComponent implements OnInit {
     // SF-282-03 — à chaque bascule de partie, on réinitialise l'id de l'AUTRE
     // type pour ne jamais envoyer les deux sources (le backend rejetterait).
     this.form.controls.party.valueChanges.subscribe((party) => {
+      this.formIsOurs.set(party === 'OURS');
       if (party === 'OURS') {
         this.form.controls.sourceDocumentId.setValue(null, { emitEvent: false });
       } else {
@@ -225,6 +230,7 @@ export class ContradictoireTimelineComponent implements OnInit {
       sourceDocumentId: null,
       sourceConclusionId: null,
     });
+    this.formIsOurs.set(party === 'OURS');
     this.loadDocuments(); // rafraîchit la liste (des pièces ont pu être uploadées depuis le montage de l'onglet)
     this.loadVersions(); // rafraîchit l'historique des versions (des conclusions ont pu être générées)
     this.showForm.set(true);
@@ -240,6 +246,7 @@ export class ContradictoireTimelineComponent implements OnInit {
       sourceDocumentId: round.sourceDocumentId ?? null,
       sourceConclusionId: round.sourceConclusionId ?? null,
     });
+    this.formIsOurs.set(round.party === 'OURS');
     this.loadDocuments(); // rafraîchit la liste (des pièces ont pu être uploadées depuis le montage de l'onglet)
     this.loadVersions(); // rafraîchit l'historique des versions
     this.showForm.set(true);
@@ -307,7 +314,73 @@ export class ContradictoireTimelineComponent implements OnInit {
     });
   }
 
+  /**
+   * SF-282-04 — Round « nous » lié à une version de conclusions : navigue vers
+   * la page Conclusions (F-267) en pré-sélectionnant la version via `?version=`.
+   */
+  openConclusion(round: ContradictoireRound): void {
+    if (!round.sourceConclusionId) return;
+    this.router.navigate(['/case-files', this.caseFileId, 'conclusions'], {
+      queryParams: { version: round.sourceConclusionId },
+    });
+  }
+
+  /**
+   * SF-282-04 — Round « adverse » lié à une pièce : ouvre l'aperçu dans un
+   * **drawer latéral**, en réutilisant le pattern F-289 V1.1 (SF-289-05) :
+   * `DocumentService.preview()` sert de **contrôle de disponibilité** (pièce
+   * supprimée → message dégradé dans le drawer, pas d'iframe blanche), puis
+   * l'iframe pointe sur le flux `/download` rendu inline par le navigateur via
+   * une URL sanitisée. `OnPush` → `markForCheck()`.
+   */
+  openPreview(round: ContradictoireRound): void {
+    if (!round.sourceDocumentId) return;
+    const documentId = round.sourceDocumentId;
+    this.previewRound.set(round);
+    this.previewLoading.set(true);
+    this.previewError.set(false);
+    this.previewUrl.set(null);
+    this.documentService.preview(this.caseFileId, documentId).subscribe({
+      next: () => {
+        this.previewLoading.set(false);
+        this.previewUrl.set(
+          this.sanitizer.bypassSecurityTrustResourceUrl(
+            this.documentService.downloadUrl(this.caseFileId, documentId),
+          ),
+        );
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Pièce supprimée / indisponible : drawer ouvert avec message dégradé.
+        this.previewLoading.set(false);
+        this.previewError.set(true);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** SF-282-04 — Ferme le drawer d'aperçu et remet les signaux à null. */
+  closePreview(): void {
+    this.previewRound.set(null);
+    this.previewUrl.set(null);
+    this.previewError.set(false);
+    this.previewLoading.set(false);
+  }
+
+  /**
+   * SF-282-04 — « Générer ma réplique » : navigue vers la page Conclusions en
+   * portant le `roundId` du dernier round « nous » SANS source (pour
+   * l'auto-rattachement Part B). À défaut, navigue sans `roundId`. Émet
+   * `generateReplyRequested` ensuite (rétro-compatibilité).
+   */
   onGenerateReply(): void {
+    const target = [...this.rounds()]
+      .reverse()
+      .find((r) => r.party === 'OURS' && !r.sourceConclusionId && !r.sourceDocumentId);
+    const roundId = target?.id;
+    this.router.navigate(['/case-files', this.caseFileId, 'conclusions'], {
+      queryParams: roundId ? { roundId } : {},
+    });
     this.generateReplyRequested.emit();
   }
 
