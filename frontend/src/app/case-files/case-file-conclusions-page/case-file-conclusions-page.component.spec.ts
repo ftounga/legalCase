@@ -5,6 +5,8 @@ import { of, throwError } from 'rxjs';
 import { CaseFileConclusionsPageComponent } from './case-file-conclusions-page.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseFile } from '../../core/models/case-file.model';
+import { ContradictoireService } from '../../core/services/contradictoire.service';
+import { ContradictoireRound, ContradictoireTimeline } from '../../core/models/contradictoire.model';
 
 /**
  * F-267 / SF-267-01 — page dédiée « Projet de conclusions ».
@@ -36,6 +38,7 @@ describe('CaseFileConclusionsPageComponent (F-267 SF-267-01)', () => {
   function setup(
     getByIdReturn = of(mockCaseFile),
     id: string | null = CASE_ID,
+    queryParams: Record<string, string> = {},
   ): void {
     // On garde le VRAI CaseFileService (la section conclusions autonome appelle
     // d'autres méthodes — `getDecisionToolsVisibility`… — que HttpClientTesting
@@ -46,7 +49,13 @@ describe('CaseFileConclusionsPageComponent (F-267 SF-267-01)', () => {
         provideRouter([]),
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap(id ? { id } : {}) } },
+          useValue: {
+            snapshot: {
+              paramMap: convertToParamMap(id ? { id } : {}),
+              // SF-282-04 — la page lit `?version=`/`?roundId=` au montage.
+              queryParamMap: convertToParamMap(queryParams),
+            },
+          },
         },
       ],
     });
@@ -122,5 +131,75 @@ describe('CaseFileConclusionsPageComponent (F-267 SF-267-01)', () => {
     expect(component.loading()).toBe(false);
     expect(component.caseFile()).toBeNull();
     expect(fixture.nativeElement.querySelector('app-conclusions-section')).not.toBeNull();
+  });
+
+  // SF-282-04 (Part B) — auto-rattachement du round contradictoire à la version générée.
+  describe('SF-282-04 — auto-rattachement (Part B)', () => {
+    function roundFixture(over: Partial<ContradictoireRound> = {}): ContradictoireRound {
+      return {
+        id: 'r1',
+        roundNumber: 3,
+        party: 'OURS',
+        label: null,
+        datedAt: '2026-06-01',
+        responseDueAt: null,
+        sourceDocumentId: null,
+        sourceConclusionId: null,
+        sourceLabel: null,
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+        ...over,
+      };
+    }
+
+    function timelineWith(round: ContradictoireRound): ContradictoireTimeline {
+      return {
+        rounds: [round],
+        summary: { currentRoundNumber: 3, awaitingParty: 'OURS', nextDeadline: null },
+      };
+    }
+
+    it('rattache la version générée au round ciblé quand il est sans source', () => {
+      setup(of(mockCaseFile), CASE_ID, { roundId: 'r1' });
+      const svc = TestBed.inject(ContradictoireService);
+      const timelineSpy = jest
+        .spyOn(svc, 'timeline')
+        .mockReturnValue(of(timelineWith(roundFixture())));
+      const updateSpy = jest
+        .spyOn(svc, 'update')
+        .mockReturnValue(of(roundFixture({ sourceConclusionId: 'v-new' })));
+
+      component.onGenerationCompleted('v-new');
+
+      expect(timelineSpy).toHaveBeenCalledWith(CASE_ID);
+      expect(updateSpy).toHaveBeenCalledWith(
+        CASE_ID,
+        'r1',
+        expect.objectContaining({ sourceConclusionId: 'v-new', sourceDocumentId: null }),
+      );
+    });
+
+    it('n\'écrase pas un round qui a déjà une source', () => {
+      setup(of(mockCaseFile), CASE_ID, { roundId: 'r1' });
+      const svc = TestBed.inject(ContradictoireService);
+      jest
+        .spyOn(svc, 'timeline')
+        .mockReturnValue(of(timelineWith(roundFixture({ sourceConclusionId: 'v-old' }))));
+      const updateSpy = jest.spyOn(svc, 'update');
+
+      component.onGenerationCompleted('v-new');
+
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it('ne fait rien sans roundId en query param', () => {
+      setup(of(mockCaseFile), CASE_ID, {});
+      const svc = TestBed.inject(ContradictoireService);
+      const timelineSpy = jest.spyOn(svc, 'timeline');
+
+      component.onGenerationCompleted('v-new');
+
+      expect(timelineSpy).not.toHaveBeenCalled();
+    });
   });
 });
