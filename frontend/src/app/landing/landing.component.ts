@@ -104,9 +104,9 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const title = 'AI LegalCase — 250+ outils décisionnels & conclusions avocats (FR/BE)';
-    const description = '250+ outils décisionnels pré-remplis par IA et génération du projet de conclusions avec jurisprudence de cassation. Travail, immigration, famille — FR/BE.';
-    const shortDescription = 'Plateforme de 250+ outils décisionnels juridiques pré-remplis par IA, plus génération du projet de conclusions. Travail, Immigration, Famille — France et Belgique. Essai gratuit 14 jours.';
+    const title = 'AI LegalCase — 280+ outils décisionnels & conclusions avocats (FR/BE)';
+    const description = '280+ outils décisionnels pré-remplis par IA, conclusions générées et pilotage du dossier (phases, échéances). Travail, immigration, famille — FR/BE.';
+    const shortDescription = 'Plateforme de 280+ outils décisionnels juridiques pré-remplis par IA, génération du projet de conclusions et poste de pilotage du dossier (phases, échéances, cycle contradictoire). Travail, Immigration, Famille — France et Belgique. Essai gratuit 14 jours.';
     const url = 'https://legalcase.fr/';
 
     this.title.setTitle(title);
@@ -153,9 +153,10 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       'name': 'AI LegalCase',
-      'description': 'Plateforme de 250+ outils décisionnels juridiques pré-remplis par IA depuis vos pièces, et génération du projet de conclusions avec jurisprudence de cassation. Calculateurs, scorings, comparateurs et générateurs sur droit du travail, immigration et famille — France et Belgique. OCR et Vision pour extraire scans dégradés et photos de SMS.',
+      'description': 'Plateforme de 280+ outils décisionnels juridiques pré-remplis par IA depuis vos pièces, génération du projet de conclusions avec jurisprudence de cassation, et poste de pilotage du dossier dans la durée (phases procédurales, cycle contradictoire, échéancier). Calculateurs, scorings, comparateurs et générateurs sur droit du travail, immigration et famille — France et Belgique. OCR et Vision pour extraire scans dégradés et photos de SMS.',
       'featureList': [
-        '250+ outils décisionnels juridiques (calculateurs, scorings, comparateurs, générateurs, détecteurs)',
+        '280+ outils décisionnels juridiques (calculateurs, scorings, comparateurs, générateurs, détecteurs)',
+        'Poste de pilotage du dossier : vue d\'ensemble, phases procédurales, cycle contradictoire (rounds), échéancier proactif',
         'Génération du projet de conclusions (3 domaines × 2 pays, dans le style du cabinet)',
         'Citations de jurisprudence de la Cour de cassation vérifiables (JUDILIBRE)',
         'Legal OCR pour scans dégradés et fax',

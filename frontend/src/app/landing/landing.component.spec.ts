@@ -27,7 +27,7 @@ describe('LandingComponent', () => {
   });
 
   it('définit le title SEO au chargement', () => {
-    expect(titleService.getTitle()).toContain('250+ outils décisionnels');
+    expect(titleService.getTitle()).toContain('280+ outils décisionnels');
     expect(titleService.getTitle()).not.toContain('92');
   });
 
@@ -36,18 +36,18 @@ describe('LandingComponent', () => {
     expect(titleService.getTitle().length).toBeLessThan(70);
   });
 
-  it('la meta description SEO fait moins de 160 caractères et mentionne « 250+ » + conclusions', () => {
+  it('la meta description SEO fait moins de 160 caractères et mentionne « 280+ » + conclusions', () => {
     const tag = metaService.getTag('name="description"');
     expect(tag?.content.length).toBeLessThan(160);
-    expect(tag?.content).toContain('250+');
+    expect(tag?.content).toContain('280+');
     expect(tag?.content).toContain('conclusions');
     expect(tag?.content).not.toContain('92');
   });
 
   it('définit la meta description SEO au chargement', () => {
     const tag = metaService.getTag('name="description"');
-    // SF-158-06 : description V4 (< 160 car) — essentiel = 250+ outils + conclusions + FR/BE
-    expect(tag?.content).toContain('250+');
+    // SF-158-06 : description V4 (< 160 car) — essentiel = 280+ outils + conclusions + FR/BE
+    expect(tag?.content).toContain('280+');
     expect(tag?.content).toContain('FR/BE');
   });
 
@@ -60,7 +60,7 @@ describe('LandingComponent', () => {
     const card = metaService.getTag('name="twitter:card"');
     expect(card?.content).toBe('summary_large_image');
     const tw = metaService.getTag('name="twitter:title"');
-    expect(tw?.content).toContain('250+ outils');
+    expect(tw?.content).toContain('280+ outils');
     expect(tw?.content).not.toContain('92');
   });
 
@@ -82,9 +82,9 @@ describe('LandingComponent', () => {
     expect(h1?.textContent).not.toContain('92');
   });
 
-  it('le bouton outline annonce « 250+ outils »', () => {
+  it('le bouton outline annonce « 280+ outils »', () => {
     const btn = fixture.nativeElement.querySelector('.hero-actions .btn-outline');
-    expect(btn?.textContent).toContain('250+');
+    expect(btn?.textContent).toContain('280+');
     expect(btn?.textContent).not.toContain('92');
   });
 
@@ -95,7 +95,7 @@ describe('LandingComponent', () => {
     const toolsTitle = sectionTitles.find(t => t.textContent?.includes('outils décisionnels'));
     expect(toolsTitle).toBeTruthy();
     expect(toolsTitle?.textContent).not.toContain('92');
-    expect(toolsTitle?.textContent).toContain('250+');
+    expect(toolsTitle?.textContent).toContain('280+');
   });
 
   it('repricing V7 — Solo 99 €, Team 219 €, Pro 429 €', () => {
@@ -199,8 +199,11 @@ describe('LandingComponent', () => {
   });
 
   it('SF-158-05 — la différenciation contient une carte « Jurisprudence vérifiable »', () => {
-    const whyUs = fixture.nativeElement.querySelector('.why-us:not(#conclusions)') as HTMLElement;
-    const cards: HTMLElement[] = Array.from(whyUs?.querySelectorAll('.why-card') ?? []);
+    // Recherche par texte sur toutes les cartes (robuste à l'ajout de sections
+    // .why-us comme #pilotage, F-158 V5).
+    const cards: HTMLElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.why-card'),
+    );
     const jurisCard = cards.find(c => c.textContent?.includes('Jurisprudence vérifiable'));
     expect(jurisCard).toBeTruthy();
   });

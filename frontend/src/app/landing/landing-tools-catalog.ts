@@ -4,10 +4,10 @@
 //   node scripts/build-landing-catalog.mjs
 // (SF-158-04 F-158 V4 — remplace l'ancien build-catalog.py).
 //
-// 254 outils. Répartition :
-//   TRAVAIL: FR=73 BE=55
-//   IMMIGRATION: FR=43 BE=15
-//   FAMILLE: FR=53 BE=15
+// 288 outils. Répartition :
+//   TRAVAIL: FR=82 BE=55
+//   IMMIGRATION: FR=49 BE=21
+//   FAMILLE: FR=57 BE=24
 //
 // 2 id(s) sans règle de visibilité — domain/country dérivés par défaut (préfixe id / label) :
 //   clause-non-concurrence-be -> TRAVAIL/BE
@@ -27,25 +27,25 @@ export interface LandingTool {
 
 export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'F-FA-11-desunion-irremediable-be', label: 'Désunion irrémédiable (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'adoption-be', label: 'Adoption — recevabilité (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'SCORING' },
   { id: 'autorite-parentale-be', label: 'Autorité parentale (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'cohabitation-legale-be', label: 'Cohabitation légale — régime (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'contestation-filiation-be', label: 'Contestation de filiation (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'contribution-alimentaire-enfants-be', label: 'Contribution alimentaire des enfants (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'contribution-conjoint-be', label: 'Pension alimentaire entre ex-époux (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'divorce-dc-be', label: 'Divorce par consentement mutuel (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'divorce-ddi-3voies-be', label: 'Divorce — Désunion irrémédiable 3 voies (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'liquidation-partage-be', label: 'Liquidation-partage post-divorce (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'mariage-etranger-be-reconnaissance', label: 'Reconnaissance mariage / divorce étranger (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'cohabitation-legale-be', label: 'Cohabitation légale — régime (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'adoption-be', label: 'Adoption — recevabilité (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'kafala-be-recueil-legal', label: 'Recueil légal (kafala) — Belgique', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'gpa-be-situation-contentieuse', label: 'Filiation post-GPA — Belgique', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'regime-algerien-be', label: 'Régime algérien — mariage / talaq / dot (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
-  { id: 'regime-be-separation-biens', label: 'Régime de séparation de biens (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'dip-be-loi-applicable-famille', label: 'Loi applicable en droit de la famille (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'dip-be-reconnaissance-decision-etrangere', label: 'Reconnaissance / exequatur d\'une décision familiale étrangère (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'divorce-dc-be', label: 'Divorce par consentement mutuel (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'divorce-ddi-3voies-be', label: 'Divorce — Désunion irrémédiable 3 voies (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'etat-civil-be-modification', label: 'Modification de l\'état civil (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'gpa-be-situation-contentieuse', label: 'Filiation post-GPA — Belgique', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'kafala-be-recueil-legal', label: 'Recueil légal (kafala) — Belgique', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'liquidation-partage-be', label: 'Liquidation-partage post-divorce (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'mariage-etranger-be-reconnaissance', label: 'Reconnaissance mariage / divorce étranger (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'pacte-successoral-be-2018', label: 'Pacte successoral 2018 (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'protection-majeur-be', label: 'Protection du majeur (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'regime-algerien-be', label: 'Régime algérien — mariage / talaq / dot (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
+  { id: 'regime-be-separation-biens', label: 'Régime de séparation de biens (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'regime-mat-be-communaute-legale', label: 'Régime de communauté légale (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'succession-be-acceptation-renonciation', label: 'Acceptation / renonciation à succession (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
   { id: 'succession-be-devolution-reserve', label: 'Dévolution et réserve héréditaire (Belgique)', domain: 'FAMILLE', country: 'BE', type: 'OUTIL' },
@@ -92,14 +92,18 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'F-FA-ADOPTION-INTERNATIONALE', label: 'Adoption internationale (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-ADOPTION-INTRA', label: 'Adoption intra-familiale (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-ARIPA-RECOUVREMENT', label: 'ARIPA recouvrement (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
+  { id: 'F-FA-ASF-CAF', label: 'Allocation de soutien familial (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
+  { id: 'F-FA-ASSISTANCE-EDUCATIVE', label: 'Assistance éducative — enfant en danger (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-AUDITION-MINEUR', label: 'Audition du mineur (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-DONATION-ENTRE-EPOUX', label: 'Donation entre époux (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-DONATION-PARTAGE', label: 'Donation-partage (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
+  { id: 'F-FA-HABILITATION-FAMILIALE', label: 'Habilitation familiale (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-INDIGNITE-SUCCESSORALE', label: 'Indignité successorale (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-PARTAGE-NOTARIAL', label: 'Partage successoral notarié (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-PRESOMPTION-PATERNITE', label: 'Présomption de paternité (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-RECEL-SUCCESSION', label: 'Recel de succession (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'F-FA-RETRAIT-AP', label: 'Retrait autorité parentale (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
+  { id: 'F-FA-TGD', label: 'Téléphone Grave Danger — éligibilité (FR)', domain: 'FAMILLE', country: 'FR', type: 'SCORING' },
   { id: 'F-FA-XX-delegation-ap', label: 'Délégation autorité parentale (FR)', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'acceptation-renonciation-succession', label: 'Acceptation / renonciation à succession', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
   { id: 'mediation-familiale-pre-saisine', label: 'Médiation familiale pré-saisine', domain: 'FAMILLE', country: 'FR', type: 'OUTIL' },
@@ -122,7 +126,7 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'F-IM-54-carte-b-sejour-illimite-be', label: 'Carte B séjour illimité (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
   { id: 'F-IM-55-residence-longue-duree-ue-be', label: 'Résident longue durée UE (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
   { id: 'F-IM-56-detention-centre-ferme-be', label: 'Détention centre fermé (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
-  { id: 'F-IM-57-cce-suspension-be', label: 'Recours CCE suspension (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
+  { id: 'F-IM-57-cce-suspension-be', label: 'Recours CCE suspension (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'GÉNÉRATEUR' },
   { id: 'F-IM-58-victime-traite-be', label: 'Victime de la traite (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
   { id: 'F-IM-01-checklist-pieces', label: 'Checklist pièces immigration', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
   { id: 'F-IM-05-arbre-decisionnel-titre', label: 'Arbre décisionnel titre de séjour (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
@@ -167,6 +171,12 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'F-IM-44-ue-eee-suisse-sejour-fr', label: 'Séjour UE/EEE/Suisse (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
   { id: 'F-IM-45-retrait-titre-fraude-fr', label: 'Retrait titre pour fraude (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
   { id: 'F-IM-46-autorisation-travail-employeur-fr', label: 'Autorisation travail employeur (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
+  { id: 'F-IM-47-regime-tunisien-fr', label: 'Régime franco-tunisien 1988 (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
+  { id: 'F-IM-48-regime-mayotte-fr', label: 'Portée territoriale Mayotte (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
+  { id: 'F-IM-49-vpf-jeune-majeur-l42322-fr', label: 'VPF jeune majeur L.423-22 (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
+  { id: 'F-IM-50-pacs-vpf-fr', label: 'VPF au titre d\'un PACS L.423-23 (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
+  { id: 'F-IM-51-decheance-nationalite-fr', label: 'Validité déchéance de nationalité (Cciv 25 / 25-1) (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'SCORING' },
+  { id: 'F-IM-52-signalement-sis-fr', label: 'Contestation signalement SIS (non-admission) (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
   { id: 'F-132-rupture-amiable-info', label: 'Rupture amiable — informations', domain: 'TRAVAIL', country: 'BE', type: 'OUTIL' },
   { id: 'F-DT-06-requete-tribunal-travail', label: 'Requête tribunal du travail (BE)', domain: 'TRAVAIL', country: 'BE', type: 'GÉNÉRATEUR' },
   { id: 'F-DT-27-motif-grave-be', label: 'Motif grave (Belgique)', domain: 'TRAVAIL', country: 'BE', type: 'OUTIL' },
@@ -274,6 +284,9 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'F-DT-48-mise-a-pied-disciplinaire', label: 'Mise à pied disciplinaire — régularité (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-49-temps-partiel-requalification', label: 'Temps partiel — requalification (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-50-forfait-jours-validite', label: 'Forfait jours — validité (FR)', domain: 'TRAVAIL', country: 'FR', type: 'SCORING' },
+  { id: 'F-DT-51-rtt-monetisation', label: 'RTT — monétisation (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
+  { id: 'F-DT-52-ppv-exoneration', label: 'PPV — exonération (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
+  { id: 'F-DT-53-epargne-salariale-conformite', label: 'Épargne salariale — conformité (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-56-egalite-salariale-femmes-hommes', label: 'Égalité salariale femmes/hommes (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-59-harcelement-procedure-interne', label: 'Harcèlement procédure interne (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-61-lanceur-alerte-protection', label: 'Protection du lanceur d’alerte (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
@@ -286,8 +299,14 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'F-DT-71-mutation-clause-mobilite', label: 'Mutation — validité de la clause de mobilité (FR)', domain: 'TRAVAIL', country: 'FR', type: 'SCORING' },
   { id: 'F-DT-72-transfert-entreprise-l1224-1', label: 'Transfert d’entreprise — L. 1224-1 (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-75-conges-payes-arret-maladie', label: 'Congés payés acquis pendant arrêt maladie (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
+  { id: 'F-DT-76-conges-evenements-familiaux', label: 'Congés pour évènements familiaux (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-77-conge-paternite-maternite', label: 'Congé maternité / paternité — protection & indemnités (FR)', domain: 'TRAVAIL', country: 'FR', type: 'CALCULATEUR' },
+  { id: 'F-DT-78-conge-parental-education', label: 'Congé parental d\'éducation (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
+  { id: 'F-DT-79-conge-proche-aidant', label: 'Congé de proche aidant (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
+  { id: 'F-DT-80-rtt-acquisition', label: 'RTT — acquisition (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
+  { id: 'F-DT-81-temps-trajet-deplacement', label: 'Temps de trajet (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-82-teletravail-accord', label: 'Télétravail — conformité et litige (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
+  { id: 'F-DT-83-droit-deconnexion-conformite', label: 'Droit à la déconnexion (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-84-conciliation-cph-bca', label: 'Conciliation CPH — BCO (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-86-appel-cph-cour-appel', label: 'Appel CPH cour d\'appel (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
   { id: 'F-DT-87-pourvoi-cassation-soc', label: 'Pourvoi cassation sociale (FR)', domain: 'TRAVAIL', country: 'FR', type: 'OUTIL' },
