@@ -8,11 +8,15 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     List<Document> findByCaseFileOrderByCreatedAtDesc(CaseFile caseFile);
+
+    /** Charge un document par id en s'assurant qu'il est rattaché au dossier (isolation). */
+    Optional<Document> findByIdAndCaseFile_Id(UUID id, UUID caseFileId);
 
     List<Document> findByCaseFile_IdOrderByCreatedAtDesc(UUID caseFileId);
 
