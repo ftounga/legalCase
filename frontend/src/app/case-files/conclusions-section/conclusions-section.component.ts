@@ -187,12 +187,29 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   @Input() caseTitle?: string;
 
   /**
+   * SF-282-03 (Part A) — Id de version à pré-sélectionner au montage (chip
+   * « Conclusions v{n} » de la frise F-282 → `?version=`). Si fourni et présent
+   * dans l'historique, cette version est affichée au lieu de la plus récente.
+   * Sans valeur : comportement par défaut (dernière version) inchangé.
+   */
+  @Input() initialVersionId?: string | null;
+
+  /**
    * F-258 / SF-258-01 — Demande de focalisation du panneau d'outils
    * décisionnels. Émis quand l'avocat clique « Voir les outils à calculer »
    * dans l'encart d'avertissement. Le parent (`case-file-detail`) fait défiler
    * la page vers `#section-outils-decisionnels`.
    */
   @Output() viewToolsRequested = new EventEmitter<void>();
+
+  /**
+   * SF-282-03 (Part B) — Émis quand une génération **aboutit** (nouvelle version
+   * `DONE`), portant l'id de cette version. Consommé par la page F-267 pour
+   * l'auto-rattachement du round contradictoire ciblé (jamais d'écrasement d'un
+   * rattachement manuel). N'altère EN RIEN la chaîne de génération (prompt /
+   * worker / `prepare`) : c'est une simple notification après-coup.
+   */
+  @Output() generationCompleted = new EventEmitter<string>();
 
   /** Contenu de la version actuellement affichée. */
   readonly conclusion = signal<ConclusionResponse | null>(null);
@@ -562,6 +579,13 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         }
         this.cdr.markForCheck();
         this.refreshVersions();
+        // SF-282-03 (Part A) — pré-sélection d'une version précise demandée par
+        // la frise F-282 (`?version=`). On ne le fait que si elle diffère de la
+        // version courante et qu'aucune génération n'est en cours.
+        const wanted = this.initialVersionId;
+        if (wanted && wanted !== res.id) {
+          this.selectVersion(wanted);
+        }
       },
       error: () => {
         this.loading.set(false);
@@ -1812,6 +1836,11 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         this.selectedVersionId.set(res.id);
         this.refreshVersions();
         this.refreshAdverseMarkedCount();
+        // SF-282-03 (Part B) — la génération a abouti : notifie la page F-267
+        // (auto-rattachement du round). Aucune modification de la génération.
+        if (res.status === 'DONE' && res.id) {
+          this.generationCompleted.emit(res.id);
+        }
         this.cdr.markForCheck();
       },
       error: () => {
@@ -1878,6 +1907,11 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
           // SF-98-56 — la génération vient d'aboutir : rafraîchit le nombre de
           // citations adverses marquées prises en compte (mention factuelle).
           this.refreshAdverseMarkedCount();
+          // SF-282-03 (Part B) — notifie la page F-267 sur DONE (auto-rattachement
+          // du round ciblé). Aucune modification de la chaîne de génération.
+          if (res.status === 'DONE' && res.id) {
+            this.generationCompleted.emit(res.id);
+          }
         }
         this.cdr.markForCheck();
       },
