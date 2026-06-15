@@ -40,7 +40,7 @@
       </div>
     }
 
-    @if (confirmedDeadlines().length === 0 && pendingAiDeadlines().length === 0 && statutoryDeadlines().length === 0) {
+    @if (confirmedDeadlines().length === 0 && pendingAiDeadlines().length === 0 && statutoryDeadlines().length === 0 && contradictoireDeadlines().length === 0) {
       <p class="deadlines-empty">Aucun délai pour ce dossier.</p>
     }
 
@@ -80,6 +80,27 @@
         </div>
       }
     </div>
+
+    @if (contradictoireDeadlines().length > 0) {
+      <div class="contradictoire-section">
+        <h4 class="contradictoire-section__title">
+          <mat-icon class="contradictoire-section__icon">forum</mat-icon>
+          Échéances liées aux échanges (contradictoire)
+        </h4>
+        @for (e of contradictoireDeadlines(); track e.id) {
+          <div class="statutory-item" [class]="deadlineClass(e.dueDate)">
+            <div class="statutory-item__info">
+              <span class="statutory-item__label">{{ e.label }}</span>
+              <span class="statutory-item__date">{{ e.dueDate | date:'dd/MM/yyyy' }}</span>
+              <span class="deadline-badge" [class]="deadlineClass(e.dueDate)">{{ daysLabel(e.dueDate) }}</span>
+            </div>
+          </div>
+        }
+        <p class="contradictoire-section__hint">
+          Ces échéances se gèrent depuis la frise « Cycle contradictoire » (onglet Suivi).
+        </p>
+      </div>
+    }
 
     @if (pendingAiDeadlines().length > 0) {
       <div class="ai-proposals-section">

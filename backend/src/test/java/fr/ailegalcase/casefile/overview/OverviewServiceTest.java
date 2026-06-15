@@ -241,6 +241,37 @@ class OverviewServiceTest {
     }
 
     @Test
+    void balancedSelection_questionIaNotStarvedByOverdueDeadlines() {
+        // F-289 (fix) — 4 échéances OVERDUE + 2 pièces + 1 question = 7 items.
+        // Sans sélection équilibrée, le top-5 = 4 échéances + 1 pièce → la
+        // question IA (rang SOON, après les pièces) était ÉJECTÉE. Avec le fix,
+        // chaque type présent garde ≥ 1 slot → la question reste visible.
+        java.util.List<EcheancierItem> deadlines = new java.util.ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            deadlines.add(new EcheancierItem(UUID.randomUUID(), "Échéance " + i,
+                    LocalDate.now().minusDays(1), -1, EcheancierItem.EcheancierUrgency.OVERDUE,
+                    EcheancierItem.EcheancierKind.DEADLINE, "MANUAL"));
+        }
+        when(echeancierService.forCaseFile(any(), any(), any())).thenReturn(new EcheancierResponse(
+                deadlines, deadlines.get(0), new EcheancierResponse.Counts(4, 0, 0, 0, 4)));
+        when(pieceManquanteAlignmentService.getForLatestAnalysis(any(), any(), any())).thenReturn(List.of(
+                new PieceManquanteAlignment("Contrat de travail", "A_DEMANDER", "client", null),
+                new PieceManquanteAlignment("Bulletin de paie", "A_DEMANDER", "client", null)));
+        UUID qId = UUID.randomUUID();
+        when(aiQuestionQueryService.listQuestions(any(), any(), any(), any())).thenReturn(List.of(
+                new AiQuestionResponse(qId, 0, "Q1 ?", null, null, null)));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(r.attention()).hasSize(5);
+        assertThat(r.attentionTotal()).isEqualTo(7);
+        // Le fix garantit la présence de la question IA ET d'au moins une pièce.
+        assertThat(r.attention()).anyMatch(a -> "QUESTION_IA".equals(a.type()));
+        assertThat(r.attention()).anyMatch(a -> "PIECE_MANQUANTE".equals(a.type()));
+        assertThat(r.attention()).anyMatch(a -> "ECHEANCE".equals(a.type()));
+    }
+
+    @Test
     void failOpen_oneSourceThrows_aggregateStillServedWithoutIt() {
         // L'échéancier jette : l'agrégat doit être servi sans sa contribution.
         when(echeancierService.forCaseFile(any(), any(), any()))

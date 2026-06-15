@@ -64,6 +64,17 @@ describe('DecisionToolsPanelComponent', () => {
       .forEach(r => {
         try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
       });
+    // F-292 (fix) — le panel charge aussi le dashboard (outils calculés) au
+    // mount + sur refresh$ ; flush silencieux pour préserver verify().
+    httpMock.match(r => r.url.endsWith('/dashboard'))
+      .forEach(r => {
+        try {
+          r.flush(
+            { caseFileId: 'cf', legalDomain: 'TRAVAIL', riskScore: null, riskLevel: null, tiles: [] },
+            { status: 200, statusText: 'OK' },
+          );
+        } catch { /* cancelled */ }
+      });
     httpMock.verify();
   });
 
@@ -752,6 +763,17 @@ describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRe
     httpMock.match(r => r.url.endsWith('/ai-questions-alignment'))
       .forEach(r => {
         try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
+    // F-292 (fix) — le panel charge aussi le dashboard (outils calculés) au
+    // mount + sur refresh$ ; flush silencieux pour préserver verify().
+    httpMock.match(r => r.url.endsWith('/dashboard'))
+      .forEach(r => {
+        try {
+          r.flush(
+            { caseFileId: 'cf', legalDomain: 'TRAVAIL', riskScore: null, riskLevel: null, tiles: [] },
+            { status: 200, statusText: 'OK' },
+          );
+        } catch { /* cancelled */ }
       });
     httpMock.verify();
   });

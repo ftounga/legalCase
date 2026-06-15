@@ -6,6 +6,7 @@ import { of, throwError } from 'rxjs';
 import { Subject } from 'rxjs';
 import { CaseDeadlinesSectionComponent } from './case-deadlines-section.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
+import { EcheancierService } from '../../core/services/echeancier.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
 
 function makeDeadline(
@@ -29,6 +30,7 @@ describe('CaseDeadlinesSectionComponent', () => {
   let fixture: ComponentFixture<CaseDeadlinesSectionComponent>;
   let component: CaseDeadlinesSectionComponent;
   let deadlineServiceSpy: jest.Mocked<CaseDeadlineService>;
+  let echeancierServiceSpy: jest.Mocked<EcheancierService>;
   let snackBarSpy: { open: jest.Mock };
   let dialogSpy: { open: jest.Mock };
   let dialogAfterClosedSubject: Subject<boolean>;
@@ -37,6 +39,13 @@ describe('CaseDeadlinesSectionComponent', () => {
     deadlineServiceSpy = jasmine.createSpyObj('CaseDeadlineService',
       ['list', 'create', 'update', 'delete', 'validateDeadline']);
     deadlineServiceSpy.list.mockReturnValue(of([]));
+
+    // F-289 (fix) — la section charge aussi l'échéancier (échéances de rounds,
+    // lecture seule). Mock par défaut : aucune échéance contradictoire.
+    echeancierServiceSpy = jasmine.createSpyObj('EcheancierService', ['get']);
+    echeancierServiceSpy.get.mockReturnValue(
+      of({ items: [], nextItem: null, counts: { overdue: 0, critical: 0, soon: 0, upcoming: 0, total: 0 } }),
+    );
 
     snackBarSpy = { open: jest.fn() };
     dialogAfterClosedSubject = new Subject<boolean>();
@@ -48,6 +57,7 @@ describe('CaseDeadlinesSectionComponent', () => {
       imports: [CaseDeadlinesSectionComponent, NoopAnimationsModule],
       providers: [
         { provide: CaseDeadlineService, useValue: deadlineServiceSpy },
+        { provide: EcheancierService, useValue: echeancierServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: dialogSpy }
       ]

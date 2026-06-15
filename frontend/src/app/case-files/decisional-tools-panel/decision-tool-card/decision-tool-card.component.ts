@@ -115,6 +115,14 @@ export class DecisionToolCardComponent {
 
   @Input() summary: DecisionToolSummary | null = null;
   @Input() prefillCount: number | null = null;
+  /**
+   * F-292 (fix réactivité) — l'outil a-t-il un verdict calculé ? Fourni par le
+   * panneau F-IA-04 (qui ne passe PAS `summary` à la carte — ses cartes sont des
+   * lanceurs). `true` → état « calculé » (outline plein). `null` (non fourni, ex.
+   * dashboard agrégé qui passe `summary`) → on retombe sur la présence d'un
+   * `summary`. C'est ce qui permet la bascule dynamique pointillé → plein.
+   */
+  @Input() calculated: boolean | null = null;
   @Input() coherenceAlertCount: number | null = null;
   @Input() metierAlertLevel: MetierAlertLevel | null = null;
   /**
@@ -209,7 +217,10 @@ export class DecisionToolCardComponent {
    * l'état « prêt à calculer » (pré-rempli mais pas encore cliqué) du calculé.
    */
   protected get isCalculated(): boolean {
-    return formatSummary(this.summary) !== null;
+    // F-292 (fix) — « calculé » = flag explicite du panneau OU présence d'un
+    // verdict (dashboard). Le panneau ne passe pas `summary` → sans ce flag,
+    // l'état restait bloqué en « pré-rempli » (bug réactivité).
+    return this.calculated === true || formatSummary(this.summary) !== null;
   }
 
   /**

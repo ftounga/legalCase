@@ -54,8 +54,10 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -321,7 +323,26 @@ public class OverviewService {
         }
 
         items.sort(Comparator.comparingInt(i -> URGENCY_RANK.getOrDefault(i.urgency(), 99)));
-        return items;
+
+        // F-289 (fix) — sélection ÉQUILIBRÉE avant la troncature à ATTENTION_LIMIT.
+        // Sans ça, une rafale d'échéances OVERDUE/CRITICAL (rang le plus haut)
+        // remplit les 5 slots et ÉJECTE la question IA / les pièces (rang SOON)
+        // — bug constaté au test. On garantit qu'au moins le 1ᵉʳ item de chaque
+        // TYPE présent figure en tête (≤ 4 types → tient dans le cap), en
+        // préservant l'ordre d'urgence entre représentants, puis on complète le
+        // reste par urgence. L'appelant tronque ensuite à 5.
+        List<OverviewResponse.AttentionItem> primary = new ArrayList<>();
+        List<OverviewResponse.AttentionItem> rest = new ArrayList<>();
+        Set<String> seenTypes = new HashSet<>();
+        for (OverviewResponse.AttentionItem it : items) {
+            if (seenTypes.add(it.type())) {
+                primary.add(it);
+            } else {
+                rest.add(it);
+            }
+        }
+        primary.addAll(rest);
+        return primary;
     }
 
     // ── ③ Fil chronologique ────────────────────────────────────────────────────

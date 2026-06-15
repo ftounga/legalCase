@@ -24,6 +24,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { debounceTime } from 'rxjs';
 import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.service';
+import { CaseDashboardService } from '../../core/services/case-dashboard.service';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
@@ -615,6 +616,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
+  // F-292 (fix réactivité) — source de l'état « calculé » par outil : les tuiles
+  // du dashboard agrégé (= outils ayant produit un verdict). Rechargé sur
+  // `refresh$` (déclenché à chaque calcul d'outil via dashboardRefresh).
+  private readonly dashboardService = inject(CaseDashboardService);
   // F-228 SF-228-01 : loader partagé qui charge les 4 alignements en parallèle
   // (forkJoin + fail-open par stream). Remplace les 3 services individuels
   // précédents (RetainedPisteAlignmentService / PieceManquanteAlignmentService /
@@ -6964,6 +6969,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     if (this.caseFileId) {
       this.loadVisibility(true);
       this.loadAlignments();
+      this.loadCalculatedTiles();
     }
     if (this.refreshService) {
       this.refreshService.refresh$
@@ -6971,6 +6977,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         .subscribe(() => {
           if (this.caseFileId) {
             this.loadVisibility(false);
+            // F-292 (fix) — recharge l'état « calculé » après chaque calcul
+            // d'outil (chaque section émet triggerRefresh sur POST réussi) →
+            // la carte bascule pointillé → plein sans rechargement manuel.
+            this.loadCalculatedTiles();
             // F-228 SF-228-01 — re-fetch des 4 alignements à chaque run de
             // Synthèse enrichie (cohérence F-176 stricte). Le PUT statut
             // piste/pièce/risque/réponse F-94 ne déclenche PAS triggerRefresh
@@ -6986,6 +6996,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     if (changes['caseFileId'] && !changes['caseFileId'].firstChange && this.caseFileId) {
       this.loadVisibility(true);
       this.loadAlignments();
+      this.loadCalculatedTiles();
     }
     // F-244 SF-244-02 — les compteurs de pré-fill dépendent de `synthesis` ;
     // tout changement de cette entrée (post-analyse, override) doit ré-émettre
@@ -7409,6 +7420,35 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       synthesis,
     };
     return getToolPrefillCount(entry.component, input);
+  }
+
+  // ── F-292 (fix réactivité) — état « calculé » par outil ──────────────
+
+  /**
+   * F-292 (fix) — ids des outils ayant un verdict calculé (= tuiles du dashboard
+   * agrégé). Alimente `[calculated]` sur la carte pour distinguer « pré-rempli
+   * non calculé » (pointillé) de « calculé » (plein). Signal → réactif sous
+   * OnPush ; rechargé à chaque `refresh$` (déclenché par chaque calcul d'outil).
+   */
+  readonly calculatedToolIds = signal<Set<string>>(new Set());
+
+  /** Recharge l'ensemble des outils calculés depuis le dashboard (fail-open). */
+  private loadCalculatedTiles(): void {
+    this.dashboardService.get(this.caseFileId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (d) =>
+          this.calculatedToolIds.set(new Set((d.tiles ?? []).map((t) => t.toolId))),
+        error: () => {
+          // Fail-open : un dashboard indisponible n'altère pas le panneau —
+          // les outils restent affichés comme non calculés (état prudent).
+        },
+      });
+  }
+
+  /** F-292 (fix) — l'outil a-t-il un verdict calculé (tuile dashboard) ? */
+  isToolCalculated(toolId: string): boolean {
+    return this.calculatedToolIds().has(toolId);
   }
 
   /**
