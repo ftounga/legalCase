@@ -9,6 +9,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
+import { EcheancierService } from '../../core/services/echeancier.service';
+import { EcheancierItem } from '../../core/models/echeancier.model';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -61,6 +63,15 @@ export class CaseDeadlinesSectionComponent implements OnInit, OnChanges {
     this.deadlines().filter(d => d.source === 'STATUTORY')
   );
 
+  /**
+   * F-289 (fix) — échéances de réponse issues du cycle contradictoire (rounds).
+   * Affichées en LECTURE SEULE : la carte Échéancier (F-284) les agrège, mais la
+   * liste détaillée ne lisait que `case_deadlines` → l'avocat avait l'impression
+   * qu'« il en manque ». On les expose ici (non éditables — elles se gèrent dans
+   * la frise contradictoire de l'onglet Suivi).
+   */
+  contradictoireDeadlines = signal<EcheancierItem[]>([]);
+
   toggleCollapsed(): void { this.collapsed.update(v => !v); }
   newLabel = '';
   newDueDate = '';
@@ -70,6 +81,7 @@ export class CaseDeadlinesSectionComponent implements OnInit, OnChanges {
 
   constructor(
     private deadlineService: CaseDeadlineService,
+    private echeancierService: EcheancierService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
   ) {}
@@ -79,6 +91,21 @@ export class CaseDeadlinesSectionComponent implements OnInit, OnChanges {
     if (this.forceExpanded) this.collapsed.set(false);
 
     this.loadDeadlines();
+    this.loadContradictoireDeadlines();
+  }
+
+  /**
+   * F-289 (fix) — charge les échéances contradictoires depuis l'échéancier
+   * (lecture seule, fail-open : un échec n'affecte pas la liste des délais).
+   */
+  loadContradictoireDeadlines(): void {
+    this.echeancierService.get(this.caseFileId).subscribe({
+      next: r =>
+        this.contradictoireDeadlines.set(
+          (r.items ?? []).filter(i => i.kind === 'CONTRADICTOIRE')
+        ),
+      error: () => this.contradictoireDeadlines.set([]),
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {

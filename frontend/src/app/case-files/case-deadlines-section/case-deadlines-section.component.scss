@@ -213,6 +213,39 @@
   }
 }
 
+/* F-289 (fix) — échéances contradictoires (lecture seule). Accent navy pour les
+   distinguer des délais légaux (or) ; réutilise .statutory-item pour les lignes. */
+.contradictoire-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  border-left: 3px solid #1A3A5C;
+  background: #f4f6f9;
+  border-radius: 0 8px 8px 0;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Merriweather', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A3A5C;
+    margin: 0 0 12px 0;
+  }
+
+  &__icon {
+    font-size: 18px;
+    color: #1A3A5C;
+  }
+
+  &__hint {
+    margin: 8px 0 0 0;
+    font-size: 12px;
+    font-style: italic;
+    color: #6B7A8D;
+  }
+}
+
 .statutory-item {
   display: flex;
   align-items: center;

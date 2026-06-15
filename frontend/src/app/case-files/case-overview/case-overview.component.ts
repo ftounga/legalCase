@@ -340,8 +340,11 @@ export class CaseOverviewComponent implements OnInit {
         return 'Générer ma réplique';
       case 'RELAUNCH_ANALYSIS':
         return "Relancer l'analyse";
+      // F-289 (fix) — l'action échéance ROUTE vers l'onglet Suivi (pas d'action
+      // inline) : le libellé doit refléter la navigation, pas promettre un
+      // marquage immédiat (« Marquer fait » prêtait à confusion au test).
       case 'VALIDATE_DEADLINE':
-        return 'Marquer fait';
+        return 'Voir le délai';
       case 'ANSWER_QUESTION':
         return 'Répondre';
       case 'MARK_PIECE':
@@ -362,7 +365,7 @@ export class CaseOverviewComponent implements OnInit {
       case 'RELAUNCH_ANALYSIS':
         return 'refresh';
       case 'VALIDATE_DEADLINE':
-        return 'check_circle';
+        return 'event';
       case 'ANSWER_QUESTION':
         return 'question_answer';
       case 'MARK_PIECE':

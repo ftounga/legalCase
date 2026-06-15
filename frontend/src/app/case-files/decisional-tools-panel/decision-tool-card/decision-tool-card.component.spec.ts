@@ -686,5 +686,28 @@ describe('DecisionToolCardComponent', () => {
       expect(card().classList.contains('tool-card--prefilled-pending')).toBe(true);
       expect(placeholderText()).toBe('Prêt à valider — cliquer pour calculer');
     });
+
+    // F-292 (fix réactivité) — le panneau ne passe PAS summary : il signale
+    // « calculé » via l'input [calculated]. Sans ce flag, la carte restait
+    // bloquée en pointillé après calcul (bug constaté au test).
+    it('fix : calculated=true sans summary → PAS pending (panneau F-IA-04)', () => {
+      component.prefillCount = 3;
+      component.summary = null;
+      component.calculated = true;
+      fixture.detectChanges();
+
+      expect(card().classList.contains('tool-card--prefilled-pending')).toBe(false);
+      expect(card().classList.contains('tool-card--prefilled')).toBe(true);
+    });
+
+    it('fix : calculated=false/null sans summary → pending (pré-rempli non calculé)', () => {
+      component.prefillCount = 3;
+      component.summary = null;
+      component.calculated = false;
+      fixture.detectChanges();
+
+      expect(card().classList.contains('tool-card--prefilled-pending')).toBe(true);
+      expect(placeholderText()).toBe('Prêt à valider — cliquer pour calculer');
+    });
   });
 });
