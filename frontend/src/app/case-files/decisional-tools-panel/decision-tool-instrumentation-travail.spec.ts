@@ -202,7 +202,7 @@ const TRAVAIL_FR: TravailEntry[] = [
   {
     name: 'case-deadlines',
     component: CaseDeadlinesSectionComponent,
-    expectedLabel: 'DÉLAIS LÉGAUX',
+    expectedLabel: 'DÉLAIS DU DOSSIER',
     expectedIcon: 'event',
   },
   {
