@@ -128,6 +128,78 @@
   }
 }
 
+/* ── F-295 : résumé compact (repli par défaut) ─────────────── */
+.strat-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.strat-summary-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.strat-summary-icon {
+  flex: none;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--strat-gold);
+}
+.strat-summary-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.strat-summary-label {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--strat-navy);
+}
+.strat-summary-text {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--strat-text);
+}
+
+/* Fallback troncature : aperçu du markdown rendu avec fondu bas (CA5). */
+.strat-reco--collapsed {
+  position: relative;
+  max-height: 7.5em;
+  overflow: hidden;
+}
+.strat-reco--collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.5em;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    var(--color-surface, #ffffff)
+  );
+  pointer-events: none;
+}
+
+/* Bouton toggle discret, aligné sur la palette (proche de .strat-link / .strat-regen). */
+.strat-toggle {
+  --mdc-text-button-label-text-color: var(--strat-navy);
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 /* ── Pied : date + actions ─────────────────────────────────── */
 .strat-footer {
   display: flex;
@@ -222,5 +294,11 @@
   .strat-empty {
     flex-direction: column;
     gap: 8px;
+  }
+  .strat-summary {
+    gap: 8px;
+  }
+  .strat-summary-text {
+    font-size: 13px;
   }
 }

@@ -26,9 +26,46 @@
       </div>
     } @else {
 
-      <!-- Recommandation disponible -->
+      <!-- Recommandation disponible (F-295 : carte compacte repliable) -->
       @if (hasReco()) {
-        <article class="strat-reco" data-testid="strat-reco" [innerHTML]="contentHtml()"></article>
+        <!-- Repli par défaut : résumé compact (parsing OK) ou aperçu tronqué (fallback) -->
+        @if (!expanded()) {
+          @if (parseOk()) {
+            <ul class="strat-summary" data-testid="strat-summary">
+              @for (line of summary(); track line.label) {
+                <li class="strat-summary-item">
+                  <mat-icon class="strat-summary-icon">{{ line.icon }}</mat-icon>
+                  <span class="strat-summary-body">
+                    <span class="strat-summary-label">{{ line.label }}</span>
+                    <span class="strat-summary-text">{{ line.text }}</span>
+                  </span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <article
+              class="strat-reco strat-reco--collapsed"
+              data-testid="strat-reco-collapsed"
+              [innerHTML]="contentHtml()"></article>
+          }
+        }
+
+        <!-- Détail déplié in situ : markdown complet (rendu F-286 inchangé) -->
+        @if (expanded()) {
+          <article class="strat-reco" data-testid="strat-reco" [innerHTML]="contentHtml()"></article>
+        }
+
+        <!-- Bouton toggle « Voir le détail » / « Réduire » -->
+        <button
+          type="button"
+          mat-button
+          class="strat-toggle"
+          data-testid="strat-toggle-detail"
+          [attr.aria-expanded]="expanded()"
+          (click)="toggleDetail()">
+          <mat-icon>{{ expanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          {{ expanded() ? 'Réduire' : 'Voir le détail' }}
+        </button>
 
         <div class="strat-footer">
           @if (generatedAt(); as g) {
