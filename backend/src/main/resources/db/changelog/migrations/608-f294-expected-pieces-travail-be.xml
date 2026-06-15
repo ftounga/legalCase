@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="608-f294-expected-pieces-travail-be" author="legalcase">
+        <comment>
+            F-294 SF-294-02 — Seed du référentiel de pièces attendues (type
+            EXPECTED_PIECES) pour le droit du travail BELGIQUE, aligné 1:1 avec le
+            fallback Java TravailPieceReferentiel (constante BE_PIECES). value_json
+            = {"stages":[...] (absent = pièce générique), "obligatoire":bool,
+            "ordre":int}. Stades BE 1re instance = FOND/REFERE (tribunal du
+            travail TT, cf. ProcedureStageCatalog). Entrées système
+            (workspace_id NULL). Plage UUID dédiée f2940002-... sans collision avec
+            607 (f2940001-...). INSERT seul : aucun changement de schéma.
+        </comment>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_DU_TRAVAIL — EXPECTED_PIECES (BELGIQUE) — 14 pièces      -->
+        <!-- stades 1re instance TT (FOND/REFERE, cf. ProcedureStageCatalog)-->
+        <!-- + 2 pièces génériques (règlement de travail / CCT applicable)  -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000001', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'CONTRAT_TRAVAIL', '{"stages":["FOND","REFERE"],"obligatoire":true,"ordre":1}', 'Contrat de travail', 'BELGIQUE', true, true, 'Loi du 3 juillet 1978 relative aux contrats de travail', 'Contrat liant le travailleur et l''employeur : pièce de base du litige, il fixe la fonction, la rémunération et les clauses (durée, essai, non-concurrence) invoquées devant le tribunal du travail.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000002', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'FICHES_PAIE', '{"stages":["FOND","REFERE"],"obligatoire":true,"ordre":2}', 'Fiches de paie (dernières)', 'BELGIQUE', true, true, 'Loi du 12 avril 1965 sur la protection de la rémunération', 'Les dernières fiches de paie établissent la rémunération de référence servant au calcul de l''indemnité de rupture, du pécule et des arriérés réclamés.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000003', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'LETTRE_CONGE', '{"stages":["FOND","REFERE"],"obligatoire":true,"ordre":3}', 'Lettre de notification du congé (licenciement)', 'BELGIQUE', true, true, 'Loi du 3 juillet 1978, art. 37 et s.', 'Lettre notifiant la rupture : elle fixe la date, le délai de préavis et, le cas échéant, le motif ; elle conditionne le contrôle de la régularité et du caractère manifestement déraisonnable du licenciement.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000004', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'C4', '{"stages":["FOND","REFERE"],"obligatoire":true,"ordre":4}', 'Formulaire C4 (certificat de chômage)', 'BELGIQUE', true, true, 'ONEM — formulaire C4', 'Document ONEM remis à la fin du contrat : il mentionne le motif précis de la rupture et la durée du préavis, pièce centrale pour qualifier le motif invoqué par l''employeur.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000005', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'CERTIFICAT_TRAVAIL', '{"stages":["FOND","REFERE"],"obligatoire":true,"ordre":5}', 'Certificat de travail', 'BELGIQUE', true, true, 'Loi du 3 juillet 1978', 'Certificat attestant les dates de début et de fin d''occupation et la nature des fonctions, utile pour établir l''ancienneté et le calcul des indemnités.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000006', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'DECOMPTE_SORTIE', '{"stages":["FOND","REFERE"],"obligatoire":true,"ordre":6}', 'Décompte de sortie (dernières prestations)', 'BELGIQUE', true, true, 'Loi du 12 avril 1965', 'Décompte récapitulant les dernières prestations et les sommes versées à la sortie ; son contenu conditionne les rappels de rémunération et de pécule demandés.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000007', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'DECOMPTE_INDEMNITE_RUPTURE', '{"stages":["FOND","REFERE"],"obligatoire":true,"ordre":7}', 'Décompte de l''indemnité de rupture', 'BELGIQUE', true, true, 'Loi du 3 juillet 1978, art. 39', 'Décompte de l''indemnité compensatoire de préavis versée (ou réclamée) : pièce déterminante du chiffrage de la demande lorsque le congé est donné avec effet immédiat.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000008', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'ATTESTATION_VACANCES', '{"stages":["FOND","REFERE"],"obligatoire":true,"ordre":8}', 'Attestation(s) de vacances', 'BELGIQUE', true, true, 'Lois coordonnées du 28 juin 1971 relatives aux vacances annuelles', 'Attestation(s) de vacances établissant le pécule de vacances dû à la sortie, utile au chiffrage des sommes réclamées au titre des congés.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000009', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'FICHE_FISCALE_281_10', '{"stages":["FOND","REFERE"],"obligatoire":false,"ordre":9}', 'Fiche fiscale 281.10', 'BELGIQUE', true, true, 'SPF Finances — fiche 281.10', 'Fiche fiscale annuelle récapitulant les rémunérations et retenues ; pièce de corroboration des montants bruts/nets invoqués dans le calcul des demandes.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000010', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'MOTIVATION_CCT109', '{"stages":["FOND"],"obligatoire":false,"ordre":10}', 'Motivation du licenciement (CCT n°109) — demande + réponse', 'BELGIQUE', true, true, 'CCT n°109 du 12 février 2014', 'Demande écrite du travailleur et réponse de l''employeur sur les motifs concrets du licenciement : pièce clé pour apprécier le caractère manifestement déraisonnable et l''indemnité afférente.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000011', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'NOTIFICATION_MOTIF_GRAVE', '{"stages":["FOND","REFERE"],"obligatoire":false,"ordre":11}', 'Notification du motif grave (si applicable)', 'BELGIQUE', true, true, 'Loi du 3 juillet 1978, art. 35', 'Lettre notifiant le motif grave dans les délais légaux (3 jours) : pièce indispensable pour contrôler la régularité et le bien-fondé d''un congé pour motif grave.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000012', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'REGLEMENT_TRAVAIL', '{"obligatoire":false,"ordre":12}', 'Règlement de travail', 'BELGIQUE', true, true, 'Loi du 8 avril 1965 instituant les règlements de travail', 'Règlement de travail de l''entreprise : il fixe les horaires, les obligations et le régime disciplinaire applicables ; pièce attendue dans tout dossier de droit du travail, quel que soit le stade.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000013', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'CCT_APPLICABLE', '{"obligatoire":false,"ordre":13}', 'CCT / commission paritaire applicable', 'BELGIQUE', true, true, 'Loi du 5 décembre 1968 sur les CCT et les commissions paritaires', 'Convention collective et commission paritaire dont relève le travailleur : elles déterminent les règles plus favorables (barème, préavis, primes) applicables au litige, quel que soit le stade.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940002-0000-0000-0000-000000000014', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'AVERTISSEMENTS_EVALUATIONS', '{"stages":["FOND"],"obligatoire":false,"ordre":14}', 'Avertissements / évaluations (dossier disciplinaire)', 'BELGIQUE', true, true, 'Pièces du dossier individuel du travailleur', 'Avertissements écrits et évaluations versés au dossier disciplinaire : ils étayent ou contestent le motif du licenciement et le caractère déraisonnable de la rupture.', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            DELETE FROM legal_referentials
+            WHERE referential_type = 'EXPECTED_PIECES'
+              AND id IN (
+                'f2940002-0000-0000-0000-000000000001',
+                'f2940002-0000-0000-0000-000000000002',
+                'f2940002-0000-0000-0000-000000000003',
+                'f2940002-0000-0000-0000-000000000004',
+                'f2940002-0000-0000-0000-000000000005',
+                'f2940002-0000-0000-0000-000000000006',
+                'f2940002-0000-0000-0000-000000000007',
+                'f2940002-0000-0000-0000-000000000008',
+                'f2940002-0000-0000-0000-000000000009',
+                'f2940002-0000-0000-0000-000000000010',
+                'f2940002-0000-0000-0000-000000000011',
+                'f2940002-0000-0000-0000-000000000012',
+                'f2940002-0000-0000-0000-000000000013',
+                'f2940002-0000-0000-0000-000000000014'
+              );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

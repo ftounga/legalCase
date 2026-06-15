@@ -445,6 +445,36 @@ class LegalReferentialServiceTest {
     }
 
     @Test
+    void getExpectedPieces_belgique_dbEmpty_fallbackJava_FOND() {
+        // SF-294-02 — DB vide → fallback TravailPieceReferentiel.getPieces("BELGIQUE")
+        when(repository.findActiveByDomainAndType("DROIT_DU_TRAVAIL", "EXPECTED_PIECES", null))
+                .thenReturn(List.of());
+
+        var result = service.getExpectedPieces("DROIT_DU_TRAVAIL", "BELGIQUE", "FOND");
+
+        // FOND : pièces 1re instance TT + génériques (REGLEMENT_TRAVAIL / CCT) + FOND-only.
+        assertThat(result).extracting("label")
+                .contains("Contrat de travail",
+                        "Formulaire C4 (certificat de chômage)",
+                        "Règlement de travail",
+                        "CCT / commission paritaire applicable",
+                        "Motivation du licenciement (CCT n°109) — demande + réponse");
+        assertThat(result).extracting("country").containsOnly("BELGIQUE");
+    }
+
+    @Test
+    void getExpectedPieces_belgique_dbEmpty_noStage_onlyGeneric() {
+        // SF-294-02 / CA2 — procedureStage nul → seules les pièces génériques BE.
+        when(repository.findActiveByDomainAndType("DROIT_DU_TRAVAIL", "EXPECTED_PIECES", null))
+                .thenReturn(List.of());
+
+        var result = service.getExpectedPieces("DROIT_DU_TRAVAIL", "BELGIQUE", null);
+
+        assertThat(result).extracting("label")
+                .containsExactly("Règlement de travail", "CCT / commission paritaire applicable");
+    }
+
+    @Test
     void getExpectedPieces_workspaceOverrideWinsOverSystem() {
         LegalReferential sys = expectedPieceEntry("LETTRE_LICENCIEMENT", "Lettre (système)",
                 "FRANCE", "{\"stages\":[\"FOND\"],\"obligatoire\":true,\"ordre\":3}", true);
