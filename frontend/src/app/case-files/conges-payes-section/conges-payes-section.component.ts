@@ -168,6 +168,8 @@ export class CongesPayesSectionComponent implements OnInit, OnChanges {
   // remis à null dès que l'avocat modifie manuellement (onXxxChange).
   provenanceSalaire = signal<'IA' | null>(null);
   provenanceDateRupture = signal<'IA' | null>(null);
+  // SF-246-22 — provenance « estimation IA » du total période (salaire × 12).
+  provenanceTotal = signal<'IA' | null>(null);
 
   // SF-IA-03-15c : map {sourceKey → explanations} pour le popover.
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
@@ -261,6 +263,15 @@ export class CongesPayesSectionComponent implements OnInit, OnChanges {
       if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
         this.salaireMensuelBrutEur.set(salaire);
         this.provenanceSalaire.set('IA');
+      }
+    }
+
+    // SF-246-22 — total rémunérations de la période = estimation dérivée (salaire × 12).
+    const total = CongesPayesSectionPrefillRules.computeTotalRemunerationPeriodeEur(ruleInput);
+    if (total !== null) {
+      if (this.totalRemunerationPeriodeEur() === null || this.provenanceTotal() === 'IA') {
+        this.totalRemunerationPeriodeEur.set(total);
+        this.provenanceTotal.set('IA');
       }
     }
 
@@ -423,6 +434,7 @@ export class CongesPayesSectionComponent implements OnInit, OnChanges {
   // Handlers onChange — effacent la provenance IA au 1er changement manuel.
   onTotalRemunerationChange(value: number | null): void {
     this.totalRemunerationPeriodeEur.set(value);
+    this.provenanceTotal.set(null);
   }
 
   onJoursAcquisChange(value: number | null): void {
@@ -525,6 +537,7 @@ export class CongesPayesSectionComponent implements OnInit, OnChanges {
         // Valeurs persistées = saisie avocat — jamais de badge IA.
         this.provenanceSalaire.set(null);
         this.provenanceDateRupture.set(null);
+        this.provenanceTotal.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

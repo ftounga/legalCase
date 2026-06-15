@@ -266,6 +266,29 @@ describe('CongesPayesSectionComponent', () => {
     expect(component.provenanceSalaire()).toBe('IA');
   });
 
+  // SF-246-22 — total période dérivé (salaire × 12) avec provenance « estimation ».
+  it('pré-fill IA total = salaire × 12 si aiData.salaireBrutMensuel > 0', () => {
+    component.aiData = { salaireBrutMensuel: 2500 } as TravailExtractedData;
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    flushSourceExplanations();
+
+    expect(component.totalRemunerationPeriodeEur()).toBe(30000);
+    expect(component.provenanceTotal()).toBe('IA');
+  });
+
+  it('onTotalRemunerationChange manuel efface le badge estimation IA', () => {
+    component.aiData = { salaireBrutMensuel: 2500 } as TravailExtractedData;
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    flushSourceExplanations();
+
+    expect(component.provenanceTotal()).toBe('IA');
+    component.onTotalRemunerationChange(28000);
+    expect(component.totalRemunerationPeriodeEur()).toBe(28000);
+    expect(component.provenanceTotal()).toBeNull();
+  });
+
   it('pré-fill IA dateRupture si aiData.dateLicenciement présent', () => {
     component.aiData = { dateLicenciement: '2026-02-28' } as TravailExtractedData;
     component.ngOnInit();
