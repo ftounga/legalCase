@@ -142,6 +142,23 @@ describe('CaseDeadlinesSectionComponent', () => {
     expect(badge.textContent).toContain('2 délais');
   });
 
+  // F-289 (fix) — le total inclut les échéances contradictoires (lecture seule).
+  it('totalDeadlinesCount agrège case_deadlines + échéances contradictoires', () => {
+    deadlineServiceSpy.list.mockReturnValue(of([makeDeadline('2026-06-01')]));
+    echeancierServiceSpy.get.mockReturnValue(of({
+      items: [{
+        id: 'r1', label: 'Réponse round 2', dueDate: '2026-08-01', daysUntil: 30,
+        urgency: 'SOON' as const, kind: 'CONTRADICTOIRE' as const, source: 'CONTRADICTOIRE' as const,
+      }],
+      nextItem: null,
+      counts: { overdue: 0, critical: 0, soon: 1, upcoming: 0, total: 1 },
+    }));
+    component.loadDeadlines();
+    component.loadContradictoireDeadlines();
+
+    expect(component.totalDeadlinesCount()).toBe(2); // 1 case_deadline + 1 contradictoire
+  });
+
   // ── SF-97-02 — Détection délais IA ───────────────────────────────────────
 
   it('SF97-U-01: délai AI+PENDING visible dans propositions IA, absent des confirmés', () => {

@@ -26,7 +26,10 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 })
 export class CaseDeadlinesSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
-  static readonly TOOL_LABEL = 'DÉLAIS LÉGAUX';
+  // F-289 (fix) — renommé « DÉLAIS DU DOSSIER » : la section/carte regroupe TOUS
+  // les délais (légaux + manuels + IA + contradictoire), pas seulement les légaux ;
+  // le titre « DÉLAIS LÉGAUX » laissait croire qu'on n'y voyait que les statutory.
+  static readonly TOOL_LABEL = 'DÉLAIS DU DOSSIER';
   static readonly TOOL_ICON = 'event';
 
   /**
@@ -61,6 +64,16 @@ export class CaseDeadlinesSectionComponent implements OnInit, OnChanges {
 
   statutoryDeadlines = computed(() =>
     this.deadlines().filter(d => d.source === 'STATUTORY')
+  );
+
+  /**
+   * F-289 (fix) — nombre TOTAL de délais visibles dans la section (toutes
+   * sources : case_deadlines + échéances contradictoires). Affiché dans le chip
+   * replié pour que l'avocat sache combien il en a en tout, sans surprise vs la
+   * Vue d'ensemble.
+   */
+  totalDeadlinesCount = computed(() =>
+    this.deadlines().length + this.contradictoireDeadlines().length
   );
 
   /**
