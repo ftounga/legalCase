@@ -18,7 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li><b>CA2</b> : un dossier Travail FR au stade première instance CPH reçoit
  *       au minimum les pièces seedées (résolution DB-first réelle).</li>
  *   <li><b>CA5</b> : sans stade, seules les pièces génériques remontent.</li>
- *   <li><b>CA6</b> : un domaine non seedé (Famille) renvoie un socle vide
+ *   <li><b>SF-294-03 / CA1</b> : un dossier Famille FR reçoit comme socle les
+ *       pièces {@code DIVORCE_PIECES} FR mappées en {@link ExpectedPiece}
+ *       (réutilisation, sans seed {@code EXPECTED_PIECES} dédié).</li>
+ *   <li><b>CA6</b> : un domaine non couvert (Immigration) renvoie un socle vide
  *       (comportement 100 % LLM inchangé).</li>
  * </ul>
  */
@@ -58,7 +61,23 @@ class ExpectedPiecesSeedIT {
     }
 
     @Test
-    void famille_notSeeded_returnsEmpty_CA6() {
-        assertThat(service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", "FOND")).isEmpty();
+    void familleFr_reusesDivorcePieces_CA1() {
+        // SF-294-03 : Famille délègue à getDivorcePieces (DB-first + fallback Java),
+        // pas de seed EXPECTED_PIECES dédié. Pièces génériques → incluses quel que
+        // soit le stade.
+        List<ExpectedPiece> socle = service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", "FOND");
+
+        assertThat(socle).isNotEmpty();
+        assertThat(socle).extracting(ExpectedPiece::label)
+                .contains(
+                        "Copie intégrale de l'acte de mariage",
+                        "Actes de naissance des époux",
+                        "Pièces d'identité des deux époux");
+        assertThat(socle).extracting(ExpectedPiece::country).containsOnly("FRANCE");
+    }
+
+    @Test
+    void immigration_notCovered_returnsEmpty_CA6() {
+        assertThat(service.getExpectedPieces("DROIT_IMMIGRATION", "FRANCE", "FOND")).isEmpty();
     }
 }
