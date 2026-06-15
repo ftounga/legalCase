@@ -677,6 +677,29 @@ public class LegalReferentialService {
      */
     public List<ExpectedPiece> getExpectedPieces(String legalDomain, String country, String procedureStage) {
         if (legalDomain == null || country == null) return List.of();
+
+        // F-294 SF-294-03 — Famille : réutilisation pure de DIVORCE_PIECES (DB-first
+        // + fallback DivorceChecklistReferentiel via getDivorcePieces), sans seed
+        // EXPECTED_PIECES dédié (anti-doublon, invariant #5). Les pièces divorce sont
+        // génériques à la procédure → stages = List.of() ⇒ incluses quel que soit le
+        // procedureStage. Fail-open (CA7) : exception → liste vide.
+        if ("DROIT_FAMILLE".equals(legalDomain)) {
+            try {
+                List<DivorcePiece> divorcePieces = getDivorcePieces(country);
+                List<ExpectedPiece> mapped = new ArrayList<>();
+                int ordre = 1;
+                for (DivorcePiece dp : divorcePieces) {
+                    mapped.add(new ExpectedPiece(dp.code(), dp.label(), dp.country(),
+                            List.of(), dp.obligatoire(), ordre++));
+                }
+                return List.copyOf(mapped);
+            } catch (Exception e) {
+                log.warn("LegalReferentialService: fail-open getExpectedPieces(DROIT_FAMILLE,{},{}) — {}",
+                        country, procedureStage, e.getMessage());
+                return List.of();
+            }
+        }
+
         List<ExpectedPiece> resolved;
         try {
             resolved = resolveExpectedPiecesFromDb(legalDomain, country);

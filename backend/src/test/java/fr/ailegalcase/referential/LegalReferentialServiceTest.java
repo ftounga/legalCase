@@ -1,6 +1,7 @@
 package fr.ailegalcase.referential;
 
 import fr.ailegalcase.casefile.ConventionBareme;
+import fr.ailegalcase.casefile.ExpectedPiece;
 import fr.ailegalcase.casefile.ImmigrationProcedureReferentiel.ProcedureJalon;
 import fr.ailegalcase.casefile.LitigationTypeMapper.LitigationPeriod;
 import org.junit.jupiter.api.BeforeEach;
@@ -459,10 +460,11 @@ class LegalReferentialServiceTest {
 
     @Test
     void getExpectedPieces_domainNotCovered_returnsEmpty() {
-        when(repository.findActiveByDomainAndType("DROIT_FAMILLE", "EXPECTED_PIECES", null))
+        // DROIT_IMMIGRATION : ni DB EXPECTED_PIECES ni fallback Java (hors scope F-294)
+        when(repository.findActiveByDomainAndType("DROIT_IMMIGRATION", "EXPECTED_PIECES", null))
                 .thenReturn(List.of());
 
-        assertThat(service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", "FOND")).isEmpty();
+        assertThat(service.getExpectedPieces("DROIT_IMMIGRATION", "FRANCE", "FOND")).isEmpty();
     }
 
     @Test
@@ -482,5 +484,112 @@ class LegalReferentialServiceTest {
     void getExpectedPieces_nullArgs_returnsEmpty() {
         assertThat(service.getExpectedPieces(null, "FRANCE", "FOND")).isEmpty();
         assertThat(service.getExpectedPieces("DROIT_DU_TRAVAIL", null, "FOND")).isEmpty();
+    }
+
+    // ==================================================================
+    //  F-294 SF-294-03 — Famille : réutilisation de DIVORCE_PIECES
+    // ==================================================================
+
+    private LegalReferential divorcePieceEntry(String key, String label, String description,
+                                               boolean obligatoire) {
+        LegalReferential e = new LegalReferential();
+        e.setReferentialType("DIVORCE_PIECES");
+        e.setEntryKey(key);
+        e.setLabel(label);
+        e.setValueJson("{\"description\":\"" + description + "\",\"obligatoire\":" + obligatoire + "}");
+        e.setSystem(true);
+        return e;
+    }
+
+    // CA1 : Famille FR → pièces divorce FR mappées en ExpectedPiece (fallback Java).
+    @Test
+    void getExpectedPieces_famille_FR_mapsDivorcePieces() {
+        when(repository.findSystemEntriesByTypeAndCountry("DROIT_FAMILLE", "DIVORCE_PIECES", "FRANCE"))
+                .thenReturn(List.of());
+
+        var result = service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", null);
+
+        assertThat(result).isNotEmpty();
+        assertThat(result).extracting("label")
+                .contains("Copie intégrale de l'acte de mariage",
+                        "Actes de naissance des époux",
+                        "Pièces d'identité des deux époux");
+        assertThat(result).extracting("country").containsOnly("FRANCE");
+        // pièces génériques (stages vides) → incluses quel que soit le stade
+        assertThat(result).allMatch(ExpectedPiece::isGenerique);
+        // ordre = index commençant à 1, croissant
+        assertThat(result.get(0).ordre()).isEqualTo(1);
+        assertThat(result.get(1).ordre()).isEqualTo(2);
+    }
+
+    // CA2 : Famille BE → pièces divorce BE.
+    @Test
+    void getExpectedPieces_famille_BE_mapsDivorcePieces() {
+        when(repository.findSystemEntriesByTypeAndCountry("DROIT_FAMILLE", "DIVORCE_PIECES", "BELGIQUE"))
+                .thenReturn(List.of());
+
+        var result = service.getExpectedPieces("DROIT_FAMILLE", "BELGIQUE", "FOND");
+
+        assertThat(result).isNotEmpty();
+        assertThat(result).extracting("label")
+                .contains("Copie de l'acte de mariage",
+                        "Certificat de composition de ménage");
+        assertThat(result).extracting("country").containsOnly("BELGIQUE");
+    }
+
+    // CA1 : un procedureStage arbitraire renvoie les MÊMES pièces (génériques).
+    @Test
+    void getExpectedPieces_famille_stageIgnored_sameGenericPieces() {
+        when(repository.findSystemEntriesByTypeAndCountry("DROIT_FAMILLE", "DIVORCE_PIECES", "FRANCE"))
+                .thenReturn(List.of());
+
+        var withStage = service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", "MESURES_PROVISOIRES");
+        var withoutStage = service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", null);
+        var otherStage = service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", "FOND");
+
+        assertThat(withStage).extracting("label")
+                .isEqualTo(withoutStage.stream().map(ExpectedPiece::label).toList());
+        assertThat(otherStage).extracting("label")
+                .isEqualTo(withoutStage.stream().map(ExpectedPiece::label).toList());
+    }
+
+    // CA3 : DB DIVORCE_PIECES prime sur le fallback Java (via getDivorcePieces).
+    @Test
+    void getExpectedPieces_famille_dbDivorcePiecesWinOverFallback() {
+        LegalReferential dbPiece = divorcePieceEntry("FR_ACTE_MARIAGE",
+                "Acte de mariage (version DB)", "Moins de 6 mois", true);
+        when(repository.findSystemEntriesByTypeAndCountry("DROIT_FAMILLE", "DIVORCE_PIECES", "FRANCE"))
+                .thenReturn(List.of(dbPiece));
+
+        var result = service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", null);
+
+        // une seule entrée DB → prime sur les 9 pièces du fallback Java
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).label()).isEqualTo("Acte de mariage (version DB)");
+        assertThat(result.get(0).code()).isEqualTo("FR_ACTE_MARIAGE");
+        assertThat(result.get(0).country()).isEqualTo("FRANCE");
+        assertThat(result.get(0).isGenerique()).isTrue();
+    }
+
+    // CA7 : pays non couvert → liste vide, pas d'exception.
+    @Test
+    void getExpectedPieces_famille_countryNotCovered_returnsEmpty() {
+        when(repository.findSystemEntriesByTypeAndCountry("DROIT_FAMILLE", "DIVORCE_PIECES", "ALLEMAGNE"))
+                .thenReturn(List.of());
+
+        assertThat(service.getExpectedPieces("DROIT_FAMILLE", "ALLEMAGNE", "FOND")).isEmpty();
+    }
+
+    // CA7 : exception dans la résolution → fail-open (liste vide), run abouti.
+    @Test
+    void getExpectedPieces_famille_repositoryThrows_failsOpen() {
+        // getDivorcePieces avale l'exception et retombe sur le fallback Java ;
+        // pour exercer le fail-open propre à la branche Famille, on couvre le pays
+        // non géré par le fallback Java après exception DB.
+        when(repository.findSystemEntriesByTypeAndCountry("DROIT_FAMILLE", "DIVORCE_PIECES", "ALLEMAGNE"))
+                .thenThrow(new RuntimeException("DB down"));
+
+        var result = service.getExpectedPieces("DROIT_FAMILLE", "ALLEMAGNE", "FOND");
+        assertThat(result).isNotNull().isEmpty();
     }
 }
