@@ -643,6 +643,130 @@ public class LegalReferentialService {
         return DivorceChecklistReferentiel.getEtapes(country);
     }
 
+    // -----------------------------------------------------------------------
+    // F-294 SF-294-01 — Pièces attendues (« socle ») par (domaine × pays × stade)
+    // -----------------------------------------------------------------------
+
+    /**
+     * F-294 — Résout les pièces attendues (socle) pour une situation procédurale.
+     *
+     * <p>DB-first sur le type {@code EXPECTED_PIECES} (système + override
+     * workspace), fallback Java {@link TravailPieceReferentiel} si la DB est
+     * vide — pattern identique à {@link #getDivorcePieces(String)} (CA11).
+     *
+     * <p>Filtrage par stade :
+     * <ul>
+     *   <li>{@code stages} renseigné → pièce incluse si
+     *       {@code procedureStage ∈ stages} ;</li>
+     *   <li>{@code stages} absent / vide → pièce <b>générique</b>, toujours
+     *       incluse (même si {@code procedureStage} est nul) ;</li>
+     *   <li>{@code procedureStage} nul → seules les pièces génériques sont
+     *       incluses.</li>
+     * </ul>
+     *
+     * <p>Override workspace : une entrée {@code is_system=false} prime sur
+     * l'entrée système de même {@code (entry_key, country)} (CA11).
+     *
+     * <p>Fail-open (CA7) : toute exception est avalée → fallback Java puis, à
+     * défaut, liste vide. Jamais d'exception propagée.
+     *
+     * @param legalDomain    domaine (ex. {@code DROIT_DU_TRAVAIL})
+     * @param country        pays (convention table : {@code FRANCE} / {@code BELGIQUE})
+     * @param procedureStage code de stade F-243 (ex. {@code CPH_LICENCIEMENT}) ; nullable
+     * @return liste immuable triée par {@code ordre} ; vide si non couvert
+     */
+    public List<ExpectedPiece> getExpectedPieces(String legalDomain, String country, String procedureStage) {
+        if (legalDomain == null || country == null) return List.of();
+        List<ExpectedPiece> resolved;
+        try {
+            resolved = resolveExpectedPiecesFromDb(legalDomain, country);
+            if (resolved.isEmpty()) {
+                resolved = fallbackExpectedPieces(legalDomain, country);
+            }
+        } catch (Exception e) {
+            log.warn("LegalReferentialService: fallback getExpectedPieces({},{},{}) — {}",
+                    legalDomain, country, procedureStage, e.getMessage());
+            try {
+                resolved = fallbackExpectedPieces(legalDomain, country);
+            } catch (Exception ignored) {
+                return List.of();
+            }
+        }
+
+        return resolved.stream()
+                .filter(p -> matchesStage(p, procedureStage))
+                .sorted(Comparator.comparingInt(ExpectedPiece::ordre))
+                .toList();
+    }
+
+    /**
+     * Charge les entrées {@code EXPECTED_PIECES} (système + override workspace)
+     * du domaine, filtre sur le pays, applique l'override workspace (CA11) puis
+     * parse {@code value_json}. Une entrée {@code value_json} mal formée est
+     * ignorée (log warn) sans interrompre les autres.
+     */
+    private List<ExpectedPiece> resolveExpectedPiecesFromDb(String legalDomain, String country) {
+        List<LegalReferential> entries = repository.findActiveByDomainAndType(
+                legalDomain, "EXPECTED_PIECES", null);
+        if (entries == null || entries.isEmpty()) return List.of();
+
+        // Override workspace : (entry_key, country) ; workspace (is_system=false) prime.
+        Map<String, LegalReferential> deduped = new LinkedHashMap<>();
+        entries.stream()
+                .filter(e -> country.equalsIgnoreCase(e.getCountry()))
+                .filter(LegalReferential::isSystem)
+                .forEach(e -> deduped.put(expectedPieceKey(e), e));
+        entries.stream()
+                .filter(e -> country.equalsIgnoreCase(e.getCountry()))
+                .filter(e -> !e.isSystem())
+                .forEach(e -> deduped.put(expectedPieceKey(e), e));
+
+        List<ExpectedPiece> result = new ArrayList<>();
+        for (LegalReferential e : deduped.values()) {
+            try {
+                JsonNode node = MAPPER.readTree(e.getValueJson());
+                List<String> stages = new ArrayList<>();
+                JsonNode stagesNode = node.get("stages");
+                if (stagesNode != null && stagesNode.isArray()) {
+                    for (JsonNode s : stagesNode) {
+                        if (s.isTextual() && !s.asText().isBlank()) stages.add(s.asText());
+                    }
+                }
+                boolean obligatoire = node.path("obligatoire").asBoolean(true);
+                int ordre = node.path("ordre").asInt(0);
+                result.add(new ExpectedPiece(e.getEntryKey(), e.getLabel(), e.getCountry(),
+                        stages, obligatoire, ordre));
+            } catch (Exception ex) {
+                log.warn("LegalReferentialService: EXPECTED_PIECES value_json mal formé pour {}/{} — ignorée: {}",
+                        e.getEntryKey(), e.getCountry(), ex.getMessage());
+            }
+        }
+        return result;
+    }
+
+    private static String expectedPieceKey(LegalReferential e) {
+        return e.getEntryKey() + "|" + (e.getCountry() != null ? e.getCountry() : "");
+    }
+
+    /** Fallback Java par domaine. Seul DROIT_DU_TRAVAIL est couvert en SF-294-01. */
+    private List<ExpectedPiece> fallbackExpectedPieces(String legalDomain, String country) {
+        if ("DROIT_DU_TRAVAIL".equals(legalDomain)) {
+            return TravailPieceReferentiel.getPieces(country);
+        }
+        return List.of();
+    }
+
+    /**
+     * Une pièce est incluse si elle est générique ({@code stages} vide) ou si le
+     * stade demandé figure dans ses {@code stages}. Si {@code procedureStage}
+     * est nul, seules les pièces génériques sont incluses.
+     */
+    private static boolean matchesStage(ExpectedPiece piece, String procedureStage) {
+        if (piece.isGenerique()) return true;
+        if (procedureStage == null || procedureStage.isBlank()) return false;
+        return piece.stages().stream().anyMatch(procedureStage::equalsIgnoreCase);
+    }
+
     /** Pièces divorce par pays. DB first → fallback DivorceChecklistReferentiel. */
     public List<DivorcePiece> getDivorcePieces(String country) {
         try {

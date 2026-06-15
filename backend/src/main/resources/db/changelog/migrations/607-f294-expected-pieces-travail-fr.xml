@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="607-f294-expected-pieces-travail-fr" author="legalcase">
+        <comment>
+            F-294 SF-294-01 — Seed du référentiel de pièces attendues (type
+            EXPECTED_PIECES) pour le droit du travail FR, aligné 1:1 avec le
+            fallback Java TravailPieceReferentiel. value_json = {"stages":[...]
+            (absent = pièce générique), "obligatoire":bool, "ordre":int}.
+            Entrées système (workspace_id NULL). Plage UUID dédiée f2940001-...
+            sans collision. INSERT seul : aucun changement de schéma.
+        </comment>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_DU_TRAVAIL — EXPECTED_PIECES (FRANCE) — 8 pièces        -->
+        <!-- stades 1re instance CPH (BCO/FOND/REFERE/DEPARTAGE, F-243)    -->
+        <!-- + 1 pièce générique (Convention collective)                   -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940001-0000-0000-0000-000000000001', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'CONTRAT_TRAVAIL', '{"stages":["BCO","FOND","REFERE","DEPARTAGE"],"obligatoire":true,"ordre":1}', 'Contrat de travail', 'FRANCE', true, true, 'Code du travail', 'Contrat liant le salarié et l''employeur : pièce de base de tout dossier prud''homal, elle établit la qualification, la rémunération et les clauses invoquées.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940001-0000-0000-0000-000000000002', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'BULLETINS_PAIE_12M', '{"stages":["BCO","FOND","REFERE","DEPARTAGE"],"obligatoire":true,"ordre":2}', 'Bulletins de paie des 12 derniers mois', 'FRANCE', true, true, 'Code du travail art. L. 1235-3', 'Les douze derniers bulletins établissent le salaire de référence servant au calcul des indemnités (barème Macron, préavis, congés payés).', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940001-0000-0000-0000-000000000003', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'LETTRE_LICENCIEMENT', '{"stages":["BCO","FOND","REFERE","DEPARTAGE"],"obligatoire":true,"ordre":3}', 'Lettre de licenciement', 'FRANCE', true, true, 'Code du travail art. L. 1232-6', 'Lettre qui fixe les limites du litige : la motivation énoncée détermine le contrôle du caractère réel et sérieux du licenciement.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940001-0000-0000-0000-000000000004', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'CONVOCATION_ENTRETIEN_PREALABLE', '{"stages":["BCO","FOND","REFERE","DEPARTAGE"],"obligatoire":true,"ordre":4}', 'Convocation à l''entretien préalable', 'FRANCE', true, true, 'Code du travail art. L. 1232-2', 'Convocation permettant de vérifier le respect de la procédure préalable au licenciement (délai et mentions obligatoires).', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940001-0000-0000-0000-000000000005', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'SOLDE_TOUT_COMPTE', '{"stages":["BCO","FOND","REFERE","DEPARTAGE"],"obligatoire":true,"ordre":5}', 'Reçu pour solde de tout compte', 'FRANCE', true, true, 'Code du travail art. L. 1234-20', 'Reçu récapitulant les sommes versées à la rupture ; son contenu et son éventuelle dénonciation conditionnent les rappels de salaire demandés.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940001-0000-0000-0000-000000000006', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'CERTIFICAT_TRAVAIL', '{"stages":["BCO","FOND","REFERE","DEPARTAGE"],"obligatoire":true,"ordre":6}', 'Certificat de travail', 'FRANCE', true, true, 'Code du travail art. L. 1234-19', 'Certificat attestant la date d''entrée et de sortie et la nature de l''emploi, utile pour établir l''ancienneté et les indemnités.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940001-0000-0000-0000-000000000007', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'ATTESTATION_FRANCE_TRAVAIL', '{"stages":["BCO","FOND","REFERE","DEPARTAGE"],"obligatoire":true,"ordre":7}', 'Attestation France Travail', 'FRANCE', true, true, 'Code du travail art. R. 1234-9', 'Attestation remise à la rupture, permettant l''ouverture des droits au chômage et le contrôle du motif de rupture déclaré.', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f2940001-0000-0000-0000-000000000008', NULL, 'DROIT_DU_TRAVAIL', 'EXPECTED_PIECES', 'CONVENTION_COLLECTIVE', '{"obligatoire":true,"ordre":8}', 'Convention collective applicable', 'FRANCE', true, true, 'Code du travail art. L. 2254-1', 'Convention qui détermine les règles plus favorables (préavis, indemnité, congés) applicables au-delà du Code du travail ; pièce attendue dans tout dossier de droit du travail, quel que soit le stade.', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            DELETE FROM legal_referentials
+            WHERE referential_type = 'EXPECTED_PIECES'
+              AND id IN (
+                'f2940001-0000-0000-0000-000000000001',
+                'f2940001-0000-0000-0000-000000000002',
+                'f2940001-0000-0000-0000-000000000003',
+                'f2940001-0000-0000-0000-000000000004',
+                'f2940001-0000-0000-0000-000000000005',
+                'f2940001-0000-0000-0000-000000000006',
+                'f2940001-0000-0000-0000-000000000007',
+                'f2940001-0000-0000-0000-000000000008'
+              );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

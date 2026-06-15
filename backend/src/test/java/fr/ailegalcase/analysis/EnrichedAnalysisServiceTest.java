@@ -1245,4 +1245,35 @@ class EnrichedAnalysisServiceTest {
         q.setStatus("ANSWERED");
         return q;
     }
+
+    // ==================================================================
+    //  F-294 SF-294-01 — injection du socle de pièces attendues
+    // ==================================================================
+
+    @Test
+    void buildExpectedPiecesSection_withSocle_injectsCanonicalLabels() {
+        when(legalReferentialService.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", "FOND"))
+                .thenReturn(List.of(
+                        new fr.ailegalcase.casefile.ExpectedPiece("LETTRE_LICENCIEMENT",
+                                "Lettre de licenciement", "FRANCE", List.of("FOND"), true, 3),
+                        new fr.ailegalcase.casefile.ExpectedPiece("CONVENTION_COLLECTIVE",
+                                "Convention collective applicable", "FRANCE", List.of(), true, 8)));
+
+        String section = service.buildExpectedPiecesSection("DROIT_DU_TRAVAIL", "FRANCE", "FOND");
+
+        assertThat(section)
+                .contains("Pièces standards attendues pour ce type de procédure")
+                .contains("AU MINIMUM")
+                .contains("- Lettre de licenciement")
+                .contains("- Convention collective applicable");
+    }
+
+    @Test
+    void buildExpectedPiecesSection_noSocle_returnsEmpty() {
+        when(legalReferentialService.getExpectedPieces(any(), any(), any())).thenReturn(List.of());
+
+        String section = service.buildExpectedPiecesSection("DROIT_FAMILLE", "FRANCE", "FOND");
+
+        assertThat(section).isEmpty();
+    }
 }

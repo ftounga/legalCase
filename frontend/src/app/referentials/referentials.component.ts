@@ -73,6 +73,8 @@ const SECTION_LABELS: Record<string, string> = {
   FAMILLE_PROCEDURE_JALONS:     'Droit de la famille — Jalons procéduraux',
   MAJEURS_PROTEGES_REGIMES:     'Majeurs protégés — Régimes',
   IM21_VALIDITY_CRITERES:       'Immigration — Critères de validité (F-IM-21)',
+  // F-294 SF-294-01 : socle de pièces attendues par situation procédurale
+  EXPECTED_PIECES:              'Pièces attendues par procédure',
 };
 
 @Component({
@@ -553,6 +555,14 @@ export class ReferentialsComponent implements OnInit {
           const desc = val?.description ?? '—';
           return `${binaire} — ${desc}`;
         }
+        // F-294 SF-294-01 : pièce attendue par situation procédurale
+        case 'EXPECTED_PIECES': {
+          const prefix = val?.obligatoire === false ? '' : '⚠ ';
+          const stages = Array.isArray(val?.stages) && val.stages.length > 0
+            ? `Stades : ${val.stages.join(', ')}`
+            : 'Toutes procédures';
+          return `${prefix}${stages}`;
+        }
         default:
           return JSON.stringify(val, null, 2);
       }
@@ -585,6 +595,7 @@ export class ReferentialsComponent implements OnInit {
       case 'FAMILLE_PROCEDURE_JALONS':     return 'event_note';
       case 'MAJEURS_PROTEGES_REGIMES':     return 'accessibility';
       case 'IM21_VALIDITY_CRITERES':       return 'verified';
+      case 'EXPECTED_PIECES':              return 'fact_check';
       default:                        return 'info';
     }
   }

@@ -8,6 +8,8 @@ import fr.ailegalcase.casefile.CaseDeadline;
 import fr.ailegalcase.casefile.CaseDeadlineRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.casefile.ExpectedPiece;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.Workspace;
@@ -78,6 +80,8 @@ public class PieceManquanteAlignmentService {
     private final CaseDeadlineRepository caseDeadlineRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
+    /** F-294 SF-294-01 — référentiel des pièces attendues (canonisation). Nullable en test. */
+    private final LegalReferentialService legalReferentialService;
     private final Clock clock;
 
     @Autowired
@@ -86,10 +90,11 @@ public class PieceManquanteAlignmentService {
                                            CaseFileRepository caseFileRepository,
                                            CaseDeadlineRepository caseDeadlineRepository,
                                            WorkspaceMemberRepository workspaceMemberRepository,
-                                           CurrentUserResolver currentUserResolver) {
+                                           CurrentUserResolver currentUserResolver,
+                                           LegalReferentialService legalReferentialService) {
         this(pieceManquanteStatusRepository, caseAnalysisRepository, caseFileRepository,
                 caseDeadlineRepository, workspaceMemberRepository, currentUserResolver,
-                Clock.systemUTC());
+                legalReferentialService, Clock.systemUTC());
     }
 
     /** Constructeur de test (injection {@link Clock}). */
@@ -99,6 +104,7 @@ public class PieceManquanteAlignmentService {
                                     CaseDeadlineRepository caseDeadlineRepository,
                                     WorkspaceMemberRepository workspaceMemberRepository,
                                     CurrentUserResolver currentUserResolver,
+                                    LegalReferentialService legalReferentialService,
                                     Clock clock) {
         this.pieceManquanteStatusRepository = pieceManquanteStatusRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
@@ -106,6 +112,7 @@ public class PieceManquanteAlignmentService {
         this.caseDeadlineRepository = caseDeadlineRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
+        this.legalReferentialService = legalReferentialService;
         this.clock = clock;
     }
 
@@ -137,6 +144,21 @@ public class PieceManquanteAlignmentService {
 
             // (1) extraire la liste pieces_manquantes du JSON IA (lecture seule)
             List<String> piecesIa = extractPiecesFromAnalysisResult(newAnalysis.getAnalysisResult());
+
+            // (1bis) F-294 SF-294-01 — canonisation des libellés AVANT la jointure :
+            // toute pièce LLM dont la forme normalisée correspond EXACTEMENT à un
+            // libellé du socle du dossier est remplacée par le libellé canonique.
+            // Correspondance normalisée exacte uniquement (jamais de fuzzy, CA10) ;
+            // ne retire jamais de pièce (CA9). Fail-open (CA7).
+            Map<String, String> canonicalByNorm = buildCanonicalByNorm(newAnalysis.getCaseFile());
+            if (!canonicalByNorm.isEmpty()) {
+                List<String> canonized = new ArrayList<>(piecesIa.size());
+                for (String piece : piecesIa) {
+                    String canonical = piece == null ? null : canonicalByNorm.get(normalize(piece));
+                    canonized.add(canonical != null ? canonical : piece);
+                }
+                piecesIa = canonized;
+            }
 
             // (2) charger l'overlay statut avocat
             List<PieceManquanteStatus> statusesAll =
@@ -200,6 +222,40 @@ public class PieceManquanteAlignmentService {
         } catch (Exception e) {
             log.warn("F-194: materializeForAnalysis fail-open for analysis {}",
                     newAnalysis.getId(), e);
+        }
+    }
+
+    /**
+     * F-294 SF-294-01 — construit la table {@code normalize(label) → label canonique}
+     * du socle de pièces attendues pour le dossier (résolu par
+     * {@code (legalDomain × country × procedureStage)}).
+     *
+     * <p>Fail-open (CA7) : si le référentiel n'est pas injecté, ou si le dossier
+     * / workspace est incomplet, ou si la résolution lève une exception, renvoie
+     * une map vide → aucune canonisation (comportement F-194 strict inchangé).
+     */
+    private Map<String, String> buildCanonicalByNorm(CaseFile caseFile) {
+        if (legalReferentialService == null || caseFile == null) return Map.of();
+        try {
+            Workspace ws = caseFile.getWorkspace();
+            if (ws == null) return Map.of();
+            String legalDomain = ws.getLegalDomain();
+            String country = ws.getCountry();
+            List<ExpectedPiece> socle = legalReferentialService.getExpectedPieces(
+                    legalDomain, country, caseFile.getProcedureStage());
+            if (socle == null || socle.isEmpty()) return Map.of();
+            Map<String, String> map = new HashMap<>();
+            for (ExpectedPiece p : socle) {
+                if (p.label() != null && !p.label().isBlank()) {
+                    // En cas de doublon normalisé, la première (ordre croissant) prime.
+                    map.putIfAbsent(normalize(p.label()), p.label());
+                }
+            }
+            return map;
+        } catch (Exception e) {
+            log.warn("F-294: buildCanonicalByNorm fail-open for caseFile {}",
+                    caseFile.getId(), e);
+            return Map.of();
         }
     }
 

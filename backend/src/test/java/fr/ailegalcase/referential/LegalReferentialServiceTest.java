@@ -375,4 +375,112 @@ class LegalReferentialServiceTest {
         assertThat(entries.get(0).label()).isEqualTo("Discrimination (custom)");
         assertThat(entries.get(0).valueJson()).isEqualTo("{\"years\":4}");
     }
+
+    // ==================================================================
+    //  F-294 SF-294-01 — getExpectedPieces
+    // ==================================================================
+
+    private LegalReferential expectedPieceEntry(String key, String label, String country,
+                                                String valueJson, boolean system) {
+        LegalReferential e = new LegalReferential();
+        e.setReferentialType("EXPECTED_PIECES");
+        e.setEntryKey(key);
+        e.setLabel(label);
+        e.setCountry(country);
+        e.setValueJson(valueJson);
+        e.setSystem(system);
+        return e;
+    }
+
+    @Test
+    void getExpectedPieces_dbPresent_filteredByStage() {
+        LegalReferential lettre = expectedPieceEntry("LETTRE_LICENCIEMENT", "Lettre de licenciement",
+                "FRANCE", "{\"stages\":[\"FOND\"],\"obligatoire\":true,\"ordre\":3}", true);
+        LegalReferential appelOnly = expectedPieceEntry("CONCLUSIONS_APPEL", "Conclusions d'appel",
+                "FRANCE", "{\"stages\":[\"APPEL\"],\"obligatoire\":true,\"ordre\":9}", true);
+        when(repository.findActiveByDomainAndType("DROIT_DU_TRAVAIL", "EXPECTED_PIECES", null))
+                .thenReturn(List.of(lettre, appelOnly));
+
+        var result = service.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", "FOND");
+
+        assertThat(result).extracting("label").containsExactly("Lettre de licenciement");
+    }
+
+    @Test
+    void getExpectedPieces_genericPiece_includedWhateverStage_andWhenStageNull() {
+        LegalReferential convCol = expectedPieceEntry("CONVENTION_COLLECTIVE", "Convention collective applicable",
+                "FRANCE", "{\"obligatoire\":true,\"ordre\":8}", true);
+        when(repository.findActiveByDomainAndType("DROIT_DU_TRAVAIL", "EXPECTED_PIECES", null))
+                .thenReturn(List.of(convCol));
+
+        assertThat(service.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", "FOND"))
+                .extracting("label").containsExactly("Convention collective applicable");
+        // stade null → seules les génériques (CA5)
+        assertThat(service.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", null))
+                .extracting("label").containsExactly("Convention collective applicable");
+    }
+
+    @Test
+    void getExpectedPieces_stagedPiece_excludedWhenStageNull() {
+        LegalReferential lettre = expectedPieceEntry("LETTRE_LICENCIEMENT", "Lettre de licenciement",
+                "FRANCE", "{\"stages\":[\"FOND\"],\"obligatoire\":true,\"ordre\":3}", true);
+        when(repository.findActiveByDomainAndType("DROIT_DU_TRAVAIL", "EXPECTED_PIECES", null))
+                .thenReturn(List.of(lettre));
+
+        assertThat(service.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", null)).isEmpty();
+    }
+
+    @Test
+    void getExpectedPieces_dbEmpty_fallbackJava() {
+        when(repository.findActiveByDomainAndType("DROIT_DU_TRAVAIL", "EXPECTED_PIECES", null))
+                .thenReturn(List.of());
+
+        var result = service.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", "FOND");
+
+        // fallback TravailPieceReferentiel : 7 pièces 1re instance + 1 générique
+        assertThat(result).extracting("label")
+                .contains("Lettre de licenciement", "Contrat de travail",
+                        "Convention collective applicable");
+    }
+
+    @Test
+    void getExpectedPieces_workspaceOverrideWinsOverSystem() {
+        LegalReferential sys = expectedPieceEntry("LETTRE_LICENCIEMENT", "Lettre (système)",
+                "FRANCE", "{\"stages\":[\"FOND\"],\"obligatoire\":true,\"ordre\":3}", true);
+        LegalReferential ws = expectedPieceEntry("LETTRE_LICENCIEMENT", "Lettre (custom workspace)",
+                "FRANCE", "{\"stages\":[\"FOND\"],\"obligatoire\":true,\"ordre\":3}", false);
+        when(repository.findActiveByDomainAndType("DROIT_DU_TRAVAIL", "EXPECTED_PIECES", null))
+                .thenReturn(List.of(sys, ws));
+
+        var result = service.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", "FOND");
+
+        assertThat(result).extracting("label").containsExactly("Lettre (custom workspace)");
+    }
+
+    @Test
+    void getExpectedPieces_domainNotCovered_returnsEmpty() {
+        when(repository.findActiveByDomainAndType("DROIT_FAMILLE", "EXPECTED_PIECES", null))
+                .thenReturn(List.of());
+
+        assertThat(service.getExpectedPieces("DROIT_FAMILLE", "FRANCE", "FOND")).isEmpty();
+    }
+
+    @Test
+    void getExpectedPieces_malformedJson_failsOpen() {
+        LegalReferential bad = expectedPieceEntry("LETTRE_LICENCIEMENT", "Lettre de licenciement",
+                "FRANCE", "{not-json", true);
+        when(repository.findActiveByDomainAndType("DROIT_DU_TRAVAIL", "EXPECTED_PIECES", null))
+                .thenReturn(List.of(bad));
+
+        // L'entrée mal formée est ignorée → DB "vide" de pièces valides → fallback Java.
+        var result = service.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", "FOND");
+        assertThat(result).isNotNull();
+        assertThat(result).extracting("label").contains("Lettre de licenciement");
+    }
+
+    @Test
+    void getExpectedPieces_nullArgs_returnsEmpty() {
+        assertThat(service.getExpectedPieces(null, "FRANCE", "FOND")).isEmpty();
+        assertThat(service.getExpectedPieces("DROIT_DU_TRAVAIL", null, "FOND")).isEmpty();
+    }
 }
