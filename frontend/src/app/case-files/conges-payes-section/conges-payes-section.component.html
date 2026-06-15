@@ -50,6 +50,11 @@
                      name="totalRemunerationPeriodeEur" required />
               <mat-hint>Période de référence : 1er juin (N-1) au 31 mai (N), ou autre selon convention collective.</mat-hint>
             </mat-form-field>
+            @if (provenanceTotal() === 'IA') {
+              <span class="cp-provenance-note">
+                <mat-icon>auto_awesome</mat-icon> Estimation IA (salaire mensuel × 12) — ajustez si la période diffère
+              </span>
+            }
 
             <!-- Jours acquis sur la période -->
             <mat-form-field appearance="outline">

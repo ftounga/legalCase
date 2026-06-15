@@ -21,6 +21,17 @@ export function computeSalaireMensuelBrutEur(input: CongesPayesPrefillInput): nu
   return typeof v === 'number' && v > 0 ? v : null;
 }
 
+/**
+ * SF-246-22 — Total des rémunérations brutes de la période de référence (base de
+ * la méthode du 1/10ᵉ). Aucune source IA directe → **estimation dérivée** du
+ * salaire mensuel brut × 12 (période de référence annuelle standard). Marquée
+ * « estimation » côté UI + éditable : l'avocat ajuste si la période diffère.
+ */
+export function computeTotalRemunerationPeriodeEur(input: CongesPayesPrefillInput): number | null {
+  const salaire = computeSalaireMensuelBrutEur(input);
+  return salaire !== null ? salaire * 12 : null;
+}
+
 export function computeDateRupture(input: CongesPayesPrefillInput): string | null {
   if (input.workspaceCountry !== 'FRANCE') return null;
   const v = input.aiData?.dateLicenciement;
@@ -44,6 +55,7 @@ export function computeJoursPris(input: CongesPayesPrefillInput): number | null 
 export function computePrefillCount(input: CongesPayesPrefillInput): number {
   let count = 0;
   if (computeSalaireMensuelBrutEur(input) !== null) count++;
+  if (computeTotalRemunerationPeriodeEur(input) !== null) count++;
   if (computeDateRupture(input) !== null) count++;
   if (computeJoursAcquis(input) !== null) count++;
   if (computeJoursPris(input) !== null) count++;
@@ -52,6 +64,7 @@ export function computePrefillCount(input: CongesPayesPrefillInput): number {
 
 export const CongesPayesSectionPrefillRules = {
   computeSalaireMensuelBrutEur,
+  computeTotalRemunerationPeriodeEur,
   computeDateRupture,
   computeJoursAcquis,
   computeJoursPris,
