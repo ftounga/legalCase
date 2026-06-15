@@ -53,6 +53,34 @@ class ExpectedPiecesSeedIT {
     }
 
     @Test
+    void travailBe_firstInstanceStage_resolvesSeededPiecesFromDb_CA1() {
+        // SF-294-02 — Travail BE au stade FOND (tribunal du travail) : socle seedé
+        // (migration 608) résolu DB-first, filtré par stade.
+        List<ExpectedPiece> socle = service.getExpectedPieces("DROIT_DU_TRAVAIL", "BELGIQUE", "FOND");
+
+        assertThat(socle).isNotEmpty();
+        assertThat(socle).extracting(ExpectedPiece::label)
+                .contains(
+                        "Contrat de travail",
+                        "Fiches de paie (dernières)",
+                        "Lettre de notification du congé (licenciement)",
+                        "Formulaire C4 (certificat de chômage)",
+                        "Règlement de travail",
+                        "CCT / commission paritaire applicable",
+                        "Motivation du licenciement (CCT n°109) — demande + réponse");
+        assertThat(socle).extracting(ExpectedPiece::country).containsOnly("BELGIQUE");
+    }
+
+    @Test
+    void travailBe_noStage_onlyGenericPieces_CA2() {
+        // SF-294-02 / CA2 — sans stade, seules les pièces génériques BE remontent.
+        List<ExpectedPiece> socle = service.getExpectedPieces("DROIT_DU_TRAVAIL", "BELGIQUE", null);
+
+        assertThat(socle).extracting(ExpectedPiece::label)
+                .containsExactly("Règlement de travail", "CCT / commission paritaire applicable");
+    }
+
+    @Test
     void travailFr_noStage_onlyGenericPieces_CA5() {
         List<ExpectedPiece> socle = service.getExpectedPieces("DROIT_DU_TRAVAIL", "FRANCE", null);
 
@@ -70,9 +98,13 @@ class ExpectedPiecesSeedIT {
         assertThat(socle).isNotEmpty();
         assertThat(socle).extracting(ExpectedPiece::label)
                 .contains(
-                        "Copie intégrale de l'acte de mariage",
+                        // Libellés EXACTS du seed DB DIVORCE_PIECES (migration 067, source de vérité).
+                        // ⚠ Le fallback Java DivorceChecklistReferentiel diverge ("de l'acte", "des deux
+                        // époux") — incohérence Java↔DB pré-existante signalée comme dette ; sans impact
+                        // prod (DB toujours seedée). On asserte la réalité prod = DB.
+                        "Copie intégrale acte de mariage",
                         "Actes de naissance des époux",
-                        "Pièces d'identité des deux époux");
+                        "Pièces d'identité des époux");
         assertThat(socle).extracting(ExpectedPiece::country).containsOnly("FRANCE");
     }
 
