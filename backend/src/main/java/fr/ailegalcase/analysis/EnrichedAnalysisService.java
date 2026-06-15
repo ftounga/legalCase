@@ -2,6 +2,7 @@ package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.casefile.ExpectedPiece;
 import fr.ailegalcase.casefile.StatutoryDeadlineService;
 import fr.ailegalcase.chat.ChatMessage;
 import fr.ailegalcase.chat.ChatMessageRepository;
@@ -481,6 +482,18 @@ public class EnrichedAnalysisService {
                 piecesSnapshot.obtenues(), piecesSnapshot.nonApplicables(), piecesSnapshot.aDemander(),
                 risquesSnapshot.valides(), risquesSnapshot.ecartes(), risquesSnapshot.aCreuser(),
                 overrideSnapshot);
+        // F-294 SF-294-01 — socle de pièces standards attendues (additif, non bridant).
+        // Injecté en suffixe du prompt enrichi. Fail-open : toute erreur laisse
+        // le run aboutir sans socle (comportement F-194 inchangé).
+        try {
+            String expectedPiecesSection = buildExpectedPiecesSection(legalDomain, country, caseFile.getProcedureStage());
+            if (!expectedPiecesSection.isEmpty()) {
+                basePrompt = basePrompt + expectedPiecesSection;
+            }
+        } catch (Exception e) {
+            log.warn("F-294: expected pieces injection failed for caseFile {} — enriched analysis will proceed without it",
+                    caseFileId, e);
+        }
         // F-146 SF-146-01 : préfixe le prompt avec la liste des pièces pour que
         // la re-synthèse enrichie produise aussi des sourceRef précis.
         String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
@@ -865,6 +878,26 @@ public class EnrichedAnalysisService {
         }
 
         return prompt.toString();
+    }
+
+    /**
+     * F-294 SF-294-01 — section « Pièces standards attendues » injectée dans le
+     * prompt enrichi. Le socle est <b>additif et non bridant</b> (CA3, CA9) :
+     * le LLM doit le réutiliser AU MINIMUM (libellés EXACTS pour permettre la
+     * canonisation F-294) tout en restant libre d'ajouter toute pièce du cas
+     * d'espèce. Retourne une chaîne vide si aucun socle n'est résolu (domaine /
+     * pays non couvert → comportement 100 % LLM, CA6).
+     */
+    String buildExpectedPiecesSection(String legalDomain, String country, String procedureStage) {
+        List<ExpectedPiece> socle = legalReferentialService.getExpectedPieces(legalDomain, country, procedureStage);
+        if (socle == null || socle.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n\n[Pièces standards attendues pour ce type de procédure — à inclure AU MINIMUM, ")
+          .append("en réutilisant EXACTEMENT ces libellés ; AJOUTE librement toute autre pièce pertinente au cas d'espèce]\n");
+        for (ExpectedPiece p : socle) {
+            sb.append("- ").append(p.label()).append("\n");
+        }
+        return sb.toString();
     }
 
     /** Construit la section extraits bruts documents pour le prompt enrichi. */

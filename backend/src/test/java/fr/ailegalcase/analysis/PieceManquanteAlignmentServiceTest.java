@@ -5,6 +5,8 @@ import fr.ailegalcase.casefile.CaseDeadline;
 import fr.ailegalcase.casefile.CaseDeadlineRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.casefile.ExpectedPiece;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -47,6 +49,7 @@ class PieceManquanteAlignmentServiceTest {
     private CaseDeadlineRepository caseDeadlineRepository;
     private WorkspaceMemberRepository workspaceMemberRepository;
     private CurrentUserResolver currentUserResolver;
+    private LegalReferentialService legalReferentialService;
     private Clock fixedClock;
 
     private PieceManquanteAlignmentService service;
@@ -59,11 +62,17 @@ class PieceManquanteAlignmentServiceTest {
         caseDeadlineRepository = mock(CaseDeadlineRepository.class);
         workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
         currentUserResolver = mock(CurrentUserResolver.class);
+        legalReferentialService = mock(LegalReferentialService.class);
         fixedClock = Clock.fixed(FIXED_DATE.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC);
+
+        // Par défaut : aucun socle → canonisation no-op (les tests F-194 existants
+        // restent inchangés). Les tests F-294 stubbent explicitement le socle.
+        when(legalReferentialService.getExpectedPieces(any(), any(), any())).thenReturn(List.of());
 
         service = new PieceManquanteAlignmentService(
                 pieceManquanteStatusRepository, caseAnalysisRepository, caseFileRepository,
-                caseDeadlineRepository, workspaceMemberRepository, currentUserResolver, fixedClock);
+                caseDeadlineRepository, workspaceMemberRepository, currentUserResolver,
+                legalReferentialService, fixedClock);
     }
 
     @Test
@@ -328,7 +337,130 @@ class PieceManquanteAlignmentServiceTest {
         assertThat(pieces).containsExactly("Contrat", "Lettre");
     }
 
+    // ==================================================================
+    //  F-294 SF-294-01 — canonisation des libellés
+    // ==================================================================
+
+    @Test
+    void materializeForAnalysis_f294_canonizesLlmLabelToCanonical_CA10() {
+        // Le LLM produit un libellé dont la forme normalisée correspond EXACTEMENT
+        // au socle ("lettre de licenciement") → remplacé par le libellé canonique.
+        CaseAnalysis analysis = newTravailFrAnalysis();
+        analysis.setAnalysisResult(
+                "{\"pieces_manquantes\":[{\"texte\":\"  Lettre De Licenciement  \"}]}");
+        when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of());
+        when(caseDeadlineRepository.findByCaseFileIdOrderByDueDateAsc(any()))
+                .thenReturn(new ArrayList<>());
+        stubSocle(
+                new ExpectedPiece("LETTRE_LICENCIEMENT", "Lettre de licenciement", "FRANCE",
+                        List.of("FOND"), true, 3));
+
+        service.materializeForAnalysis(analysis);
+
+        ArgumentCaptor<CaseAnalysis> saved = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(1)).save(saved.capture());
+        String json = saved.getValue().getPiecesAlignmentJson();
+        // libellé canonique substitué (pas la forme LLM avec espaces/casse)
+        assertThat(json).contains("\"pieceLibelle\":\"Lettre de licenciement\"")
+                .doesNotContain("Lettre De Licenciement");
+    }
+
+    @Test
+    void materializeForAnalysis_f294_pieceOutsideSocle_keepsLlmLabel_CA9() {
+        // Pièce hors socle (cas d'espèce) → libellé LLM conservé tel quel, jamais retirée.
+        CaseAnalysis analysis = newTravailFrAnalysis();
+        analysis.setAnalysisResult(
+                "{\"pieces_manquantes\":[{\"texte\":\"Lettre de licenciement\"},"
+                        + "{\"texte\":\"Attestation témoin spécifique\"}]}");
+        when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of());
+        when(caseDeadlineRepository.findByCaseFileIdOrderByDueDateAsc(any()))
+                .thenReturn(new ArrayList<>());
+        stubSocle(
+                new ExpectedPiece("LETTRE_LICENCIEMENT", "Lettre de licenciement", "FRANCE",
+                        List.of("FOND"), true, 3));
+
+        service.materializeForAnalysis(analysis);
+
+        ArgumentCaptor<CaseAnalysis> saved = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(1)).save(saved.capture());
+        String json = saved.getValue().getPiecesAlignmentJson();
+        // les DEUX pièces présentes : canonisée + hors-socle conservée (CA9)
+        assertThat(json).contains("\"pieceLibelle\":\"Lettre de licenciement\"")
+                .contains("\"pieceLibelle\":\"Attestation témoin spécifique\"");
+    }
+
+    @Test
+    void materializeForAnalysis_f294_obtenueStatusPreservedAcrossTwoRuns_CA1() {
+        // 1er run : l'avocat a marqué OBTENUE sur le libellé canonique. 2e run : le
+        // LLM régénère une variante de casse ("LETTRE DE LICENCIEMENT") → canonisée
+        // → même clé normalisée → le statut OBTENUE est préservé (pas de A_DEMANDER).
+        CaseAnalysis analysis = newTravailFrAnalysis();
+        analysis.setAnalysisResult(
+                "{\"pieces_manquantes\":[{\"texte\":\"LETTRE DE LICENCIEMENT\"}]}");
+        PieceManquanteStatus overlay = newOverlay("lettre de licenciement",
+                "Lettre de licenciement",
+                PieceManquanteStatus.STATUT_OBTENUE, null, "client");
+        when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of(overlay));
+        when(caseDeadlineRepository.findByCaseFileIdOrderByDueDateAsc(any()))
+                .thenReturn(new ArrayList<>());
+        stubSocle(
+                new ExpectedPiece("LETTRE_LICENCIEMENT", "Lettre de licenciement", "FRANCE",
+                        List.of("FOND"), true, 3));
+
+        service.materializeForAnalysis(analysis);
+
+        ArgumentCaptor<CaseAnalysis> saved = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(1)).save(saved.capture());
+        String json = saved.getValue().getPiecesAlignmentJson();
+        assertThat(json).contains("\"statut\":\"OBTENUE\"")
+                .doesNotContain("\"statut\":\"A_DEMANDER\"");
+        // pas de délai auto recréé pour une pièce OBTENUE
+        verify(caseDeadlineRepository, never()).save(any());
+    }
+
+    @Test
+    void materializeForAnalysis_f294_distinctLabelsNotMerged_CA10() {
+        // Deux libellés distincts (3 mois vs 12 mois) ne sont JAMAIS fusionnés :
+        // seul "12 derniers mois" matche le socle, l'autre garde son libellé.
+        CaseAnalysis analysis = newTravailFrAnalysis();
+        analysis.setAnalysisResult(
+                "{\"pieces_manquantes\":[{\"texte\":\"Bulletins de paie des 3 derniers mois\"},"
+                        + "{\"texte\":\"Bulletins de paie des 12 derniers mois\"}]}");
+        when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of());
+        when(caseDeadlineRepository.findByCaseFileIdOrderByDueDateAsc(any()))
+                .thenReturn(new ArrayList<>());
+        stubSocle(
+                new ExpectedPiece("BULLETINS_PAIE_12M", "Bulletins de paie des 12 derniers mois",
+                        "FRANCE", List.of("FOND"), true, 2));
+
+        service.materializeForAnalysis(analysis);
+
+        ArgumentCaptor<CaseAnalysis> saved = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(1)).save(saved.capture());
+        String json = saved.getValue().getPiecesAlignmentJson();
+        assertThat(json).contains("Bulletins de paie des 3 derniers mois")
+                .contains("Bulletins de paie des 12 derniers mois");
+        // 2 pièces distinctes conservées (aucune fusion)
+        long count = json.split("\"pieceLibelle\"", -1).length - 1;
+        assertThat(count).isEqualTo(2L);
+    }
+
     // ---- helpers ----
+
+    private void stubSocle(ExpectedPiece... pieces) {
+        when(legalReferentialService.getExpectedPieces(any(), any(), any()))
+                .thenReturn(List.of(pieces));
+    }
+
+    /** Analyse rattachée à un workspace Travail FR + stade FOND (socle applicable). */
+    private CaseAnalysis newTravailFrAnalysis() {
+        CaseAnalysis a = newAnalysis();
+        Workspace ws = a.getCaseFile().getWorkspace();
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
+        ws.setCountry("FRANCE");
+        a.getCaseFile().setProcedureStage("FOND");
+        return a;
+    }
 
     private CaseAnalysis newAnalysis() {
         Workspace ws = new Workspace();
