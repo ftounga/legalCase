@@ -98,9 +98,13 @@ class ExpectedPiecesSeedIT {
         assertThat(socle).isNotEmpty();
         assertThat(socle).extracting(ExpectedPiece::label)
                 .contains(
-                        "Copie intégrale de l'acte de mariage",
+                        // Libellés EXACTS du seed DB DIVORCE_PIECES (migration 067, source de vérité).
+                        // ⚠ Le fallback Java DivorceChecklistReferentiel diverge ("de l'acte", "des deux
+                        // époux") — incohérence Java↔DB pré-existante signalée comme dette ; sans impact
+                        // prod (DB toujours seedée). On asserte la réalité prod = DB.
+                        "Copie intégrale acte de mariage",
                         "Actes de naissance des époux",
-                        "Pièces d'identité des deux époux");
+                        "Pièces d'identité des époux");
         assertThat(socle).extracting(ExpectedPiece::country).containsOnly("FRANCE");
     }
 
