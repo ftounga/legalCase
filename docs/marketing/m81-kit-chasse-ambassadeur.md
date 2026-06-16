@@ -134,3 +134,19 @@ Quand le temps manque pour réchauffer, le **cold CIBLÉ est acceptable pour l'a
 > Franck Tounga — Fondateur, LegalCase · tounga.franck@ng-itconsulting.com · legalcase.fr
 
 **Attente réaliste** : ~50 messages ciblés → ~3-8 réponses → 1-3 intéressés → **1-2 ambassadeurs**.
+
+
+### Séquence de relance Lemlist — campagne lancée 16/06
+
+**Campagne** : `cam_Fhhukp9oxsFFvmewi` (« Ambassadeur — conseil rémunéré »). **60 leads poussés le 16/06** (source `ambassadeur-pool.csv`, 222 déjà-contactés exclus, emails vérifiés, filtre « 15 ans+ » dans le message). Suivi : `tools/prospection-apollo/suivi-ambassadeur.csv`.
+
+**Étape 2 — relance J+7 (reply in thread, stop-on-reply) :**
+> Maître,
+>
+> Je me permets un bref rappel : je cherche toujours un avocat senior en droit du travail pour ce **rôle de conseil rémunéré** (≈ 1-2h/mois, 500 à 1 500 € selon l'implication, + participation au capital). Si le principe vous intéresse, **20 minutes** suffisent pour en juger. Et si ce n'est pas pour vous, peut-être **connaissez-vous un confrère** que cela pourrait intéresser ?
+>
+> Bien à vous, Franck Tounga — Fondateur, LegalCase
+
+**Étape 3 (optionnelle) — J+14 :** message ultra-court « Dernier message à ce sujet — si l'idée vous parle, je reste dispo 20 min. » **3 touches max**, puis stop.
+
+Config Lemlist : Add step → Email → « Reply in same thread » → Wait 7 days → coller le corps → « Stop sequence on reply » activé. La relance ne part qu'aux non-répondants, automatiquement, pour les 60.
