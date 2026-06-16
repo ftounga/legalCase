@@ -131,6 +131,26 @@ class EcheancierControllerIT {
                 .andExpect(jsonPath("$.counts.total").value(2));
     }
 
+    // F-289 (fix bruit) : les sources non-délais (pièces / checks / pistes injectées
+    // par F-192/193/194 dans case_deadlines) sont EXCLUES de l'échéancier ; seuls les
+    // vrais délais (MANUAL/STATUTORY/AI accepté/contradictoire) restent.
+    @Test
+    void excludesNonDeadlineSources_pieceCheckPiste() throws Exception {
+        LocalDate today = LocalDate.now();
+        saveDeadline("Vrai délai légal", today.plusDays(10), "STATUTORY", null);
+        saveDeadline("Demander au client : Contrat de travail", today.plusDays(30), "PIECE_A_DEMANDER", null);
+        saveDeadline("À vérifier : entretien préalable", today.plusDays(40), "PROCEDURE_CHECK_TO_CHECK", null);
+        saveDeadline("Stratégie : contester la faute grave", today.plusDays(50), "PISTE_RETENUE", null);
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/echeancier", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].label").value("Vrai délai légal"))
+                .andExpect(jsonPath("$.items[0].source").value("STATUTORY"))
+                .andExpect(jsonPath("$.counts.total").value(1));
+    }
+
     // AC2 : un délai AI PENDING n'apparaît pas ; AI ACCEPTED apparaît
     @Test
     void excludesAiPendingButKeepsAiAccepted() throws Exception {
