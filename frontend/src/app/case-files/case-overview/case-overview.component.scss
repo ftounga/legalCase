@@ -193,6 +193,14 @@
 
 /* SF-289-02 — champ de réponse inline (question IA) */
 .ov-answer { margin: 8px 0 4px 18px; }
+/* SF-289-07 — texte de la question en cours (au-dessus du champ de réponse). */
+.ov-answer__question {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1A3A5C;
+  line-height: 1.4;
+}
 .ov-answer__field { width: 100%; }
 .ov-answer__actions { display: flex; justify-content: flex-end; gap: 8px; }
 

@@ -83,11 +83,16 @@ export interface AttentionItem {
   urgency: string;
   action: OverviewAction;
   /**
-   * SF-289-02 — id de la question IA à répondre inline. Non null uniquement
-   * pour un item `QUESTION_IA` portant UNE seule question sans réponse
-   * (plusieurs questions agrégées → null → l'avocat est routé vers l'écran).
+   * SF-289-02 / SF-289-07 — id de la **1ʳᵉ** question IA sans réponse, à répondre
+   * inline. Non null dès qu'il y a ≥ 1 question sans réponse (on les traite une à
+   * une ; avant SF-289-07 : seulement si exactement 1, sinon routage).
    */
   questionId?: string | null;
+  /**
+   * SF-289-07 — texte de la 1ʳᵉ question sans réponse, affiché au-dessus du champ
+   * de réponse inline pour que l'avocat sache à quoi il répond.
+   */
+  questionText?: string | null;
   /**
    * SF-289-02 — libellé original exact de la pièce manquante (clé du PUT
    * `/pieces-manquantes/status`). Non null pour un item `PIECE_MANQUANTE`.

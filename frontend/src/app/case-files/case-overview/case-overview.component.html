@@ -167,6 +167,11 @@
                 <!-- SF-289-02 — champ de réponse inline (question IA) ouvert à la demande -->
                 @if (item.type === 'QUESTION_IA' && item.questionId && answerOpenIndex() === $index) {
                   <div class="ov-answer" data-testid="attention-answer">
+                    @if (item.questionText) {
+                      <p class="ov-answer__question" data-testid="attention-answer-question">
+                        {{ item.questionText }}
+                      </p>
+                    }
                     <mat-form-field appearance="outline" class="ov-answer__field">
                       <mat-label>Votre réponse</mat-label>
                       <textarea matInput rows="3"

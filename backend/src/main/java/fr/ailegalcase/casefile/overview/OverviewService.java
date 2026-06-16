@@ -274,7 +274,7 @@ public class OverviewService {
                     items.add(new OverviewResponse.AttentionItem(
                             "ECHEANCE", e.label(), urgency,
                             new OverviewResponse.Action("VALIDATE_DEADLINE", "suivi", "echeancier", null),
-                            null, null));
+                            null, null, null));
                 }
             }
         }
@@ -288,7 +288,7 @@ public class OverviewService {
                             "Pièce à obtenir : " + safeLabel(p.pieceLibelle()),
                             "SOON",
                             new OverviewResponse.Action("MARK_PIECE", "analyse", "pieces-manquantes", null),
-                            null, p.pieceLibelle()));
+                            null, p.pieceLibelle(), null));
                 }
             }
         }
@@ -298,15 +298,17 @@ public class OverviewService {
                 : questions.stream().filter(q -> isBlank(q.answerText())).toList();
         long unanswered = unansweredQuestions.size();
         if (unanswered > 0) {
-            // SF-289-02 — une seule question sans réponse → on porte son id pour
-            // permettre la réponse inline ; plusieurs → questionId null (routage).
-            UUID questionId = unanswered == 1 ? unansweredQuestions.get(0).id() : null;
+            // SF-289-07 — on porte TOUJOURS la 1ʳᵉ question sans réponse (id + texte)
+            // pour permettre la réponse inline une à une, même s'il en reste plusieurs
+            // (avant : id null dès ≥ 2 → routage forcé, contraire à « Vue actionnable »).
+            // Le label garde le compteur pour signaler combien il en reste.
+            AiQuestionResponse first = unansweredQuestions.get(0);
             items.add(new OverviewResponse.AttentionItem(
                     "QUESTION_IA",
                     unanswered + (unanswered > 1 ? " questions sans réponse" : " question sans réponse"),
                     "SOON",
                     new OverviewResponse.Action("ANSWER_QUESTION", "analyse", "ai-questions", null),
-                    questionId, null));
+                    first.id(), null, first.questionText()));
         }
 
         // Analyse obsolète (pièces en attente).
@@ -319,7 +321,7 @@ public class OverviewService {
                     new OverviewResponse.Action(
                             "RELAUNCH_ANALYSIS", "analyse", null,
                             "/api/v1/case-files/{caseFileId}/re-analyze"),
-                    null, null));
+                    null, null, null));
         }
 
         items.sort(Comparator.comparingInt(i -> URGENCY_RANK.getOrDefault(i.urgency(), 99)));

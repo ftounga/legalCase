@@ -314,18 +314,25 @@ describe('CaseOverviewComponent', () => {
     expect(overviewServiceSpy.getOverview).not.toHaveBeenCalled();
   });
 
-  it('QUESTION_IA multiple (sans id) : routée, pas d\'inline', async () => {
-    const multi = question({ label: '2 questions sans réponse', questionId: null });
+  // SF-289-07 — plusieurs questions sans réponse → inline une à une (le backend
+  // porte la 1ʳᵉ : id + texte), avec affichage du texte de la question courante.
+  it('QUESTION_IA multiple : inline (1ʳᵉ question), texte affiché, pas de routage', async () => {
+    const multi = question({
+      label: '3 questions sans réponse', questionId: 'q1', questionText: 'Le préavis a-t-il été exécuté ?',
+    });
     await setup(fullResponse({ attention: [multi], attentionTotal: 1 }));
     const item = component.visibleAttention()[0];
-    expect(component.isInlineActionable(item)).toBe(false);
+    expect(component.isInlineActionable(item)).toBe(true);
 
     const navs: OverviewNavigation[] = [];
     component.navigate.subscribe(n => navs.push(n));
     component.onAttentionAction(item, 0);
-    expect(component.answerOpenIndex()).toBe(-1);
-    expect(navs.length).toBe(1);
-    expect(navs[0].targetTab).toBe('analyse');
+    fixture.detectChanges();
+
+    expect(navs.length).toBe(0); // pas de routage
+    expect(component.answerOpenIndex()).toBe(0);
+    expect(q('[data-testid="attention-answer-question"]')?.textContent?.trim())
+      .toBe('Le préavis a-t-il été exécuté ?');
   });
 
   it('PIECE_MANQUANTE : PUT statut OBTENUE + refresh, l\'item disparaît', async () => {
