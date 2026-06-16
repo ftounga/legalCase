@@ -189,6 +189,64 @@ class ProcedureCheckServiceTest {
         verify(procedureCheckRepository, never()).save(any());
     }
 
+    // ---- SF-96-07 : qualifications de fond / constats de cadrage hors points_procedure ----
+
+    /**
+     * SF-96-07 (CA6) — Cas Travail FR licenciement faute grave. Le prompt instruit Claude de ne
+     * placer dans {@code points_procedure} que des points de FORMALISME / DÉLAI, et de rediriger
+     * toute qualification de fond ("faute grave caractérisée", "cause réelle et sérieuse") vers
+     * {@code risques}. On simule ici la sortie LLM conforme et on vérifie que les checks créés
+     * sont exactement les points de formalisme/délais — la qualification de fond placée en
+     * {@code risques} n'est jamais transformée en check procédural.
+     *
+     * <p>Note : l'{@code IT} pipeline {@code ProcedureCheckPromptHardeningIT} annoncé par la
+     * mini-spec SF-96-06 n'a jamais été créé (SF-96-06 n'a livré que des tests unitaires de
+     * prompt). La clause d'échappement de SF-96-07 autorise un test unitaire équivalent ici, qui
+     * couvre exactement le contrat : extraction fidèle de {@code points_procedure} et absence de
+     * fuite des qualifications de fond (présentes en {@code risques}) vers les checks.</p>
+     */
+    @Test
+    void createChecks_travailFRFauteGrave_keepsOnlyFormalismAndDelaysAsChecks_qualificationOfFondGoesToRisques() {
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+
+        // Sortie LLM conforme SF-96-07 : points_procedure = formalisme + délais ;
+        // la qualification de fond ("faute grave caractérisée") est en risques, pas dans points_procedure.
+        String json = """
+                {
+                  "points_procedure": [
+                    {"texte": "Convocation à l'entretien préalable par LRAR", "critere_code": "FR_CONVOCATION"},
+                    {"texte": "Entretien préalable tenu avant notification", "critere_code": "FR_ENTRETIEN"},
+                    {"texte": "Notification du licenciement dans le délai d'un mois après l'entretien"}
+                  ],
+                  "risques": [
+                    {"texte": "La faute grave n'est pas suffisamment caractérisée au regard des pièces", "source": "Lettre de licenciement", "extrait": "..."}
+                  ]
+                }
+                """;
+
+        service.createChecks(analysis, json);
+
+        ArgumentCaptor<ProcedureCheck> captor = ArgumentCaptor.forClass(ProcedureCheck.class);
+        verify(procedureCheckRepository, times(3)).save(captor.capture());
+        List<ProcedureCheck> saved = captor.getAllValues();
+
+        // Les 3 checks créés sont bien les points de formalisme / délai.
+        assertThat(saved).extracting(ProcedureCheck::getDescription)
+                .containsExactly(
+                        "Convocation à l'entretien préalable par LRAR",
+                        "Entretien préalable tenu avant notification",
+                        "Notification du licenciement dans le délai d'un mois après l'entretien");
+        // Aucune qualification de fond ("faute grave caractérisée") n'est devenue un check.
+        assertThat(saved).noneMatch(c -> c.getDescription() != null
+                && c.getDescription().toLowerCase().contains("caractérisée"));
+        assertThat(saved.get(0).getCritereCode()).isEqualTo("FR_CONVOCATION");
+        assertThat(saved.get(1).getCritereCode()).isEqualTo("FR_ENTRETIEN");
+        assertThat(saved.get(2).getCritereCode()).isNull(); // délai = texte libre
+    }
+
     // ---- listVerified ----
 
     @Test

@@ -358,6 +358,27 @@ class CaseAnalysisServiceTest {
         assertThat(prompt).contains("on VÉRIFIE dans points_procedure, on PROPOSE dans pistes_strategiques, on ALERTE dans risques");
     }
 
+    // U-SF-96-07-01 : le system prompt bannit aussi les qualifications de fond + constats de cadrage et énonce le test d'inclusion
+    @Test
+    void systemPrompt_containsFoundQualificationsAndFramingExclusionRuleForPointsProcedure() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).contains("SF-96-07");
+        // Catégorie 4 — qualifications / appréciations de fond
+        assertThat(prompt).contains("qualifications / appréciations de fond");
+        assertThat(prompt).contains("cause réelle et sérieuse");
+        assertThat(prompt).contains("faute grave / faute lourde caractérisée");
+        // Catégorie 5 — constats de cadrage / données extraites
+        assertThat(prompt).contains("constats de cadrage / données extraites");
+        assertThat(prompt).contains("Type de rupture identifié");
+        assertThat(prompt).contains("identifié dans les pièces");
+        // Test d'inclusion explicite
+        assertThat(prompt).contains("TEST D'INCLUSION");
+        assertThat(prompt).contains("étape de FORMALISME");
+        assertThat(prompt).contains("DÉLAI légal");
+    }
+
     // U-SF-IM-21-03-01 : les 18 codes IM21_* sont reconnus comme sourceKey valides pour F-IA-03
     @Test
     void systemPrompt_listsIm21CodesAsValidSourceKeys() {
