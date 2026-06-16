@@ -18,6 +18,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -90,7 +91,22 @@ public class EcheancierService {
         return new EcheancierResponse(items, nextItem, counts);
     }
 
+    /**
+     * F-289 (fix bruit) — sources injectées dans {@code case_deadlines} par
+     * F-194 (pièces à demander) / F-193 (checks procéduraux) / F-192 (pistes
+     * retenues) pour leur donner une présence datée. Ce ne sont PAS des délais :
+     * elles ont leurs propres panneaux (pièces manquantes, checklist procédurale,
+     * pistes). Au test, elles représentaient 24/27 « délais » → bruit massif qui
+     * noyait les 3 vrais délais. On les EXCLUT de l'échéancier (et donc du fil +
+     * de la Vue d'ensemble qui le consomment). Données conservées en base.
+     */
+    private static final Set<String> NON_DEADLINE_SOURCES =
+            Set.of("PIECE_A_DEMANDER", "PROCEDURE_CHECK_TO_CHECK", "PISTE_RETENUE");
+
     private static boolean isConfirmed(CaseDeadline d) {
+        if (NON_DEADLINE_SOURCES.contains(d.getSource())) {
+            return false; // F-289 — exclut les items non-délais de l'échéancier.
+        }
         if ("AI".equals(d.getSource())) {
             return "ACCEPTED".equals(d.getAiStatus());
         }
