@@ -76,6 +76,22 @@ public class ProcedureCheckService {
                     String raw = codeNode.asText().trim();
                     if (!raw.isEmpty()) critereCode = raw.toUpperCase();
                 }
+                // SF-96-08 (fix déterministe) — exclut les critere_code préfixés « DT »
+                // (critères d'OUTILS décisionnels). Constat vérifié en base (Dupont-4) :
+                // ces codes fuient dans la checklist en DOUBLONS des codes de formalisme
+                // (DT36_ENTRETIEN_TENU ≈ FR_ENTRETIEN, DT36_MOTIVATION ≈ FR_MOTIVATION,
+                // DT36_PRESCRIPTION_FAUTE ≈ FR_PROCEDURE_DISCIPLINAIRE) et en items de
+                // FOND / CADRAGE (DT36_QUALIFICATION_FAUTE, DT36_INTENTION_NUIRE,
+                // DT36_DATE_ENTRETIEN, DT09_TYPE_RUPTURE — les 3 statuts ✅/❌/⚠️ n'y ont
+                // pas de sens). Justification du préfixe : le SEUL code DT mappé par le
+                // matcher F-193 est DT09_TYPE_RUPTURE (du cadrage), tous les autres
+                // (DT36/42/75/39/40/13) sont des orphelins non intégrés (ajoutés au
+                // prompt SF-250-02, jamais reliés à un outil). Les codes de FORMALISME
+                // sont FR_/BE_/RC_ et les autres outils utilisent FA0x_/IM0x_ — jamais DT.
+                // SF-96-07 (prompt) ne filtrait QUE les codes null → impuissant ici.
+                if (critereCode != null && critereCode.startsWith("DT")) {
+                    continue;
+                }
                 String expectedValue = null;
                 JsonNode evNode = item.get("expected_value");
                 if (evNode != null && evNode.isTextual()) {
