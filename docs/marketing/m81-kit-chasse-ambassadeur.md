@@ -90,7 +90,7 @@
 | **Equity 0,25-0,5 %** (FAST, vesting 2 ans, cliff 3 mois) | Son **nom + rôle « Conseil »** sur le site |
 | **Accès à vie** au produit | **1 témoignage authentique** (vidéo/écrit) |
 | **Influence sur la roadmap** | **~1h/mois** de conseil + retours produit |
-| (option) **retainer 500-1 500 €/mois** si advisor actif | Quelques **intros chaudes** + **co-animation d'1-2 ateliers** formation |
+| (option) **retainer 500-1 500 €/mois selon l'implication** | **intros chaudes** + **co-animation d'1-2 ateliers** + **participation à 1-2 vidéos d'interview pro (cf. M-84)** |
 
 **Coût réel pour toi** : equity (≈ 5-15K€ de valeur aujourd'hui) + retainer optionnel (6-18K€/an si actif) + ton temps. *0€ cash = meilleur cas (equity seule), pas le défaut.*
 
@@ -114,3 +114,23 @@
 5. **Compter 3-6 semaines, ~3-5 échanges pour 1 oui.** Ne pas se décourager sur un refus — c'est normal.
 
 **Une fois signé → débloque** : témoignage (M-84 vidéo), co-animation webinaire (M-86), crédibilité sur toute la distribution.
+
+
+## 9. Variante cold ciblé — offre rémunérée (révision 16/06)
+
+Quand le temps manque pour réchauffer, le **cold CIBLÉ est acceptable pour l'ambassadeur** : c'est une **offre rémunérée** (≈ recrutement, ≠ vente produit) et il n'en faut que **1-2**. Liste de **~40-60 avocats crédibles**, message **personnalisé**, **retainer annoncé**. Tu offres le rôle ; tu ne t'engages à payer que les **1-2 retenus**.
+
+**Objet** : Mission de conseil rémunérée — expert droit du travail
+
+> Maître [Nom],
+>
+> Je suis le fondateur de LegalCase (outil qui aide les avocats en droit du travail à passer **des pièces d'un dossier à des conclusions argumentées**). Je cherche **un avocat reconnu en droit social pour un rôle de conseil rémunéré**.
+>
+> Concrètement : une **rémunération mensuelle de l'ordre de 500 à 1 500 € selon l'implication**, pour ~1-2h de votre expertise (regard métier, retours produit), la **co-animation éventuelle d'une formation**, et la **participation à 1-2 vidéos d'interview professionnelles** — le tout complété par une **participation au capital**. Pas de promotion publique (le cadre déontologique l'exclut) : c'est votre **expertise** et votre **regard** que je recherche.
+>
+> **20 minutes** d'échange pour voir si ça vous parle ? Sans engagement.
+>
+> Bien à vous,
+> Franck Tounga — Fondateur, LegalCase · tounga.franck@ng-itconsulting.com · legalcase.fr
+
+**Attente réaliste** : ~50 messages ciblés → ~3-8 réponses → 1-3 intéressés → **1-2 ambassadeurs**.
