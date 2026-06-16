@@ -88,6 +88,38 @@ class ProcedureCheckServiceTest {
     }
 
     @Test
+    void createChecks_dropsDecisionToolCodes_keepsFormalismAndFreeForm() {
+        // SF-96-08 — les codes DT* (critères d'outils décisionnels F-DT-09/36) sont
+        // exclus de la checklist (doublons + fond/cadrage). Seuls FR_*/BE_*/RC_* + les
+        // points free-form (code null) sont conservés.
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+
+        String json = """
+                {"points_procedure": [
+                  {"texte": "Entretien préalable tenu", "critere_code": "FR_ENTRETIEN"},
+                  {"texte": "Entretien effectivement tenu", "critere_code": "DT36_ENTRETIEN_TENU"},
+                  {"texte": "Qualification de la faute : FAUTE_GRAVE", "critere_code": "DT36_QUALIFICATION_FAUTE"},
+                  {"texte": "Type de rupture identifié", "critere_code": "dt09_type_rupture"},
+                  {"texte": "Vérification libre", "critere_code": null}
+                ]}
+                """;
+
+        service.createChecks(analysis, json);
+
+        ArgumentCaptor<ProcedureCheck> captor = ArgumentCaptor.forClass(ProcedureCheck.class);
+        // 5 points en entrée, 3 DT* exclus → 2 sauvés (FR_ENTRETIEN + free-form).
+        verify(procedureCheckRepository, times(2)).save(captor.capture());
+        List<ProcedureCheck> saved = captor.getAllValues();
+        assertThat(saved).extracting(ProcedureCheck::getCritereCode)
+                .containsExactly("FR_ENTRETIEN", null);
+        assertThat(saved).extracting(ProcedureCheck::getCritereCode)
+                .noneMatch(c -> c != null && c.startsWith("DT"));
+    }
+
+    @Test
     void createChecks_critereCodeBlankOrMissingTexte_isIgnoredOrNull() {
         CaseFile caseFile = new CaseFile();
         caseFile.setWorkspace(new Workspace());
