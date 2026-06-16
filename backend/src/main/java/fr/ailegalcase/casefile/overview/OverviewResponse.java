@@ -90,7 +90,11 @@ public record OverviewResponse(
             String urgency,
             Action action,
             UUID questionId,
-            String pieceLibelle
+            String pieceLibelle,
+            // SF-289-07 — texte de la 1ʳᵉ question sans réponse (non null pour
+            // QUESTION_IA), affiché dans le champ de réponse inline pour que
+            // l'avocat sache à quoi il répond, même s'il en reste plusieurs.
+            String questionText
     ) {}
 
     /**

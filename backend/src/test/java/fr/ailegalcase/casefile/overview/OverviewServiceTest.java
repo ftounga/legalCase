@@ -227,17 +227,20 @@ class OverviewServiceTest {
     }
 
     @Test
-    void multipleUnansweredQuestions_questionIdNull_routedNotInline() {
-        // SF-289-02 — ≥ 2 questions sans réponse → item agrégé sans id (l'avocat est routé).
+    void multipleUnansweredQuestions_carriesFirstQuestionForInline() {
+        // SF-289-07 — ≥ 2 questions sans réponse → on porte la 1ʳᵉ (id + texte)
+        // pour la réponse inline une à une ; le label garde le compteur.
+        UUID firstId = UUID.randomUUID();
         when(aiQuestionQueryService.listQuestions(any(), any(), any(), any())).thenReturn(List.of(
-                new AiQuestionResponse(UUID.randomUUID(), 0, "Q1 ?", null, null, null),
+                new AiQuestionResponse(firstId, 0, "Q1 ?", null, null, null),
                 new AiQuestionResponse(UUID.randomUUID(), 1, "Q2 ?", null, null, null)));
 
         OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
 
         assertThat(r.attention()).anyMatch(a -> "QUESTION_IA".equals(a.type())
                 && a.label().equals("2 questions sans réponse")
-                && a.questionId() == null);
+                && firstId.equals(a.questionId())
+                && "Q1 ?".equals(a.questionText()));
     }
 
     @Test
