@@ -6,8 +6,8 @@
 ## One-pager (à remettre / joindre)
 - **Hébergement** : souverain, AWS région **Paris (UE)** — données hébergées en France/UE.
 - **Authentification** : OAuth2/OIDC via Google et Microsoft, **aucun mot de passe stocké** (délégué à votre fournisseur). [À VÉRIFIER : MFA via IdP]
-- **Chiffrement** : en transit (TLS). Au repos : chiffrement du stockage. [À VÉRIFIER : activé base + object storage]
-- **Cloisonnement** : architecture multi-tenant **par workspace** — isolation des données entre cabinets. [À VÉRIFIER : modèle d'isolation]
+- **Chiffrement** : en transit (**TLS**) ; **au repos activé** (base RDS + object storage S3).
+- **Cloisonnement** : architecture multi-tenant, **isolation par `workspace_id`** — données cloisonnées entre cabinets.
 - **Contrôle d'accès** : moindre privilège, accès restreint. [À VÉRIFIER]
 - **Sauvegardes** : régulières. [À VÉRIFIER : fréquence / rétention]
 - **Sous-processeurs** : hébergeur AWS (Paris) ; fournisseur(s) de modèles pour l'analyse — listés dans la FAQ confidentialité. [À VÉRIFIER : liste à jour]
@@ -20,7 +20,7 @@ Document contractuel encadrant le traitement par LegalCase en tant que sous-trai
 
 ## Réponses-type au questionnaire de sécurité
 - Hébergement ? → AWS Paris (UE).
-- Chiffrement ? → TLS en transit ; au repos [à confirmer].
+- Chiffrement ? → TLS en transit ; **chiffrement au repos (RDS + S3)**.
 - Accès ? → restreint, moindre privilège.
 - Sous-traitants ? → AWS + fournisseur(s) modèles (FAQ).
 - Suppression ? → sur demande.
