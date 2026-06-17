@@ -306,8 +306,8 @@ class PieceManquanteAlignmentServiceTest {
     @Test
     void deserializeAlignment_validJson_returnsList() throws Exception {
         List<PieceManquanteAlignment> list = List.of(
-                new PieceManquanteAlignment("Contrat", "OBTENUE", "client", null),
-                new PieceManquanteAlignment("Lettre", "A_DEMANDER", null, null));
+                new PieceManquanteAlignment("Contrat", "OBTENUE", "client", null, null),
+                new PieceManquanteAlignment("Lettre", "A_DEMANDER", null, null, null));
         String json = MAPPER.writeValueAsString(list);
 
         List<PieceManquanteAlignment> got = service.deserializeAlignment(json);

@@ -1666,7 +1666,7 @@ class CaseFileDashboardServiceTest {
                 .thenReturn(Optional.of(a));
         when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
                 new fr.ailegalcase.analysis.PieceManquanteAlignment("Contrat",
-                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null)));
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null, null)));
 
         var tiles = service.assembleTiles(caseFileId);
         var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))
@@ -1690,7 +1690,7 @@ class CaseFileDashboardServiceTest {
                 .thenReturn(Optional.of(a));
         when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
                 new fr.ailegalcase.analysis.PieceManquanteAlignment("Contrat",
-                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null)));
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null, null)));
 
         var tiles = service.assembleTiles(caseFileId);
         var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))
@@ -1711,13 +1711,13 @@ class CaseFileDashboardServiceTest {
                 .thenReturn(Optional.of(a));
         when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
                 new fr.ailegalcase.analysis.PieceManquanteAlignment("A",
-                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null),
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null, null),
                 new fr.ailegalcase.analysis.PieceManquanteAlignment("B",
-                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null),
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null, null),
                 new fr.ailegalcase.analysis.PieceManquanteAlignment("C",
-                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_OBTENUE, null, null),
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_OBTENUE, null, null, null),
                 new fr.ailegalcase.analysis.PieceManquanteAlignment("D",
-                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_NON_APPLICABLE, null, null)));
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_NON_APPLICABLE, null, null, null)));
 
         var tiles = service.assembleTiles(caseFileId);
         var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))

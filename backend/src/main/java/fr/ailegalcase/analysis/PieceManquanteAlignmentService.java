@@ -187,7 +187,8 @@ public class PieceManquanteAlignmentService {
                         : PieceManquanteStatus.STATUT_A_DEMANDER;
                 String destinataire = overlay != null ? overlay.getDestinataire() : null;
                 String raison = overlay != null ? overlay.getRaisonNonApp() : null;
-                dedup.put(norm, new PieceManquanteAlignment(piece.trim(), statut, destinataire, raison));
+                java.util.UUID docId = overlay != null ? overlay.getObtainedDocumentId() : null;
+                dedup.put(norm, new PieceManquanteAlignment(piece.trim(), statut, destinataire, raison, docId));
             }
             // ajouter les pièces overlay non encore dans dedup (statut OBTENUE / NON_APPLICABLE)
             for (PieceManquanteStatus s : statusesAll) {
@@ -197,7 +198,7 @@ public class PieceManquanteAlignmentService {
                         || PieceManquanteStatus.STATUT_NON_APPLICABLE.equals(s.getStatut())) {
                     dedup.put(norm, new PieceManquanteAlignment(
                             s.getPieceLibelleOriginal(), s.getStatut(),
-                            s.getDestinataire(), s.getRaisonNonApp()));
+                            s.getDestinataire(), s.getRaisonNonApp(), s.getObtainedDocumentId()));
                 }
             }
             alignments.addAll(dedup.values());

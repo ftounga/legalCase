@@ -22,13 +22,16 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *                     absent / {@code OBTENUE} / {@code NON_APPLICABLE})
  * @param destinataire destinataire ({@code "client"}, {@code "ex-employeur"}, etc.) ou {@code null}
  * @param raisonNonApp raison non applicable (statut {@code NON_APPLICABLE} uniquement) ou {@code null}
+ * @param obtainedDocumentId SF-194-04 — document du dossier lié à la pièce reçue
+ *                     (statut {@code OBTENUE}) pour la traçabilité, ou {@code null}
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record PieceManquanteAlignment(
         String pieceLibelle,
         String statut,
         String destinataire,
-        String raisonNonApp
+        String raisonNonApp,
+        java.util.UUID obtainedDocumentId
 ) {
     public static final String STATUS_A_DEMANDER = PieceManquanteStatus.STATUT_A_DEMANDER;
     public static final String STATUS_OBTENUE = PieceManquanteStatus.STATUT_OBTENUE;

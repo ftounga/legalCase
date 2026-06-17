@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="609-sf194-04-piece-obtained-document-id" author="legalcase">
+        <comment>
+            F-194 SF-194-04 — lien document sur la pièce reçue. Ajoute la colonne
+            nullable obtained_document_id (UUID) sur piece_manquante_status : quand
+            l'avocat marque une pièce « obtenue », il peut lier le document uploadé
+            correspondant (traçabilité fait→pièce, comme la pièce source d'un round
+            SF-282-03). Référence souple (pas de FK stricte : le document peut être
+            supprimé). Colonne additive, nullable, rétro-compatible.
+        </comment>
+        <addColumn tableName="piece_manquante_status">
+            <column name="obtained_document_id" type="UUID"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="piece_manquante_status" columnName="obtained_document_id"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

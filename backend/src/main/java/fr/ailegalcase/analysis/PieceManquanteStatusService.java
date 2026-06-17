@@ -85,6 +85,7 @@ public class PieceManquanteStatusService {
                                               String statut,
                                               String raisonNonApp,
                                               String destinataire,
+                                              UUID obtainedDocumentId,
                                               OidcUser oidcUser,
                                               Principal principal) {
         // Validation entrée
@@ -144,8 +145,28 @@ public class PieceManquanteStatusService {
                         : null);
         entity.setDestinataire(destinataire != null && !destinataire.trim().isEmpty()
                 ? destinataire.trim() : null);
+        // SF-194-04 — lien document : pertinent uniquement pour une pièce OBTENUE.
+        // Pour les autres statuts, on neutralise un éventuel lien antérieur.
+        entity.setObtainedDocumentId(
+                PieceManquanteStatus.STATUT_OBTENUE.equals(statut) ? obtainedDocumentId : null);
 
         return pieceManquanteStatusRepository.save(entity);
+    }
+
+    /**
+     * SF-194-04 — surcharge rétro-compatible (marquage sans lien document).
+     * Délègue avec {@code obtainedDocumentId = null}.
+     */
+    @Transactional
+    public PieceManquanteStatus upsertStatus(UUID caseFileId,
+                                             String pieceLibelleOriginal,
+                                             String statut,
+                                             String raisonNonApp,
+                                             String destinataire,
+                                             OidcUser oidcUser,
+                                             Principal principal) {
+        return upsertStatus(caseFileId, pieceLibelleOriginal, statut, raisonNonApp,
+                destinataire, null, oidcUser, principal);
     }
 
     /**
