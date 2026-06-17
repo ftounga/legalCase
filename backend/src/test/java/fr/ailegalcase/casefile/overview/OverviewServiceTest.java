@@ -1,9 +1,14 @@
 package fr.ailegalcase.casefile.overview;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiQuestionAnswerRepository;
 import fr.ailegalcase.analysis.AiQuestionQueryService;
 import fr.ailegalcase.analysis.AiQuestionResponse;
 import fr.ailegalcase.analysis.AnalysisJobRepository;
+import fr.ailegalcase.analysis.AnalysisStatus;
+import fr.ailegalcase.analysis.AnalysisType;
+import fr.ailegalcase.analysis.CaseAnalysis;
+import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.PieceManquanteAlignment;
 import fr.ailegalcase.analysis.PieceManquanteAlignmentService;
 import fr.ailegalcase.auth.User;
@@ -47,6 +52,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import java.security.Principal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -56,6 +62,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -84,6 +91,8 @@ class OverviewServiceTest {
     @Mock private DocumentRepository documentRepository;
     @Mock private CaseStrategyRepository strategyRepository;
     @Mock private CaseConclusionRepository conclusionRepository;
+    @Mock private CaseAnalysisRepository caseAnalysisRepository;
+    @Mock private AiQuestionAnswerRepository aiQuestionAnswerRepository;
     @Mock private OidcUser oidcUser;
     @Mock private Principal principal;
 
@@ -95,7 +104,7 @@ class OverviewServiceTest {
                 casePhaseService, contradictoireService, echeancierService, caseIntakeService,
                 piecesWaveService, dashboardService, pieceManquanteAlignmentService, aiQuestionQueryService,
                 analysisJobRepository, documentRepository, strategyRepository, conclusionRepository,
-                new ObjectMapper());
+                caseAnalysisRepository, aiQuestionAnswerRepository, new ObjectMapper());
 
         Workspace ws = new Workspace();
         ws.setId(WS_ID);
@@ -119,6 +128,14 @@ class OverviewServiceTest {
         lenient().when(analysisJobRepository.findByCaseFileIdAndJobType(any(), any())).thenReturn(Optional.empty());
         lenient().when(strategyRepository.findByCaseFileId(any())).thenReturn(Optional.empty());
         lenient().when(conclusionRepository.findByCaseFileIdOrderByVersionNumberDesc(any())).thenReturn(List.of());
+        // SF-289-08 — par défaut : aucune synthèse enrichie → pas de signal réponses/documents.
+        lenient().when(caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(any(), any(), any()))
+                .thenReturn(Optional.empty());
+        lenient().when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any())).thenReturn(false);
+        lenient().when(documentRepository
+                .findByCaseFile_IdAndCreatedAtAfterOrderByCreatedAtDesc(any(), any())).thenReturn(List.of());
     }
 
     @Test
@@ -394,6 +411,117 @@ class OverviewServiceTest {
         OverviewResponse.TimelineEvent phase = filEvent(r, LocalDate.of(2026, 2, 1));
         assertThat(phase.voie()).isEqualTo("PROCEDURE");
         assertThat(phase.attachments()).isEmpty();
+    }
+
+    // ── SF-289-08 — péremption « dossier vs dernière synthèse enrichie » ──────
+
+    /** Stub : une synthèse enrichie DONE dont la date est `enrichedAt`. */
+    private void stubLastEnrichedSynthesis(Instant enrichedAt) {
+        CaseAnalysis enriched = mock(CaseAnalysis.class);
+        lenient().when(enriched.getUpdatedAt()).thenReturn(enrichedAt);
+        when(caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        CASE_ID, AnalysisType.ENRICHED, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(enriched));
+    }
+
+    private static OverviewResponse.AttentionItem attentionOfType(OverviewResponse r, String type) {
+        return r.attention().stream().filter(a -> type.equals(a.type())).findFirst().orElse(null);
+    }
+
+    @Test
+    void newAiAnswerSinceSynthesis_marksStale_withAnswersLabel() {
+        stubLastEnrichedSynthesis(Instant.now().minusSeconds(3600));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any())).thenReturn(true);
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(r.pilotage().analysisStale()).isTrue(); // CA1
+        OverviewResponse.AttentionItem stale = attentionOfType(r, "ANALYSE_OBSOLETE");
+        assertThat(stale).isNotNull();
+        assertThat(stale.label()).isEqualTo("Réponses ajoutées depuis la dernière synthèse");
+        assertThat(stale.action().kind()).isEqualTo("RELAUNCH_ANALYSIS"); // CA7
+    }
+
+    @Test
+    void newDocumentSinceSynthesis_marksStale_withDocumentsLabel() {
+        stubLastEnrichedSynthesis(Instant.now().minusSeconds(3600));
+        when(documentRepository.findByCaseFile_IdAndCreatedAtAfterOrderByCreatedAtDesc(any(), any()))
+                .thenReturn(List.of(new fr.ailegalcase.document.Document()));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(r.pilotage().analysisStale()).isTrue(); // CA2
+        OverviewResponse.AttentionItem stale = attentionOfType(r, "ANALYSE_OBSOLETE");
+        assertThat(stale).isNotNull();
+        assertThat(stale.label()).isEqualTo("Documents ajoutés depuis la dernière synthèse");
+    }
+
+    @Test
+    void newAnswerAndDocumentSinceSynthesis_combinedLabel() {
+        stubLastEnrichedSynthesis(Instant.now().minusSeconds(3600));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any())).thenReturn(true);
+        when(documentRepository.findByCaseFile_IdAndCreatedAtAfterOrderByCreatedAtDesc(any(), any()))
+                .thenReturn(List.of(new fr.ailegalcase.document.Document()));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(attentionOfType(r, "ANALYSE_OBSOLETE").label())
+                .isEqualTo("Réponses et documents ajoutés depuis la dernière synthèse");
+    }
+
+    @Test
+    void nothingNewSinceSynthesis_notStale() {
+        // CA3 — synthèse enrichie présente, mais aucune réponse/document postérieur.
+        stubLastEnrichedSynthesis(Instant.now().minusSeconds(3600));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(r.pilotage().analysisStale()).isFalse();
+        assertThat(attentionOfType(r, "ANALYSE_OBSOLETE")).isNull();
+    }
+
+    @Test
+    void pendingPiecesTakePrecedenceOverAnswersInLabel() {
+        // CA4 — pièces en attente : libellé « pièces » même si réponses récentes.
+        stubLastEnrichedSynthesis(Instant.now().minusSeconds(3600));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any())).thenReturn(true);
+        when(piecesWaveService.wave(any(), any(), any()))
+                .thenReturn(new PiecesWaveResponse(Instant.now(), 3, List.of()));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(attentionOfType(r, "ANALYSE_OBSOLETE").label()).isEqualTo("3 pièces non analysées");
+    }
+
+    @Test
+    void noEnrichedSynthesis_answersDoNotMarkStale() {
+        // CA5 — aucune synthèse enrichie DONE : réponses/documents ne périment pas
+        // (le défaut du setUp renvoie Optional.empty pour la dernière synthèse).
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any())).thenReturn(true);
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(r.pilotage().analysisStale()).isFalse();
+        assertThat(attentionOfType(r, "ANALYSE_OBSOLETE")).isNull();
+    }
+
+    @Test
+    void staleSources_failOpen_overviewStillServed() {
+        // CA6 — une source de fraîcheur qui jette → fail-open, l'agrégat est servi.
+        stubLastEnrichedSynthesis(Instant.now().minusSeconds(3600));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any()))
+                .thenThrow(new RuntimeException("DB down"));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(r).isNotNull();
+        assertThat(r.pilotage()).isNotNull();
     }
 
     private static OverviewResponse.TimelineEvent filEvent(OverviewResponse r, LocalDate date) {

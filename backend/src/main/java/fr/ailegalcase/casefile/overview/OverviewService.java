@@ -2,11 +2,15 @@ package fr.ailegalcase.casefile.overview;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiQuestionAnswerRepository;
 import fr.ailegalcase.analysis.AiQuestionQueryService;
 import fr.ailegalcase.analysis.AiQuestionResponse;
 import fr.ailegalcase.analysis.AnalysisJob;
 import fr.ailegalcase.analysis.AnalysisJobRepository;
 import fr.ailegalcase.analysis.AnalysisStatus;
+import fr.ailegalcase.analysis.AnalysisType;
+import fr.ailegalcase.analysis.CaseAnalysis;
+import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.analysis.PieceManquanteAlignment;
 import fr.ailegalcase.analysis.PieceManquanteAlignmentService;
@@ -50,6 +54,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -57,6 +62,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -102,6 +108,9 @@ public class OverviewService {
     private final DocumentRepository documentRepository;
     private final CaseStrategyRepository strategyRepository;
     private final CaseConclusionRepository conclusionRepository;
+    /** SF-289-08 — sources de fraîcheur « dossier vs dernière synthèse enrichie ». */
+    private final CaseAnalysisRepository caseAnalysisRepository;
+    private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
     private final ObjectMapper objectMapper;
 
     public OverviewService(CaseFileRepository caseFileRepository,
@@ -119,6 +128,8 @@ public class OverviewService {
                            DocumentRepository documentRepository,
                            CaseStrategyRepository strategyRepository,
                            CaseConclusionRepository conclusionRepository,
+                           CaseAnalysisRepository caseAnalysisRepository,
+                           AiQuestionAnswerRepository aiQuestionAnswerRepository,
                            ObjectMapper objectMapper) {
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -135,6 +146,8 @@ public class OverviewService {
         this.documentRepository = documentRepository;
         this.strategyRepository = strategyRepository;
         this.conclusionRepository = conclusionRepository;
+        this.caseAnalysisRepository = caseAnalysisRepository;
+        this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -165,13 +178,31 @@ public class OverviewService {
                 List.of());
 
         int pendingPiecesCount = wave != null ? wave.pendingCount() : 0;
-        boolean analysisStale = pendingPiecesCount > 0;
+
+        // SF-289-08 — fraîcheur vs dernière synthèse enrichie : le dossier est
+        // « périmé » si des pièces sont en attente d'analyse OU si des réponses IA
+        // / des documents ont été ajoutés APRÈS la dernière synthèse enrichie DONE
+        // (ces décisions ne sont matérialisées qu'au prochain run enrichi). Chaque
+        // source est fail-open (jamais de faux « périmé » bloquant).
+        Optional<Instant> lastEnrichedAt = safe(
+                () -> lastEnrichedSynthesisDate(caseFileId), Optional.<Instant>empty());
+        boolean newAnswersSinceSynthesis = lastEnrichedAt
+                .map(since -> safe(() -> aiQuestionAnswerRepository
+                        .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(caseFileId, since), false))
+                .orElse(false);
+        boolean newDocumentsSinceSynthesis = lastEnrichedAt
+                .map(since -> safe(() -> !documentRepository
+                        .findByCaseFile_IdAndCreatedAtAfterOrderByCreatedAtDesc(caseFileId, since).isEmpty(), false))
+                .orElse(false);
+        boolean analysisStale = pendingPiecesCount > 0
+                || newAnswersSinceSynthesis || newDocumentsSinceSynthesis;
 
         Pilotage pilotage = buildPilotage(
                 phases, contradictoire, echeancier, intake, dashboard, analysisStale, pendingPiecesCount, today);
 
         List<OverviewResponse.AttentionItem> allAttention =
-                buildAttention(echeancier, pieces, questions, analysisStale, pendingPiecesCount);
+                buildAttention(echeancier, pieces, questions, analysisStale, pendingPiecesCount,
+                        newAnswersSinceSynthesis, newDocumentsSinceSynthesis);
         int attentionTotal = allAttention.size();
         List<OverviewResponse.AttentionItem> attention =
                 allAttention.size() > ATTENTION_LIMIT ? allAttention.subList(0, ATTENTION_LIMIT) : allAttention;
@@ -263,7 +294,9 @@ public class OverviewService {
                                                                 List<PieceManquanteAlignment> pieces,
                                                                 List<AiQuestionResponse> questions,
                                                                 boolean analysisStale,
-                                                                int pendingPiecesCount) {
+                                                                int pendingPiecesCount,
+                                                                boolean newAnswersSinceSynthesis,
+                                                                boolean newDocumentsSinceSynthesis) {
         List<OverviewResponse.AttentionItem> items = new ArrayList<>();
 
         // Échéances pressantes (OVERDUE / CRITICAL).
@@ -311,12 +344,13 @@ public class OverviewService {
                     first.id(), null, first.questionText()));
         }
 
-        // Analyse obsolète (pièces en attente).
+        // Analyse obsolète : pièces en attente OU (SF-289-08) éléments ajoutés
+        // depuis la dernière synthèse enrichie (réponses IA / documents). Un seul
+        // item, libellé selon la cause dominante, urgence INFO, action « relancer ».
         if (analysisStale) {
             items.add(new OverviewResponse.AttentionItem(
                     "ANALYSE_OBSOLETE",
-                    pendingPiecesCount + (pendingPiecesCount > 1
-                            ? " pièces non analysées" : " pièce non analysée"),
+                    analyseObsoleteLabel(pendingPiecesCount, newAnswersSinceSynthesis, newDocumentsSinceSynthesis),
                     "INFO",
                     new OverviewResponse.Action(
                             "RELAUNCH_ANALYSIS", "analyse", null,
@@ -345,6 +379,40 @@ public class OverviewService {
         }
         primary.addAll(rest);
         return primary;
+    }
+
+    /**
+     * SF-289-08 — date de la DERNIÈRE synthèse enrichie {@code DONE} d'un dossier
+     * ({@code updatedAt}), ou {@link Optional#empty()} si aucune n'a encore tourné
+     * (le dossier n'est alors jamais signalé « périmé » par les réponses/documents).
+     */
+    private Optional<Instant> lastEnrichedSynthesisDate(UUID caseFileId) {
+        return caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        caseFileId, AnalysisType.ENRICHED, AnalysisStatus.DONE)
+                .map(CaseAnalysis::getUpdatedAt);
+    }
+
+    /**
+     * SF-289-08 — libellé de l'item {@code ANALYSE_OBSOLETE} selon la cause
+     * dominante : les pièces en attente priment (signal le plus fort « non
+     * analysé »), sinon on nomme les réponses IA / documents ajoutés depuis la
+     * dernière synthèse enrichie.
+     */
+    private String analyseObsoleteLabel(int pendingPiecesCount,
+                                        boolean newAnswers,
+                                        boolean newDocuments) {
+        if (pendingPiecesCount > 0) {
+            return pendingPiecesCount + (pendingPiecesCount > 1
+                    ? " pièces non analysées" : " pièce non analysée");
+        }
+        if (newAnswers && newDocuments) {
+            return "Réponses et documents ajoutés depuis la dernière synthèse";
+        }
+        if (newAnswers) {
+            return "Réponses ajoutées depuis la dernière synthèse";
+        }
+        return "Documents ajoutés depuis la dernière synthèse";
     }
 
     // ── ③ Fil chronologique ────────────────────────────────────────────────────
