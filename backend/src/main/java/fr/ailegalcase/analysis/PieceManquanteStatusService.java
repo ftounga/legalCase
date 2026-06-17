@@ -11,6 +11,7 @@ import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,7 @@ public class PieceManquanteStatusService {
     /** SF-194-04 PR3 — socle de pièces attendues (canonisation à l'écriture). Nullable. */
     private final LegalReferentialService legalReferentialService;
 
+    @Autowired
     public PieceManquanteStatusService(PieceManquanteStatusRepository pieceManquanteStatusRepository,
                                         CaseFileRepository caseFileRepository,
                                         WorkspaceMemberRepository workspaceMemberRepository,
