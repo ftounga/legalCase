@@ -812,9 +812,29 @@ describe('SynthesisComponent', () => {
         CASE_FILE_ID,
         'Contrat de travail',
         'OBTENUE',
-        { raisonNonApp: null, destinataire: null },
+        { raisonNonApp: null, destinataire: null, documentId: null },
       );
       expect(component.pieceStatusFor('Contrat de travail')).toBe('OBTENUE');
+    });
+
+    // SF-194-04 : OBTENUE + sélection d'un document → PUT inclut le documentId
+    it('SF-194-04 OBTENUE → document selection → PUT inclut documentId', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Contrat de travail',
+        statut: 'OBTENUE',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      component.updatePieceStatus('Contrat de travail', 'OBTENUE');
+      component.onPieceDocumentChange('Contrat de travail', 'doc-123');
+
+      expect(statusService.updateStatus).toHaveBeenLastCalledWith(
+        CASE_FILE_ID,
+        'Contrat de travail',
+        'OBTENUE',
+        { raisonNonApp: null, destinataire: null, documentId: 'doc-123' },
+      );
     });
 
     // CA-03 : NON_APPLICABLE → champ raison + PUT inclut la raison au blur
@@ -834,7 +854,7 @@ describe('SynthesisComponent', () => {
         CASE_FILE_ID,
         'Acte de mariage',
         'NON_APPLICABLE',
-        { raisonNonApp: 'Concubinage simple', destinataire: null },
+        { raisonNonApp: 'Concubinage simple', destinataire: null, documentId: null },
       );
     });
 
@@ -855,7 +875,7 @@ describe('SynthesisComponent', () => {
         CASE_FILE_ID,
         'Contrat de travail',
         'A_DEMANDER',
-        { raisonNonApp: null, destinataire: 'Ex-employeur' },
+        { raisonNonApp: null, destinataire: 'Ex-employeur', documentId: null },
       );
     });
 

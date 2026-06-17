@@ -432,6 +432,19 @@
                       </mat-select>
                     </mat-form-field>
                   }
+                  @if (pieceStatusFor(item) === 'OBTENUE') {
+                    <mat-form-field appearance="outline" class="piece-destinataire-field">
+                      <mat-label>Document reçu (optionnel)</mat-label>
+                      <mat-select
+                        [value]="pieceDocumentFor(item)"
+                        (selectionChange)="onPieceDocumentChange(item, $event.value)">
+                        <mat-option value="">— non lié —</mat-option>
+                        @for (doc of availableDocuments(); track doc.id) {
+                          <mat-option [value]="doc.id">{{ doc.originalFilename }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  }
                   @if (pieceStatusFor(item) === 'NON_APPLICABLE') {
                     <mat-form-field appearance="outline" class="piece-raison-field">
                       <mat-label>Raison (optionnel)</mat-label>
