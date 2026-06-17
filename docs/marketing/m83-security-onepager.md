@@ -5,14 +5,14 @@
 
 ## One-pager (à remettre / joindre)
 - **Hébergement** : souverain, AWS région **Paris (UE)** — données hébergées en France/UE.
-- **Authentification** : OAuth2/OIDC via Google et Microsoft, **aucun mot de passe stocké** (délégué à votre fournisseur). [À VÉRIFIER : MFA via IdP]
+- **Authentification** : OAuth2/OIDC (Google, Microsoft) **ou** compte local email/mot de passe (**haché BCrypt**, jamais en clair). MFA héritée du fournisseur d'identité pour les comptes SSO.
 - **Chiffrement** : en transit (**TLS**) ; **au repos activé** (base RDS + object storage S3).
 - **Cloisonnement** : architecture multi-tenant, **isolation par `workspace_id`** — données cloisonnées entre cabinets.
 - **Contrôle d'accès** : moindre privilège, accès restreint. [À VÉRIFIER]
-- **Sauvegardes** : régulières. [À VÉRIFIER : fréquence / rétention]
+- **Sauvegardes** : RDS, **rétention 7 jours** (production) ; `deletion_protection` activée en prod.
 - **Sous-processeurs** : hébergeur AWS (Paris) ; fournisseur(s) de modèles pour l'analyse — listés dans la FAQ confidentialité. [À VÉRIFIER : liste à jour]
 - **RGPD** : conforme RGPD, registre des traitements, **DPA fourni sur demande**.
-- **Conservation / suppression** : données supprimables sur demande. [À VÉRIFIER : politique de rétention]
+- **Conservation / suppression** : documents conservés (transition stockage à 90 j) ; **suppression sur demande** ; anciennes versions purgées à 365 j.
 - **Secret professionnel** : les données du cabinet restent sous son contrôle ; l'outil sert le jugement de l'avocat.
 
 ## Le DPA (accord de traitement — art. 28 RGPD)
@@ -24,7 +24,7 @@ Document contractuel encadrant le traitement par LegalCase en tant que sous-trai
 - Accès ? → restreint, moindre privilège.
 - Sous-traitants ? → AWS + fournisseur(s) modèles (FAQ).
 - Suppression ? → sur demande.
-- Mots de passe ? → aucun stocké (OAuth2/OIDC).
+- Authentification ? → SSO Google/Microsoft (OAuth2/OIDC) **ou** compte local (mot de passe **haché BCrypt**).
 - Certifications ? → **conforme RGPD ; pas d'ISO à ce stade** (factuel).
 - DPA ? → fourni sur demande.
 
