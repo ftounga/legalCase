@@ -37,6 +37,8 @@ import { PieceManquanteStatusService } from '../../core/services/piece-manquante
 import { PIECE_DESTINATAIRES, PieceManquanteStatutValue } from '../../core/models/piece-manquante-status.model';
 import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { DocumentService } from '../../core/services/document.service';
+import { Document } from '../../core/models/document.model';
 import { RisqueStatusService } from '../../core/services/risque-status.service';
 import { RisqueStatutValue } from '../../core/models/risque-status.model';
 import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
@@ -195,8 +197,13 @@ export class SynthesisComponent implements OnInit, OnDestroy {
   pieceRaisons = signal<Record<string, string>>({});
   /** Saisie locale `destinataire` par pièce. */
   pieceDestinataires = signal<Record<string, string>>({});
+  /** SF-194-04 — document du dossier lié par pièce reçue (clé = libellé, valeur = documentId). */
+  pieceDocuments = signal<Record<string, string>>({});
   /** Pièce en cours de PUT (libellé) — affiche un spinner sur la ligne. */
   updatingPieceLibelle = signal<string | null>(null);
+
+  /** SF-194-04 — documents du dossier proposés au lien (chargés à l'init, fail-open). */
+  readonly availableDocuments = signal<Document[]>([]);
 
   /** Liste des destinataires usuels exposés au template (cf. model). */
   readonly pieceDestinataireOptions = PIECE_DESTINATAIRES;
@@ -625,6 +632,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private badgeNavigation: BadgeNavigationService,
     private jurisprudenceCheckService: JurisprudenceCheckService,
     private jurisprudenceApplicableService: JurisprudenceApplicableService,
+    private documentService: DocumentService,
   ) {}
 
   ngOnInit(): void {
@@ -634,6 +642,13 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         this.caseFile.set(cf);
         this.loadVersions(id);
         this.loadChatHistory(id);
+        // SF-194-04 — documents du dossier pour le sélecteur « pièce reçue »
+        // (fail-open silencieux : en cas d'échec, le sélecteur reste vide et
+        // l'avocat peut quand même marquer la pièce obtenue sans lier de fichier).
+        this.documentService.list(id).subscribe({
+          next: docs => { this.availableDocuments.set(docs ?? []); this.cdr.markForCheck(); },
+          error: () => {},
+        });
         // F-197 SF-197-02 — fail-open silencieux (CA-09) : si le GET échoue,
         // on garde l'override à null et le badge "Type de litige" affiche
         // simplement la valeur IA détectée.
@@ -1028,6 +1043,11 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     return this.pieceDestinataires()[libelle] ?? '';
   }
 
+  /** SF-194-04 — document du dossier lié à la pièce reçue (clé = libellé). */
+  pieceDocumentFor(libelle: string): string {
+    return this.pieceDocuments()[libelle] ?? '';
+  }
+
   /**
    * F-194 SF-194-02 — Tag d'une pièce avec un nouveau statut. PUT optimiste :
    * UI mise à jour immédiatement, rollback si erreur. AUCUN refresh
@@ -1051,9 +1071,13 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     const destinataire = statut === 'A_DEMANDER'
       ? (this.pieceDestinataires()[libelle] ?? null) || null
       : null;
+    // SF-194-04 — document reçu lié, uniquement pertinent pour OBTENUE.
+    const documentId = statut === 'OBTENUE'
+      ? (this.pieceDocuments()[libelle] ?? null) || null
+      : null;
 
     this.pieceManquanteStatusService
-      .updateStatus(cf.id, libelle, statut, { raisonNonApp, destinataire })
+      .updateStatus(cf.id, libelle, statut, { raisonNonApp, destinataire, documentId })
       .subscribe({
         next: response => {
           this.updatingPieceLibelle.set(null);
@@ -1113,6 +1137,17 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     this.pieceDestinataires.update(m => ({ ...m, [libelle]: value }));
     if (this.pieceStatusFor(libelle) !== 'A_DEMANDER') return;
     this.updatePieceStatus(libelle, 'A_DEMANDER');
+  }
+
+  /**
+   * SF-194-04 — Sélection du document reçu lié à une pièce OBTENUE (MatSelect).
+   * Déclenche un PUT immédiat (sélection ponctuelle) pour persister le lien.
+   * No-op côté UI si la pièce n'est pas (encore) au statut OBTENUE.
+   */
+  onPieceDocumentChange(libelle: string, value: string): void {
+    this.pieceDocuments.update(m => ({ ...m, [libelle]: value }));
+    if (this.pieceStatusFor(libelle) !== 'OBTENUE') return;
+    this.updatePieceStatus(libelle, 'OBTENUE');
   }
 
   /**
