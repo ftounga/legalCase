@@ -194,6 +194,42 @@
                     </div>
                   </div>
                 }
+
+                <!-- SF-194-04 — sélecteur de document à lier (pièce manquante → obtenue) -->
+                @if (item.type === 'PIECE_MANQUANTE' && item.pieceLibelle && pieceDocOpenIndex() === $index) {
+                  <div class="ov-answer" data-testid="attention-piece-doc">
+                    <p class="ov-answer__question">
+                      Lier le document reçu pour cette pièce (facultatif).
+                    </p>
+                    <mat-form-field appearance="outline" class="ov-answer__field">
+                      <mat-label>Document du dossier</mat-label>
+                      <mat-select data-testid="attention-piece-doc-select"
+                                  [value]="selectedDocId()"
+                                  (valueChange)="selectedDocId.set($event)"
+                                  [disabled]="documentsLoading() || actionBusyIndex() === $index">
+                        <mat-option [value]="null">Aucun (marquer obtenue sans lier)</mat-option>
+                        @for (doc of availableDocuments(); track doc.id) {
+                          <mat-option [value]="doc.id">{{ doc.originalFilename }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    @if (documentsLoading()) {
+                      <p class="ov-answer__hint">Chargement des documents…</p>
+                    }
+                    <div class="ov-answer__actions">
+                      <button mat-button type="button"
+                              [disabled]="actionBusyIndex() === $index"
+                              (click)="cancelPieceDocPicker()">Annuler</button>
+                      <button mat-flat-button color="primary" type="button"
+                              data-testid="attention-piece-doc-confirm"
+                              [disabled]="actionBusyIndex() === $index"
+                              (click)="markPieceObtained(item, $index)">
+                        <mat-icon>check</mat-icon>
+                        Marquer obtenue
+                      </button>
+                    </div>
+                  </div>
+                }
               </li>
             }
           </ul>

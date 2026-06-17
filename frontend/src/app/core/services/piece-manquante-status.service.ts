@@ -49,13 +49,15 @@ export class PieceManquanteStatusService {
     caseFileId: string,
     pieceLibelleOriginal: string,
     statut: PieceManquanteStatutValue,
-    options?: { raisonNonApp?: string | null; destinataire?: string | null },
+    options?: { raisonNonApp?: string | null; destinataire?: string | null; documentId?: string | null },
   ): Observable<PieceManquanteStatus> {
     return this.update(caseFileId, {
       pieceLibelleOriginal,
       statut,
       raisonNonApp: options?.raisonNonApp ?? null,
       destinataire: options?.destinataire ?? null,
+      // SF-194-04 — document reçu lié (optionnel). Backend l'ignore si statut ≠ OBTENUE.
+      documentId: options?.documentId ?? null,
     });
   }
 }
