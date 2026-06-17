@@ -97,6 +97,39 @@ class PieceManquanteStatusServiceTest {
         verify(pieceManquanteStatusRepository, times(1)).save(any());
     }
 
+    // SF-194-04 — lien document persisté pour une pièce OBTENUE.
+    @Test
+    void upsertStatus_obtenueWithDocument_persistsDocumentId() {
+        UUID docId = UUID.randomUUID();
+        when(pieceManquanteStatusRepository.findByCaseFileIdAndPieceLibelleNormalise(
+                caseFileId, "bulletins de paie"))
+                .thenReturn(Optional.empty());
+        when(pieceManquanteStatusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        PieceManquanteStatus saved = service.upsertStatus(caseFileId,
+                "Bulletins de paie", PieceManquanteStatus.STATUT_OBTENUE,
+                null, null, docId, null, mock(Principal.class));
+
+        assertThat(saved.getStatut()).isEqualTo(PieceManquanteStatus.STATUT_OBTENUE);
+        assertThat(saved.getObtainedDocumentId()).isEqualTo(docId);
+    }
+
+    // SF-194-04 — un lien document n'est conservé que pour OBTENUE (neutralisé sinon).
+    @Test
+    void upsertStatus_nonObtenue_clearsDocumentLink() {
+        UUID docId = UUID.randomUUID();
+        when(pieceManquanteStatusRepository.findByCaseFileIdAndPieceLibelleNormalise(
+                caseFileId, "contrat"))
+                .thenReturn(Optional.empty());
+        when(pieceManquanteStatusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        PieceManquanteStatus saved = service.upsertStatus(caseFileId,
+                "Contrat", PieceManquanteStatus.STATUT_A_DEMANDER,
+                null, "client", docId, null, mock(Principal.class));
+
+        assertThat(saved.getObtainedDocumentId()).isNull();
+    }
+
     @Test
     void upsertStatus_existingPiece_updatesEntry() {
         PieceManquanteStatus existing = new PieceManquanteStatus();

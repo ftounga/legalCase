@@ -62,6 +62,15 @@ public class PieceManquanteStatus {
     @Column(name = "destinataire", length = 200)
     private String destinataire;
 
+    /**
+     * SF-194-04 — document du dossier lié à la pièce reçue (statut OBTENUE), pour
+     * la traçabilité fait→pièce. Nullable : une pièce peut être marquée obtenue
+     * sans lier de fichier (rétro-compat). Référence souple (pas de FK stricte —
+     * le document peut être supprimé ; lien orphelin toléré).
+     */
+    @Column(name = "obtained_document_id")
+    private UUID obtainedDocumentId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

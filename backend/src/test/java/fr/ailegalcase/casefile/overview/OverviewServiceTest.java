@@ -206,8 +206,8 @@ class OverviewServiceTest {
                 new AiQuestionResponse(q1Id, 0, "Q1 ?", null, null, null),
                 new AiQuestionResponse(UUID.randomUUID(), 1, "Q2 ?", "réponse", null, null)));
         when(pieceManquanteAlignmentService.getForLatestAnalysis(any(), any(), any())).thenReturn(List.of(
-                new PieceManquanteAlignment("Contrat de travail", "A_DEMANDER", "client", null),
-                new PieceManquanteAlignment("Bulletin de paie", "OBTENUE", null, null)));
+                new PieceManquanteAlignment("Contrat de travail", "A_DEMANDER", "client", null, null),
+                new PieceManquanteAlignment("Bulletin de paie", "OBTENUE", null, null, null)));
         when(piecesWaveService.wave(any(), any(), any())).thenReturn(new PiecesWaveResponse(
                 java.time.Instant.now(), 2, List.of()));
 
@@ -258,8 +258,8 @@ class OverviewServiceTest {
         when(echeancierService.forCaseFile(any(), any(), any())).thenReturn(new EcheancierResponse(
                 deadlines, deadlines.get(0), new EcheancierResponse.Counts(4, 0, 0, 0, 4)));
         when(pieceManquanteAlignmentService.getForLatestAnalysis(any(), any(), any())).thenReturn(List.of(
-                new PieceManquanteAlignment("Contrat de travail", "A_DEMANDER", "client", null),
-                new PieceManquanteAlignment("Bulletin de paie", "A_DEMANDER", "client", null)));
+                new PieceManquanteAlignment("Contrat de travail", "A_DEMANDER", "client", null, null),
+                new PieceManquanteAlignment("Bulletin de paie", "A_DEMANDER", "client", null, null)));
         UUID qId = UUID.randomUUID();
         when(aiQuestionQueryService.listQuestions(any(), any(), any(), any())).thenReturn(List.of(
                 new AiQuestionResponse(qId, 0, "Q1 ?", null, null, null)));

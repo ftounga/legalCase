@@ -68,9 +68,20 @@ public class PieceManquanteController {
         String statut = body.get("statut");
         String raisonNonApp = body.get("raisonNonApp");
         String destinataire = body.get("destinataire");
+        // SF-194-04 — document lié (optionnel). UUID invalide → ignoré (lien absent) :
+        // on ne casse pas le marquage de statut pour un id mal formé.
+        java.util.UUID documentId = null;
+        String rawDocId = body.get("documentId");
+        if (rawDocId != null && !rawDocId.isBlank()) {
+            try {
+                documentId = java.util.UUID.fromString(rawDocId.trim());
+            } catch (IllegalArgumentException ignored) {
+                documentId = null;
+            }
+        }
 
         PieceManquanteStatus saved = pieceManquanteStatusService.upsertStatus(
-                caseFileId, libelle, statut, raisonNonApp, destinataire, oidcUser, principal);
+                caseFileId, libelle, statut, raisonNonApp, destinataire, documentId, oidcUser, principal);
         return PieceManquanteStatusResponse.from(saved);
     }
 
