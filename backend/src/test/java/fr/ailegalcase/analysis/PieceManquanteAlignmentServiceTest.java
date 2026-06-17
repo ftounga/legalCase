@@ -144,6 +144,64 @@ class PieceManquanteAlignmentServiceTest {
         verify(caseDeadlineRepository, never()).save(any());
     }
 
+    // ── SF-194-04 PR3 — matching par clé canonique (survie au drift de libellé) ──
+
+    @Test
+    void materializeForAnalysis_canonicalKeyMatchesAcrossLabelDrift_noDuplicate() {
+        // Socle F-294 : "Lettre de licenciement" est canonique.
+        when(legalReferentialService.getExpectedPieces(any(), any(), any())).thenReturn(List.of(
+                new fr.ailegalcase.casefile.ExpectedPiece(
+                        "DT_LETTRE_LIC", "Lettre de licenciement", "FR", List.of(), true, 1)));
+
+        // Run 2 : l'IA produit le libellé canonique du socle.
+        CaseAnalysis analysis = newAnalysis();
+        analysis.setAnalysisResult(
+                "{\"pieces_manquantes\":[{\"texte\":\"Lettre de licenciement\"}]}");
+
+        // Statut posé au run 1 sur une VARIANTE de libellé (clé brute différente),
+        // mais avec le libellé canonique capturé (PR3).
+        PieceManquanteStatus overlay = newOverlay("lettre de licenciement (version initiale)",
+                "Lettre de licenciement (version initiale)",
+                PieceManquanteStatus.STATUT_OBTENUE, null, null);
+        overlay.setId(UUID.randomUUID());
+        overlay.setPieceLibelleCanonique("Lettre de licenciement");
+        when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of(overlay));
+
+        service.materializeForAnalysis(analysis);
+
+        ArgumentCaptor<CaseAnalysis> saved = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(1)).save(saved.capture());
+        String json = saved.getValue().getPiecesAlignmentJson();
+        // CA2 : le statut OBTENUE est retrouvé via la clé canonique (pièce non réapparue A_DEMANDER).
+        assertThat(json).contains("\"statut\":\"OBTENUE\"");
+        // CA5 : une seule entrée (le statut consommé via canonique n'est pas re-ajouté en doublon).
+        assertThat(json.split("\"pieceLibelle\"", -1).length - 1).isEqualTo(1);
+        // Pas de délai auto pour OBTENUE.
+        verify(caseDeadlineRepository, never()).save(any());
+    }
+
+    @Test
+    void materializeForAnalysis_canonicalNull_fallsBackToRawMatching() {
+        // Régression : sans canonique (lignes anciennes), le matching brut historique
+        // reste inchangé (pièce OBTENUE conservée par la boucle de repli).
+        CaseAnalysis analysis = newAnalysis();
+        analysis.setAnalysisResult("{\"pieces_manquantes\":[]}");
+
+        PieceManquanteStatus overlay = newOverlay("contrat ancien", "Contrat ancien",
+                PieceManquanteStatus.STATUT_OBTENUE, null, null);
+        overlay.setId(UUID.randomUUID());
+        // canonique = null (non renseigné)
+        when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of(overlay));
+
+        service.materializeForAnalysis(analysis);
+
+        ArgumentCaptor<CaseAnalysis> saved = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(1)).save(saved.capture());
+        assertThat(saved.getValue().getPiecesAlignmentJson())
+                .contains("\"pieceLibelle\":\"Contrat ancien\"")
+                .contains("\"statut\":\"OBTENUE\"");
+    }
+
     @Test
     void materializeForAnalysis_overlayNonApplicable_joinsAndSkipsDeadline() {
         CaseAnalysis analysis = newAnalysis();

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="610-sf194-04-piece-libelle-canonique" author="legalcase">
+        <comment>
+            F-194 SF-194-04 PR3 — matching canonique du statut pièce. Ajoute la
+            colonne nullable piece_libelle_canonique (VARCHAR 500) sur
+            piece_manquante_status : à l'écriture, le statut avocat capture le
+            libellé canonique du socle F-294 (correspondance normalisée exacte)
+            quand la pièce y figure. La matérialisation (materializeForAnalysis)
+            retrouve alors le statut via cette clé stable, qui survit au drift du
+            libellé brut produit par le LLM entre deux runs de Synthèse enrichie.
+            Colonne additive, nullable (null = pièce hors socle, matching brut
+            inchangé), rétro-compatible (lignes existantes non migrées). La clé
+            d'unicité (case_file_id, piece_libelle_normalise) reste inchangée.
+        </comment>
+        <addColumn tableName="piece_manquante_status">
+            <column name="piece_libelle_canonique" type="VARCHAR(500)"/>
+        </addColumn>
+        <createIndex tableName="piece_manquante_status"
+                     indexName="idx_pms_case_file_piece_canonique">
+            <column name="case_file_id"/>
+            <column name="piece_libelle_canonique"/>
+        </createIndex>
+        <rollback>
+            <dropIndex tableName="piece_manquante_status"
+                       indexName="idx_pms_case_file_piece_canonique"/>
+            <dropColumn tableName="piece_manquante_status"
+                        columnName="piece_libelle_canonique"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
