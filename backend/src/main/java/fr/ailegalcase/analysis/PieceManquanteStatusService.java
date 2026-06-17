@@ -3,6 +3,8 @@ package fr.ailegalcase.analysis;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.casefile.ExpectedPiece;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.Workspace;
@@ -54,15 +56,32 @@ public class PieceManquanteStatusService {
     private final CaseFileRepository caseFileRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
+    /** SF-194-04 PR3 — socle de pièces attendues (canonisation à l'écriture). Nullable. */
+    private final LegalReferentialService legalReferentialService;
 
     public PieceManquanteStatusService(PieceManquanteStatusRepository pieceManquanteStatusRepository,
                                         CaseFileRepository caseFileRepository,
                                         WorkspaceMemberRepository workspaceMemberRepository,
-                                        CurrentUserResolver currentUserResolver) {
+                                        CurrentUserResolver currentUserResolver,
+                                        LegalReferentialService legalReferentialService) {
         this.pieceManquanteStatusRepository = pieceManquanteStatusRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
+        this.legalReferentialService = legalReferentialService;
+    }
+
+    /**
+     * Constructeur rétro-compatible (sans référentiel) — utilisé par les tests
+     * historiques. La canonisation à l'écriture est alors désactivée
+     * (comportement F-194 strict, {@code piece_libelle_canonique = null}).
+     */
+    PieceManquanteStatusService(PieceManquanteStatusRepository pieceManquanteStatusRepository,
+                                CaseFileRepository caseFileRepository,
+                                WorkspaceMemberRepository workspaceMemberRepository,
+                                CurrentUserResolver currentUserResolver) {
+        this(pieceManquanteStatusRepository, caseFileRepository, workspaceMemberRepository,
+                currentUserResolver, null);
     }
 
     /**
@@ -138,6 +157,9 @@ public class PieceManquanteStatusService {
 
         // Toujours rafraîchir le libellé original (capture la dernière forme vue par l'avocat)
         entity.setPieceLibelleOriginal(pieceLibelleOriginal.trim());
+        // SF-194-04 PR3 — capture le libellé canonique du socle (clé de matching
+        // stable à la ré-analyse). Null si la pièce est hors socle (matching brut).
+        entity.setPieceLibelleCanonique(canonicalLabel(caseFile, pieceLibelleOriginal));
         entity.setStatut(statut);
         entity.setRaisonNonApp(
                 PieceManquanteStatus.STATUT_NON_APPLICABLE.equals(statut)
@@ -206,6 +228,37 @@ public class PieceManquanteStatusService {
                                       List<String> aDemander) {
         public static EnrichmentSnapshot empty() {
             return new EnrichmentSnapshot(List.of(), List.of(), List.of());
+        }
+    }
+
+    /**
+     * SF-194-04 PR3 — libellé canonique du socle F-294 correspondant (en
+     * normalisé exact) au libellé marqué, ou {@code null} si la pièce est hors
+     * socle / référentiel indisponible. Miroir de
+     * {@code PieceManquanteAlignmentService.buildCanonicalByNorm} (même socle,
+     * même correspondance normalisée exacte — jamais de fuzzy). Fail-open : toute
+     * exception → {@code null} (pas de canonisation, comportement F-194 strict).
+     */
+    private String canonicalLabel(CaseFile caseFile, String libelle) {
+        if (legalReferentialService == null || caseFile == null || libelle == null) return null;
+        try {
+            Workspace ws = caseFile.getWorkspace();
+            if (ws == null) return null;
+            List<ExpectedPiece> socle = legalReferentialService.getExpectedPieces(
+                    ws.getLegalDomain(), ws.getCountry(), caseFile.getProcedureStage());
+            if (socle == null || socle.isEmpty()) return null;
+            String target = normalize(libelle);
+            for (ExpectedPiece p : socle) {
+                if (p.label() != null && !p.label().isBlank()
+                        && normalize(p.label()).equals(target)) {
+                    return p.label();
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("F-194 PR3: canonicalLabel fail-open for caseFile {} — null",
+                    caseFile.getId(), e);
+            return null;
         }
     }
 

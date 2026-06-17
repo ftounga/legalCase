@@ -53,6 +53,17 @@ public class PieceManquanteStatus {
     @Column(name = "piece_libelle_original", nullable = false, length = 500)
     private String pieceLibelleOriginal;
 
+    /**
+     * SF-194-04 PR3 — libellé canonique du socle F-294 (correspondance normalisée
+     * exacte au moment du marquage), ou {@code null} si la pièce n'appartient pas
+     * au socle du dossier. Sert de clé de matching <b>stable</b> à la
+     * matérialisation : le statut survit au drift du libellé brut produit par le
+     * LLM entre deux runs. N'altère pas la clé d'unicité (qui reste
+     * {@code piece_libelle_normalise}).
+     */
+    @Column(name = "piece_libelle_canonique", length = 500)
+    private String pieceLibelleCanonique;
+
     @Column(name = "statut", nullable = false, length = 20)
     private String statut;
 

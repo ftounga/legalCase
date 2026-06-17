@@ -299,6 +299,89 @@ class PieceManquanteStatusServiceTest {
         assertThat(snapshot.obtenues()).isEmpty();
     }
 
+    // ── SF-194-04 PR3 — canonisation à l'écriture ──────────────────────────
+
+    /** Construit un service avec un référentiel mocké renvoyant le socle donné. */
+    private PieceManquanteStatusService serviceWithSocle(
+            fr.ailegalcase.referential.LegalReferentialService referential) {
+        return new PieceManquanteStatusService(
+                pieceManquanteStatusRepository, caseFileRepository,
+                workspaceMemberRepository, currentUserResolver, referential);
+    }
+
+    @Test
+    void upsertStatus_pieceInSocle_capturesCanonicalLabel() {
+        fr.ailegalcase.referential.LegalReferentialService referential =
+                mock(fr.ailegalcase.referential.LegalReferentialService.class);
+        when(referential.getExpectedPieces(any(), any(), any())).thenReturn(List.of(
+                new fr.ailegalcase.casefile.ExpectedPiece(
+                        "DT_LETTRE_LIC", "Lettre de licenciement", "FR", List.of(), true, 1)));
+        when(pieceManquanteStatusRepository.findByCaseFileIdAndPieceLibelleNormalise(any(), any()))
+                .thenReturn(Optional.empty());
+        when(pieceManquanteStatusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Libellé brut dérivé (casse + espaces) mais normalisé-équivalent au socle.
+        PieceManquanteStatus saved = serviceWithSocle(referential).upsertStatus(caseFileId,
+                "  LETTRE de Licenciement  ", PieceManquanteStatus.STATUT_OBTENUE,
+                null, null, null, null, mock(Principal.class));
+
+        // CA1 : la clé canonique stable = le libellé canonique exact du socle.
+        assertThat(saved.getPieceLibelleCanonique()).isEqualTo("Lettre de licenciement");
+        assertThat(saved.getPieceLibelleNormalise()).isEqualTo("lettre de licenciement");
+    }
+
+    @Test
+    void upsertStatus_pieceOutsideSocle_canonicalNull() {
+        fr.ailegalcase.referential.LegalReferentialService referential =
+                mock(fr.ailegalcase.referential.LegalReferentialService.class);
+        when(referential.getExpectedPieces(any(), any(), any())).thenReturn(List.of(
+                new fr.ailegalcase.casefile.ExpectedPiece(
+                        "DT_LETTRE_LIC", "Lettre de licenciement", "FR", List.of(), true, 1)));
+        when(pieceManquanteStatusRepository.findByCaseFileIdAndPieceLibelleNormalise(any(), any()))
+                .thenReturn(Optional.empty());
+        when(pieceManquanteStatusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // CA4 : pièce absente du socle → pas de canonique (comportement F-194 strict).
+        PieceManquanteStatus saved = serviceWithSocle(referential).upsertStatus(caseFileId,
+                "Pièce exotique non socle", PieceManquanteStatus.STATUT_OBTENUE,
+                null, null, null, null, mock(Principal.class));
+
+        assertThat(saved.getPieceLibelleCanonique()).isNull();
+    }
+
+    @Test
+    void upsertStatus_referentialThrows_failsOpenCanonicalNull() {
+        fr.ailegalcase.referential.LegalReferentialService referential =
+                mock(fr.ailegalcase.referential.LegalReferentialService.class);
+        when(referential.getExpectedPieces(any(), any(), any()))
+                .thenThrow(new RuntimeException("referential down"));
+        when(pieceManquanteStatusRepository.findByCaseFileIdAndPieceLibelleNormalise(any(), any()))
+                .thenReturn(Optional.empty());
+        when(pieceManquanteStatusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Fail-open : exception référentiel → canonique null, le PUT réussit.
+        PieceManquanteStatus saved = serviceWithSocle(referential).upsertStatus(caseFileId,
+                "Lettre de licenciement", PieceManquanteStatus.STATUT_OBTENUE,
+                null, null, null, null, mock(Principal.class));
+
+        assertThat(saved.getPieceLibelleCanonique()).isNull();
+        assertThat(saved.getStatut()).isEqualTo(PieceManquanteStatus.STATUT_OBTENUE);
+    }
+
+    @Test
+    void upsertStatus_noReferential_canonicalNull() {
+        when(pieceManquanteStatusRepository.findByCaseFileIdAndPieceLibelleNormalise(any(), any()))
+                .thenReturn(Optional.empty());
+        when(pieceManquanteStatusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Le service par défaut (setUp) est construit sans référentiel → canonique null.
+        PieceManquanteStatus saved = service.upsertStatus(caseFileId,
+                "Lettre de licenciement", PieceManquanteStatus.STATUT_OBTENUE,
+                null, null, null, mock(Principal.class));
+
+        assertThat(saved.getPieceLibelleCanonique()).isNull();
+    }
+
     private static void setField(Object target, String name, Object value) {
         try {
             java.lang.reflect.Field f = target.getClass().getDeclaredField(name);

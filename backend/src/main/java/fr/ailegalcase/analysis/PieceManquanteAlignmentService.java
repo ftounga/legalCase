@@ -160,13 +160,23 @@ public class PieceManquanteAlignmentService {
                 piecesIa = canonized;
             }
 
-            // (2) charger l'overlay statut avocat
+            // (2) charger l'overlay statut avocat — indexé par libellé brut normalisé
+            //     ET (SF-194-04 PR3) par libellé canonique normalisé. La clé
+            //     canonique est stable d'un run à l'autre : le statut survit ainsi
+            //     au drift du libellé brut LLM dès lors que la pièce appartient au
+            //     socle F-294. Le brut prime sur le canonique en cas de collision.
             List<PieceManquanteStatus> statusesAll =
                     pieceManquanteStatusRepository.findByCaseFileId(caseFileId);
             Map<String, PieceManquanteStatus> statusByNorm = new HashMap<>();
             for (PieceManquanteStatus s : statusesAll) {
                 if (s.getPieceLibelleNormalise() != null) {
-                    statusByNorm.put(s.getPieceLibelleNormalise(), s);
+                    statusByNorm.putIfAbsent(s.getPieceLibelleNormalise(), s);
+                }
+            }
+            for (PieceManquanteStatus s : statusesAll) {
+                String canonique = s.getPieceLibelleCanonique();
+                if (canonique != null && !canonique.isBlank()) {
+                    statusByNorm.putIfAbsent(normalize(canonique), s);
                 }
             }
 
@@ -178,11 +188,17 @@ public class PieceManquanteAlignmentService {
             List<PieceManquanteAlignment> alignments = new ArrayList<>();
             // dédup sur libellé normalisé
             LinkedHashMap<String, PieceManquanteAlignment> dedup = new LinkedHashMap<>();
+            // PR3 — statuts déjà consommés par une pièce IA (via clé brute OU canonique)
+            // pour ne pas les ré-ajouter en doublon dans la boucle de repli (b).
+            Set<UUID> consumedStatusIds = new HashSet<>();
             for (String piece : piecesIa) {
                 if (piece == null || piece.isBlank()) continue;
                 String norm = normalize(piece);
                 if (dedup.containsKey(norm)) continue;
                 PieceManquanteStatus overlay = statusByNorm.get(norm);
+                if (overlay != null && overlay.getId() != null) {
+                    consumedStatusIds.add(overlay.getId());
+                }
                 String statut = overlay != null ? overlay.getStatut()
                         : PieceManquanteStatus.STATUT_A_DEMANDER;
                 String destinataire = overlay != null ? overlay.getDestinataire() : null;
@@ -192,6 +208,7 @@ public class PieceManquanteAlignmentService {
             }
             // ajouter les pièces overlay non encore dans dedup (statut OBTENUE / NON_APPLICABLE)
             for (PieceManquanteStatus s : statusesAll) {
+                if (s.getId() != null && consumedStatusIds.contains(s.getId())) continue;
                 String norm = s.getPieceLibelleNormalise();
                 if (norm == null || dedup.containsKey(norm)) continue;
                 if (PieceManquanteStatus.STATUT_OBTENUE.equals(s.getStatut())
