@@ -156,6 +156,32 @@ class CaseDeadlineControllerIT {
                 .andExpect(jsonPath("$[2].label").value("Délai tardif"));
     }
 
+    // F-289 (fix) : la liste exclut les sources non-délais (pièces / checks / pistes
+    // injectées dans case_deadlines par F-192/193/194) — sinon le chip « N délais »
+    // comptait ces lignes non affichées (« 30 délais » alors que 6 rendus).
+    @Test
+    void list_excludesSyntheticSources_pieceCheckPiste() throws Exception {
+        saveDeadline("Vrai délai légal", LocalDate.of(2026, 6, 1)); // source défaut
+        saveDeadlineWithSource("Pièce à demander : Contrat", LocalDate.of(2026, 7, 1), "PIECE_A_DEMANDER");
+        saveDeadlineWithSource("À vérifier : entretien préalable", LocalDate.of(2026, 8, 1), "PROCEDURE_CHECK_TO_CHECK");
+        saveDeadlineWithSource("Stratégie : contester la faute grave", LocalDate.of(2026, 9, 1), "PISTE_RETENUE");
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/deadlines", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].label").value("Vrai délai légal"));
+    }
+
+    private CaseDeadline saveDeadlineWithSource(String label, LocalDate dueDate, String source) {
+        CaseDeadline d = new CaseDeadline();
+        d.setCaseFile(caseFile);
+        d.setLabel(label);
+        d.setDueDate(dueDate);
+        d.setSource(source);
+        return deadlineRepository.save(d);
+    }
+
     // IT-06 : PUT → 200, délai mis à jour
     @Test
     void update_validPayload_returns200() throws Exception {

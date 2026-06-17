@@ -42,12 +42,25 @@ public class CaseDeadlineService {
         this.currentUserResolver = currentUserResolver;
     }
 
+    /**
+     * F-289 (fix) — sources injectées dans {@code case_deadlines} par F-194 (pièces
+     * à demander) / F-193 (checks procéduraux) / F-192 (pistes) pour leur donner une
+     * présence datée. Ce ne sont PAS des délais : elles ont leurs propres panneaux et
+     * ne sont pas rendues par la section « DÉLAIS DU DOSSIER » (F-69). Mais elles
+     * étaient comptées dans le chip (« 30 délais » alors que 6 affichés) → on les EXCLUT
+     * de la liste, comme l'échéancier (EcheancierService) le fait déjà.
+     */
+    private static final java.util.Set<String> NON_DEADLINE_SOURCES =
+            java.util.Set.of("PIECE_A_DEMANDER", "PROCEDURE_CHECK_TO_CHECK", "PISTE_RETENUE");
+
     @Transactional(readOnly = true)
     public List<CaseDeadlineResponse> list(UUID caseFileId, OidcUser oidcUser, Principal principal) {
         User user = resolveUser(oidcUser, principal);
         CaseFile caseFile = resolveCaseFileForUser(caseFileId, user);
         return deadlineRepository.findByCaseFileIdOrderByDueDateAsc(caseFile.getId())
-                .stream().map(CaseDeadlineResponse::from).toList();
+                .stream()
+                .filter(d -> !NON_DEADLINE_SOURCES.contains(d.getSource()))
+                .map(CaseDeadlineResponse::from).toList();
     }
 
     @Transactional
