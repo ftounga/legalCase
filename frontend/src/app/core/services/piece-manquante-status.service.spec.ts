@@ -47,6 +47,7 @@ describe('PieceManquanteStatusService — F-194 SF-194-02', () => {
       statut: 'OBTENUE',
       raisonNonApp: null,
       destinataire: null,
+      documentId: null,
     });
     req.flush(expected);
     expect(received).toEqual(expected);
@@ -66,6 +67,7 @@ describe('PieceManquanteStatusService — F-194 SF-194-02', () => {
       statut: 'A_DEMANDER',
       raisonNonApp: null,
       destinataire: 'Client',
+      documentId: null,
     });
     req.flush({
       pieceLibelleOriginal: 'Contrat de travail',
@@ -89,6 +91,7 @@ describe('PieceManquanteStatusService — F-194 SF-194-02', () => {
       statut: 'NON_APPLICABLE',
       raisonNonApp: 'Concubinage simple, pas de mariage',
       destinataire: null,
+      documentId: null,
     });
     req.flush({
       pieceLibelleOriginal: 'Acte de mariage',
