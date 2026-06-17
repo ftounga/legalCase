@@ -130,7 +130,7 @@ Migrations de schéma
 Liquibase (XML, versionné dans `db/changelog/migrations/`)
 
 Authentification
-Spring Security + OAuth2 / OIDC
+Spring Security + OAuth2 / OIDC **+ comptes locaux** (email / mot de passe haché BCrypt)
 
 Providers OAuth V1 :
 
@@ -236,9 +236,9 @@ Fonctions :
 
 # 7 — Authentification
 
-Authentification via OAuth2 / OIDC.
+Authentification via OAuth2 / OIDC **ou** compte local (email / mot de passe **haché BCrypt**).
 
-Aucun mot de passe local.
+_Correction 2026-06-17 (vérif code + infra) : la version implémentée inclut l'auth locale — `provider=LOCAL`, `password_hash` BCrypt, endpoints `/api/v1/auth/login|forgot-password|reset-password` (`LocalAuthController`/`LocalAuthService`). L'ancienne mention « aucun mot de passe local » était périmée ; désormais cohérente avec le modèle de données ci-dessous (provider GOOGLE/MICROSOFT/LOCAL + password_hash)._
 
 Providers V1 :
 
