@@ -32,4 +32,6 @@ export interface PieceManquanteAlignment {
   toolIdsCibles: string[];
   destinataire?: string | null;
   raisonNonApp?: string | null;
+  /** SF-194-04 — document du dossier lié à la pièce reçue (null si non lié). */
+  obtainedDocumentId?: string | null;
 }

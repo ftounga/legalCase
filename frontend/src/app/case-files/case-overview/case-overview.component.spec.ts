@@ -74,6 +74,9 @@ describe('CaseOverviewComponent', () => {
     documentServiceSpy = {
       downloadUrl: jest.fn().mockReturnValue('/api/v1/case-files/cf1/documents/d1/download'),
       preview: jest.fn().mockReturnValue(of({} as any)),
+      list: jest.fn().mockReturnValue(of([
+        { id: 'doc1', caseFileId: 'cf1', originalFilename: 'contrat.pdf', contentType: 'application/pdf', fileSize: 1, createdAt: '2026-06-01' },
+      ] as any)),
     } as any;
     caseFileServiceSpy = { exportZip: jest.fn().mockReturnValue(of(new Blob())) } as any;
     answerServiceSpy = { submitAnswer: jest.fn().mockReturnValue(of(undefined)) } as any;
@@ -335,25 +338,47 @@ describe('CaseOverviewComponent', () => {
       .toBe('Le préavis a-t-il été exécuté ?');
   });
 
-  it('PIECE_MANQUANTE : PUT statut OBTENUE + refresh, l\'item disparaît', async () => {
+  // SF-194-04 — le clic « Marquer obtenue » ouvre d'abord le sélecteur de document
+  // (charge la liste), puis la confirmation PUT OBTENUE en liant le documentId choisi.
+  it('PIECE_MANQUANTE : ouvre le sélecteur de document puis PUT OBTENUE + documentId + refresh', async () => {
     await setup(fullResponse({ attention: [piece()], attentionTotal: 1 }));
     const item = component.visibleAttention()[0];
     expect(component.isInlineActionable(item)).toBe(true);
 
     overviewServiceSpy.getOverview.mockClear();
     component.onAttentionAction(item, 0);
+    fixture.detectChanges();
 
-    expect(pieceServiceSpy.updateStatus).toHaveBeenCalledWith('cf1', 'Contrat de travail', 'OBTENUE');
+    expect(component.pieceDocOpenIndex()).toBe(0);
+    expect(documentServiceSpy.list).toHaveBeenCalledWith('cf1');
+    expect(q('[data-testid="attention-piece-doc"]')).not.toBeNull();
+    expect(pieceServiceSpy.updateStatus).not.toHaveBeenCalled(); // pas encore confirmé
+
+    component.selectedDocId.set('doc1');
+    component.markPieceObtained(item, 0);
+
+    expect(pieceServiceSpy.updateStatus).toHaveBeenCalledWith('cf1', 'Contrat de travail', 'OBTENUE', { documentId: 'doc1' });
     expect(overviewServiceSpy.getOverview).toHaveBeenCalledWith('cf1'); // refresh
+    expect(component.pieceDocOpenIndex()).toBe(-1);
   });
 
-  it('PIECE_MANQUANTE en échec → snack non bloquant, pas de refresh', async () => {
+  it('PIECE_MANQUANTE : confirmation sans document lié → PUT OBTENUE documentId null', async () => {
+    await setup(fullResponse({ attention: [piece()], attentionTotal: 1 }));
+    const item = component.visibleAttention()[0];
+    component.onAttentionAction(item, 0);
+    component.markPieceObtained(item, 0);
+
+    expect(pieceServiceSpy.updateStatus).toHaveBeenCalledWith('cf1', 'Contrat de travail', 'OBTENUE', { documentId: null });
+  });
+
+  it('PIECE_MANQUANTE en échec → snack non bloquant, pas de refresh, sélecteur conservé', async () => {
     await setup(fullResponse({ attention: [piece()], attentionTotal: 1 }));
     const item = component.visibleAttention()[0];
     pieceServiceSpy.updateStatus.mockReturnValue(throwError(() => new Error('500')));
+    component.onAttentionAction(item, 0);
     overviewServiceSpy.getOverview.mockClear();
 
-    component.onAttentionAction(item, 0);
+    component.markPieceObtained(item, 0);
     expect(snackErrors.length).toBe(1);
     expect(overviewServiceSpy.getOverview).not.toHaveBeenCalled();
   });

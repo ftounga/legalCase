@@ -46,6 +46,8 @@ export interface PieceManquanteStatusPayload {
   statut: PieceManquanteStatutValue;
   raisonNonApp?: string | null;
   destinataire?: string | null;
+  /** SF-194-04 — document reçu lié à la pièce obtenue (optionnel). */
+  documentId?: string | null;
 }
 
 /**

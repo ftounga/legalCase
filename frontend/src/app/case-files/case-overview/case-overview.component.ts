@@ -16,12 +16,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { OverviewService } from '../../core/services/overview.service';
 import { DocumentService } from '../../core/services/document.service';
+import { Document } from '../../core/models/document.model';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
@@ -79,6 +81,7 @@ export const OVERVIEW_ATTENTION_MAX = 5;
     MatTooltipModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatSidenavModule,
   ],
   templateUrl: './case-overview.component.html',
@@ -130,6 +133,20 @@ export class CaseOverviewComponent implements OnInit {
 
   /** Index de l'item d'attention dont une action inline est en cours (POST/PUT). */
   readonly actionBusyIndex = signal(-1);
+
+  // ── SF-194-04 — sélecteur de document à lier lors du « marquer obtenue » ──
+
+  /** Index de l'item PIECE_MANQUANTE dont le sélecteur de document est ouvert (-1 = aucun). */
+  readonly pieceDocOpenIndex = signal(-1);
+
+  /** Document du dossier sélectionné à lier à la pièce reçue (null = aucun). */
+  readonly selectedDocId = signal<string | null>(null);
+
+  /** Documents du dossier proposés au lien (chargés à l'ouverture du sélecteur). */
+  readonly availableDocuments = signal<Document[]>([]);
+
+  /** Chargement en cours de la liste des documents (sélecteur). */
+  readonly documentsLoading = signal(false);
 
   // ── SF-289-05 — drawer d'aperçu latéral d'une pièce ──
 
@@ -404,7 +421,7 @@ export class CaseOverviewComponent implements OnInit {
   /**
    * Clic sur le bouton d'action d'un item d'attention (index `i`).
    * - QUESTION_IA inline → ouvre le champ de réponse (toggle).
-   * - PIECE_MANQUANTE inline → marque la pièce obtenue (PUT direct).
+   * - PIECE_MANQUANTE inline → ouvre le sélecteur de document à lier (SF-194-04).
    * - sinon (ou inline impossible) → routage V1.
    */
   onAttentionAction(item: AttentionItem, i: number): void {
@@ -413,10 +430,46 @@ export class CaseOverviewComponent implements OnInit {
       return;
     }
     if (item.type === 'PIECE_MANQUANTE' && item.pieceLibelle) {
-      this.markPieceObtained(item, i);
+      this.togglePieceDocPicker(i);
       return;
     }
     this.runAction(item.action);
+  }
+
+  /**
+   * SF-194-04 — Ouvre / ferme le sélecteur de document pour l'item PIECE_MANQUANTE
+   * `i`. À l'ouverture, charge la liste des documents du dossier (fail-open : en
+   * cas d'échec on garde une liste vide → l'avocat peut quand même confirmer sans
+   * lier de document). Réinitialise la sélection à chaque ouverture.
+   */
+  togglePieceDocPicker(i: number): void {
+    if (this.pieceDocOpenIndex() === i) {
+      this.pieceDocOpenIndex.set(-1);
+      this.selectedDocId.set(null);
+      return;
+    }
+    this.pieceDocOpenIndex.set(i);
+    this.selectedDocId.set(null);
+    if (this.availableDocuments().length === 0) {
+      this.documentsLoading.set(true);
+      this.documentService.list(this.caseFileId).subscribe({
+        next: (docs) => {
+          this.availableDocuments.set(docs ?? []);
+          this.documentsLoading.set(false);
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.documentsLoading.set(false);
+          this.cdr.markForCheck();
+        },
+      });
+    }
+  }
+
+  /** Annule le sélecteur de document en cours. */
+  cancelPieceDocPicker(): void {
+    this.pieceDocOpenIndex.set(-1);
+    this.selectedDocId.set(null);
   }
 
   /** Ouvre / ferme le champ de réponse inline de l'item `i` (réinitialise le brouillon). */
@@ -461,19 +514,23 @@ export class CaseOverviewComponent implements OnInit {
   }
 
   /**
-   * SF-289-02 — Marque une pièce manquante comme obtenue
-   * (`PUT /api/v1/case-files/{id}/pieces-manquantes/status`, statut OBTENUE).
-   * Succès → recharge l'overview (l'item disparaît) ; échec → snackbar non
-   * bloquant, item conservé.
+   * SF-289-02 / SF-194-04 — Marque une pièce manquante comme obtenue
+   * (`PUT /api/v1/case-files/{id}/pieces-manquantes/status`, statut OBTENUE),
+   * en liant le document reçu sélectionné dans le dossier (`documentId`, optionnel).
+   * Succès → ferme le sélecteur et recharge l'overview (l'item disparaît) ;
+   * échec → snackbar non bloquant, item conservé.
    */
   markPieceObtained(item: AttentionItem, i: number): void {
     if (!item.pieceLibelle || this.actionBusyIndex() === i) return;
+    const documentId = this.selectedDocId();
     this.actionBusyIndex.set(i);
     this.pieceStatusService
-      .updateStatus(this.caseFileId, item.pieceLibelle, 'OBTENUE')
+      .updateStatus(this.caseFileId, item.pieceLibelle, 'OBTENUE', { documentId })
       .subscribe({
         next: () => {
           this.actionBusyIndex.set(-1);
+          this.pieceDocOpenIndex.set(-1);
+          this.selectedDocId.set(null);
           this.loadOverview();
         },
         error: () => {
