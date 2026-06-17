@@ -1,6 +1,7 @@
-# Plan de test — Vague « Cycle de vie du dossier » (F-282 → F-286)
+# Plan de test — Vague « Cycle de vie du dossier » (F-282 → F-286) + addendum « pièce reçue & péremption »
 
 > Périmètre : les 5 features livrées le 2026-06-12 (audit `docs/business/audit-workflow-decisionnel.md`).
+> **Addendum 2026-06-17** : §9 **F-194 SF-194-04** (pièce reçue → document lié + robustesse à la ré-analyse) et §10 **F-289 SF-289-08** (péremption « dossier vs dernière synthèse enrichie » : réponses IA + nouveaux documents). Ces deux sections se déroulent sur le **dossier DUPONT** (`test-data/dossier-dupont-licenciement/`).
 > Objectif : valider, écran par écran, le comportement nominal + les cas limites + l'isolation.
 > Niveau : test manuel pas-à-pas (clic par clic), avec valeurs exactes et résultats attendus précis.
 
@@ -181,7 +182,67 @@
 
 ---
 
-## 9. Checklist de validation finale
+## 9. F-194 SF-194-04 — Pièce reçue → document lié + robustesse à la ré-analyse · dossier **DUPONT**
+
+> Fixtures : `test-data/dossier-dupont-licenciement/`. **Pièce volontairement retenue** au 1ᵉʳ upload : `07-convocation-entretien-prealable-dupont.pdf` (la convocation à l'entretien préalable — attendue car l'entretien du 5 janvier 2026 est cité dans la lettre `01`, mais absente du lot initial).
+> ⚠️ **Pré-condition anti-drift (PR3)** : la clé canonique est posée **au moment du marquage** → marquer la pièce « obtenue » **après** le déploiement backend du 2026-06-17 (sinon la pièce peut encore réapparaître à la ré-analyse). Une pièce marquée avant ce déploiement ne bénéficie pas du correctif.
+
+### 9.1 Mise en place
+39. `[ ]` Créer un dossier **droit du travail / France** `[TEST] DUPONT c/ MARTIN BTP`. Uploader **uniquement** les pièces `01`→`06` (lettre licenciement, contrat, bulletins, attestation témoin, emails, conclusions adverses) — **PAS** la `07`.
+40. `[ ]` Lancer l'analyse → attendre `DONE`, puis lancer / attendre la **synthèse enrichie**.
+    - **RA** : dans la **Synthèse** ET dans la **Vue d'ensemble** (bloc « Ce qui requiert ton attention »), la **convocation à l'entretien préalable** figure parmi les **pièces à demander / manquantes** (libellé proche de « Convocation à l'entretien préalable »).
+
+### 9.2 Sélecteur de document — Vue d'ensemble
+41. `[ ]` Uploader maintenant la pièce reçue `07-convocation-entretien-prealable-dupont.pdf` (elle devient un document du dossier).
+42. `[ ]` Onglet **Vue d'ensemble** → bloc « Ce qui requiert ton attention » → sur l'item de la convocation, cliquer **« Marquer obtenue »**.
+    - **RA** : un **sélecteur inline** (menu déroulant **« Document du dossier »**) s'ouvre, listant les documents du dossier, dont `07-convocation-entretien-prealable-dupont.pdf`. Une option **« Aucun (marquer obtenue sans lier) »** est présente.
+43. `[ ]` Choisir `07-convocation-entretien-prealable-dupont.pdf` puis **Marquer obtenue**.
+    - **RA** : l'item **disparaît** du bloc d'attention (la liste se rafraîchit, **sans** F5).
+
+### 9.3 Sélecteur de document — Synthèse
+44. `[ ]` (Sur une autre pièce manquante, ou après une ré-analyse qui la re-liste) onglet **Synthèse** → liste des pièces manquantes → passer une pièce au statut **« Obtenue »**.
+    - **RA** : un champ **« Document reçu (optionnel) »** (menu déroulant) apparaît à côté de la pièce — miroir du champ « Destinataire » des pièces « à demander » — listant les documents du dossier + une option « — non lié — ».
+45. `[ ]` Sélectionner le document reçu.
+    - **RA** : le statut OBTENUE est persisté avec le document lié (cohérence F-176 : pas de recompute synchrone ; la matérialisation se fera au prochain run enrichi).
+
+### 9.4 Robustesse à la ré-analyse (anti-drift PR3) — le cœur du correctif
+46. `[ ]` Après avoir marqué la convocation **« obtenue »** (§10.2, document lié, **post-déploiement**), **relancer l'analyse** → attendre la **synthèse enrichie** `DONE`.
+    - **RA** : la convocation **reste « obtenue »** ; elle **ne réapparaît pas** dans les pièces à demander, **même si** l'IA reformule légèrement son libellé (ex. « Convocation à entretien préalable au licenciement »).
+47. `[ ]` (Contrôle négatif documenté) Marquer « obtenue » une pièce **hors socle** (libellé exotique non standard), puis ré-analyser.
+    - **RA** : limite assumée — une pièce **hors socle** peut encore dériver (pas d'ancre canonique). Le prompt socle F-294 atténue ce cas. Ce n'est **pas** un bug de SF-194-04.
+
+---
+
+## 10. F-289 SF-289-08 — Péremption « dossier vs dernière synthèse enrichie » · dossier **DUPONT**
+
+> Emplacement : onglet **Vue d'ensemble** → bloc « Ce qui requiert ton attention » → item **« analyse à relancer »** (action **« Relancer l'analyse »**, urgence INFO). Signal **lecture seule, fail-open**.
+> Pré-condition : une **synthèse enrichie** `DONE` doit déjà avoir tourné sur le dossier (sinon, par construction, réponses/documents ne périment pas — cf. §10.4).
+
+### 10.1 Une réponse IA rend le dossier « périmé »
+48. `[ ]` Sur le dossier DUPONT (synthèse enrichie déjà `DONE`), onglet **Vue d'ensemble** → répondre **inline** à une **question IA** (bloc d'attention → « Répondre »).
+49. `[ ]` Recharger / re-consulter la Vue d'ensemble.
+    - **RA** : un item d'attention apparaît avec le libellé **« Réponses ajoutées depuis la dernière synthèse »** + bouton **« Relancer l'analyse »** (urgence INFO, le moins pressant ; ne déloge pas les échéances).
+
+### 10.2 Un nouveau document rend le dossier « périmé »
+50. `[ ]` Uploader un **nouveau document** (ex. `07-convocation-entretien-prealable-dupont.pdf` s'il ne l'était pas, ou tout PDF) **après** la dernière synthèse enrichie.
+    - **RA** : item d'attention **« Documents ajoutés depuis la dernière synthèse »** + « Relancer l'analyse ».
+51. `[ ]` Avoir **à la fois** une réponse IA donnée **et** un document ajouté depuis la synthèse.
+    - **RA** : libellé combiné **« Réponses et documents ajoutés depuis la dernière synthèse »** (un **seul** item, pas un par cause).
+
+### 10.3 Relancer fait disparaître le signal
+52. `[ ]` Cliquer **« Relancer l'analyse »** → attendre la **synthèse enrichie** `DONE`.
+    - **RA** : après la nouvelle synthèse, l'item de péremption **disparaît** (la dernière synthèse redevient la plus récente). Les pièces en attente, elles, gardent leur propre libellé « N pièce(s) non analysée(s) » (priorité si présentes).
+
+### 10.4 Cas limite — aucun run enrichi
+53. `[ ]` Sur un dossier **neuf** (aucune synthèse enrichie encore lancée), répondre à une question IA / ajouter un document.
+    - **RA** : **pas** d'item « depuis la dernière synthèse » (rien à périmer tant qu'aucune synthèse enrichie n'a tourné). Seules les **pièces en attente d'analyse** déclenchent l'item « N pièce(s) non analysée(s) ».
+
+### 10.5 Fail-open
+54. `[ ]` (Robustesse — non reproductible à la main, à vérifier en logs si doute) : si une source de fraîcheur est momentanément indisponible, la Vue d'ensemble **reste servie** (agrégat fail-open) ; au pire le signal de péremption n'apparaît pas, **jamais** un faux « périmé » bloquant.
+
+---
+
+## 11. Checklist de validation finale
 
 - `[ ]` F-285 Intake : verdict + pills + valeur €, non bloquant, persistant.
 - `[ ]` F-283 Vague de pièces : apparaît sur delta > 0, absente sinon, retombe à 0 après ré-analyse.
@@ -191,6 +252,8 @@
 - `[ ]` F-286 Stratégie : EMPTY_INPUT honnête, reco structurée sur outils calculés, **invariant outils intact**, upsert.
 - `[ ]` Multi-domaines : travail/immigration/famille FR + travail BE OK.
 - `[ ]` Isolation : 404 cross-workspace, 401 non authentifié.
+- `[ ]` **F-194 SF-194-04** : sélecteur de document au « marquer obtenue » (Vue d'ensemble **et** Synthèse) ; item disparaît sans F5 ; **pièce obtenue survit à la ré-analyse** (anti-drift, marquage post-déploiement) ; limite hors socle documentée.
+- `[ ]` **F-289 SF-289-08** : réponse IA / nouveau document depuis la dernière synthèse enrichie → item « … depuis la dernière synthèse » + « Relancer l'analyse » ; libellé combiné ; disparaît après ré-analyse ; pas de signal avant le 1ᵉʳ run enrichi ; fail-open.
 
 ---
 
@@ -203,5 +266,7 @@
 | F-284 | `/api/v1/case-files/{id}/echeancier` (GET, lecture seule) | — (agrège `case_deadlines`+`contradictoire_rounds`) |
 | F-285 | `/api/v1/case-files/{id}/intake` (GET/PUT) | colonnes `intake_*` sur `case_files` |
 | F-286 | `/api/v1/case-files/{id}/strategy` (GET/POST) | `case_strategy` |
+| F-194 SF-194-04 | `/api/v1/case-files/{id}/pieces-manquantes/status` (PUT, body `documentId` optionnel) ; `/api/v1/case-files/{id}/documents` (GET, liste du sélecteur) | `piece_manquante_status` (`obtained_document_id` migr. 609, `piece_libelle_canonique` migr. 610) |
+| F-289 SF-289-08 | `/api/v1/case-files/{id}/overview` (GET, lecture seule) | — (dérivé : dernière `case_analyses` ENRICHED/DONE vs `ai_question_answers` + `documents`) |
 
 > Vérifier les chemins exacts dans les `*Controller.java` si un appel échoue (certains peuvent différer légèrement).
