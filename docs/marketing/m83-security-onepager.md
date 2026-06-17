@@ -6,6 +6,7 @@
 ## One-pager (à remettre / joindre)
 - **Hébergement** : souverain, AWS région **Paris (UE)** — données hébergées en France/UE.
 - **Authentification** : OAuth2/OIDC (Google, Microsoft) **ou** compte local email/mot de passe (**haché BCrypt**, jamais en clair). MFA héritée du fournisseur d'identité pour les comptes SSO.
+- **Jetons (validation email / réinitialisation mot de passe)** : à **expiration** et **usage unique**.
 - **Chiffrement** : en transit (**TLS**) ; **au repos activé** (base RDS + object storage S3).
 - **Cloisonnement** : architecture multi-tenant, **isolation par `workspace_id`** — données cloisonnées entre cabinets.
 - **Contrôle d'accès** : moindre privilège, accès restreint. [À VÉRIFIER]
