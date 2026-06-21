@@ -160,6 +160,57 @@ class AdverseMoyenPersistenceServiceTest {
         verify(adverseMoyenRepository, never()).existsByCaseFileId(any());
     }
 
+    // ── SF-261-06 — ré-extraction si un acte adverse plus récent que le set figé ──
+
+    @Test
+    void loadOrExtract_newerAdverseDocument_reExtractsReplaceSet() {
+        UUID caseFileId = UUID.randomUUID();
+        java.time.Instant extractedAt = java.time.Instant.parse("2026-06-01T10:00:00Z");
+        when(adverseMoyenRepository.existsByCaseFileId(caseFileId)).thenReturn(true);
+        when(adverseMoyenRepository.findByCaseFileIdOrderByOrdreAsc(caseFileId))
+                .thenReturn(List.of(persistedEntityAt(UUID.randomUUID(), caseFileId, extractedAt)));
+        // Un nouvel acte adverse a été ajouté APRÈS l'extraction figée.
+        Document newerAdverse = adverseDocumentAt(true, java.time.Instant.parse("2026-06-05T10:00:00Z"));
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId))
+                .thenReturn(List.of(newerAdverse));
+        when(documentExtractionRepository.findByDocumentId(newerAdverse.getId()))
+                .thenReturn(Optional.of(extraction("Nouvelles conclusions adverses : prescription invoquée.")));
+        when(adverseMoyensExtractor.extract(any(), any(), any(), any()))
+                .thenReturn(List.of(new AdverseMoyen("La demande est prescrite.",
+                        List.of("art. L. 1471-1 C. trav."), List.of())));
+        when(adverseMoyenRepository.save(any(AdverseMoyenEntity.class))).thenAnswer(inv -> {
+            AdverseMoyenEntity e = inv.getArgument(0);
+            ReflectionTestUtils.setField(e, "id", UUID.randomUUID());
+            return e;
+        });
+
+        List<AdverseMoyenWithId> result = service.loadOrExtract(caseFileId, "DROIT_DU_TRAVAIL", "FRANCE");
+
+        // Ré-extraction (replace-set) → la réplique réfutera le nouveau moyen.
+        verify(adverseMoyensExtractor).extract(any(), any(), any(), any());
+        verify(adverseMoyenRepository).deleteByCaseFileId(caseFileId);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).moyen().these()).isEqualTo("La demande est prescrite.");
+    }
+
+    @Test
+    void loadOrExtract_persistedSet_noNewerAdverseDoc_keepsSetWithoutExtraction() {
+        UUID caseFileId = UUID.randomUUID();
+        java.time.Instant extractedAt = java.time.Instant.parse("2026-06-05T10:00:00Z");
+        when(adverseMoyenRepository.existsByCaseFileId(caseFileId)).thenReturn(true);
+        when(adverseMoyenRepository.findByCaseFileIdOrderByOrdreAsc(caseFileId))
+                .thenReturn(List.of(persistedEntityAt(UUID.randomUUID(), caseFileId, extractedAt)));
+        // Acte adverse ANTÉRIEUR à l'extraction → rien de neuf.
+        Document olderAdverse = adverseDocumentAt(true, java.time.Instant.parse("2026-06-01T10:00:00Z"));
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId))
+                .thenReturn(List.of(olderAdverse));
+
+        service.loadOrExtract(caseFileId, "DROIT_DU_TRAVAIL", "FRANCE");
+
+        verify(adverseMoyensExtractor, never()).extract(any(), any(), any(), any());
+        verify(adverseMoyenRepository, never()).deleteByCaseFileId(any());
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private Document adverseDocument(boolean adverse) {
@@ -167,6 +218,18 @@ class AdverseMoyenPersistenceServiceTest {
         ReflectionTestUtils.setField(doc, "id", UUID.randomUUID());
         doc.setAdversePleadings(adverse);
         return doc;
+    }
+
+    private Document adverseDocumentAt(boolean adverse, java.time.Instant createdAt) {
+        Document doc = adverseDocument(adverse);
+        ReflectionTestUtils.setField(doc, "createdAt", createdAt);
+        return doc;
+    }
+
+    private AdverseMoyenEntity persistedEntityAt(UUID id, UUID caseFileId, java.time.Instant createdAt) {
+        AdverseMoyenEntity e = persistedEntity(id, caseFileId, "Moyen figé", "[]", "[]", 0);
+        ReflectionTestUtils.setField(e, "createdAt", createdAt);
+        return e;
     }
 
     private DocumentExtraction extraction(String text) {
