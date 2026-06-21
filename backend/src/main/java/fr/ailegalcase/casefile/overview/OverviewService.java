@@ -14,6 +14,8 @@ import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.analysis.PieceManquanteAlignment;
 import fr.ailegalcase.analysis.PieceManquanteAlignmentService;
+import fr.ailegalcase.analysis.PieceManquanteStatus;
+import fr.ailegalcase.analysis.PieceManquanteStatusRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileDashboardResponse;
@@ -111,6 +113,8 @@ public class OverviewService {
     /** SF-289-08 — sources de fraîcheur « dossier vs dernière synthèse enrichie ». */
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
+    /** SF-289-09 — statut live des pièces (overlay sur l'alignement matérialisé figé). */
+    private final PieceManquanteStatusRepository pieceManquanteStatusRepository;
     private final ObjectMapper objectMapper;
 
     public OverviewService(CaseFileRepository caseFileRepository,
@@ -130,6 +134,7 @@ public class OverviewService {
                            CaseConclusionRepository conclusionRepository,
                            CaseAnalysisRepository caseAnalysisRepository,
                            AiQuestionAnswerRepository aiQuestionAnswerRepository,
+                           PieceManquanteStatusRepository pieceManquanteStatusRepository,
                            ObjectMapper objectMapper) {
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -148,6 +153,7 @@ public class OverviewService {
         this.conclusionRepository = conclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
+        this.pieceManquanteStatusRepository = pieceManquanteStatusRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -197,12 +203,18 @@ public class OverviewService {
         boolean analysisStale = pendingPiecesCount > 0
                 || newAnswersSinceSynthesis || newDocumentsSinceSynthesis;
 
+        // SF-289-09 — overlay du statut live des pièces sur l'alignement matérialisé
+        // (figé au dernier run enrichi). Une pièce marquée OBTENUE/NON_APPLICABLE par
+        // l'avocat (PUT pur, F-176) doit disparaître IMMÉDIATEMENT du bloc d'attention,
+        // comme une question répondue — sans attendre la prochaine synthèse enrichie.
+        Set<String> resolvedPieceNorms = safe(() -> loadResolvedPieceNorms(caseFileId), Set.of());
+
         Pilotage pilotage = buildPilotage(
                 phases, contradictoire, echeancier, intake, dashboard, analysisStale, pendingPiecesCount, today);
 
         List<OverviewResponse.AttentionItem> allAttention =
                 buildAttention(echeancier, pieces, questions, analysisStale, pendingPiecesCount,
-                        newAnswersSinceSynthesis, newDocumentsSinceSynthesis);
+                        newAnswersSinceSynthesis, newDocumentsSinceSynthesis, resolvedPieceNorms);
         int attentionTotal = allAttention.size();
         List<OverviewResponse.AttentionItem> attention =
                 allAttention.size() > ATTENTION_LIMIT ? allAttention.subList(0, ATTENTION_LIMIT) : allAttention;
@@ -296,7 +308,8 @@ public class OverviewService {
                                                                 boolean analysisStale,
                                                                 int pendingPiecesCount,
                                                                 boolean newAnswersSinceSynthesis,
-                                                                boolean newDocumentsSinceSynthesis) {
+                                                                boolean newDocumentsSinceSynthesis,
+                                                                Set<String> resolvedPieceNorms) {
         List<OverviewResponse.AttentionItem> items = new ArrayList<>();
 
         // Échéances pressantes (OVERDUE / CRITICAL).
@@ -312,10 +325,13 @@ public class OverviewService {
             }
         }
 
-        // Pièces à demander (statut A_DEMANDER).
+        // Pièces à demander (statut A_DEMANDER), SAUF celles résolues en direct
+        // par l'avocat (OBTENUE/NON_APPLICABLE) depuis la dernière matérialisation
+        // — overlay SF-289-09 pour une disparition immédiate.
         if (pieces != null) {
             for (PieceManquanteAlignment p : pieces) {
-                if (STATUT_A_DEMANDER.equals(p.statut())) {
+                if (STATUT_A_DEMANDER.equals(p.statut())
+                        && !resolvedPieceNorms.contains(normalizePiece(p.pieceLibelle()))) {
                     items.add(new OverviewResponse.AttentionItem(
                             "PIECE_MANQUANTE",
                             "Pièce à obtenir : " + safeLabel(p.pieceLibelle()),
@@ -379,6 +395,35 @@ public class OverviewService {
         }
         primary.addAll(rest);
         return primary;
+    }
+
+    /**
+     * SF-289-09 — ensemble des libellés normalisés de pièces RÉSOLUES en direct par
+     * l'avocat (statut live {@code OBTENUE} / {@code NON_APPLICABLE} dans
+     * {@code piece_manquante_status}), pour masquer immédiatement l'item d'attention
+     * correspondant sans attendre la re-matérialisation de l'alignement. Indexe sur
+     * le libellé normalisé brut ET canonique (PR3) pour matcher l'alignement figé.
+     */
+    private Set<String> loadResolvedPieceNorms(UUID caseFileId) {
+        Set<String> resolved = new HashSet<>();
+        for (PieceManquanteStatus s : pieceManquanteStatusRepository.findByCaseFileId(caseFileId)) {
+            if (!PieceManquanteStatus.STATUT_OBTENUE.equals(s.getStatut())
+                    && !PieceManquanteStatus.STATUT_NON_APPLICABLE.equals(s.getStatut())) {
+                continue;
+            }
+            if (s.getPieceLibelleNormalise() != null) {
+                resolved.add(s.getPieceLibelleNormalise());
+            }
+            if (s.getPieceLibelleCanonique() != null && !s.getPieceLibelleCanonique().isBlank()) {
+                resolved.add(normalizePiece(s.getPieceLibelleCanonique()));
+            }
+        }
+        return resolved;
+    }
+
+    /** Normalisation du libellé pièce (miroir de PieceManquanteStatusService.normalize). */
+    private static String normalizePiece(String s) {
+        return s == null ? "" : s.trim().toLowerCase();
     }
 
     /**

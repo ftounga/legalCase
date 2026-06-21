@@ -72,12 +72,28 @@ public class PiecesWaveService {
     }
 
     /**
-     * Horodatage de la dernière analyse dossier réussie. Le job CASE_ANALYSIS est
-     * unique par dossier (upsert) : on le lit et on ne retient son {@code updatedAt}
-     * que s'il est DONE. {@code null} si aucune analyse réussie.
+     * Horodatage de la dernière analyse dossier réussie. On retient le PLUS RÉCENT
+     * entre l'analyse initiale ({@link JobType#CASE_ANALYSIS}) et la dernière
+     * synthèse enrichie ({@link JobType#ENRICHED_ANALYSIS}) DONE.
+     *
+     * <p>SF-289-09 : la synthèse enrichie relit les documents du dossier (extraits
+     * bruts) ; elle « voit » donc les pièces ajoutées depuis l'analyse initiale.
+     * Sans prendre en compte son horodatage, le compteur « N nouvelles pièces »
+     * ne se viderait JAMAIS après une enrichie (la référence restait figée sur
+     * CASE_ANALYSIS) → confusion (l'avocat relance dans le vide). {@code null} si
+     * aucune analyse réussie.</p>
      */
     private Instant lastSuccessfulAnalysisAt(UUID caseFileId) {
-        return analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS)
+        Instant caseAnalysis = doneUpdatedAt(caseFileId, JobType.CASE_ANALYSIS);
+        Instant enriched = doneUpdatedAt(caseFileId, JobType.ENRICHED_ANALYSIS);
+        if (caseAnalysis == null) return enriched;
+        if (enriched == null) return caseAnalysis;
+        return enriched.isAfter(caseAnalysis) ? enriched : caseAnalysis;
+    }
+
+    /** {@code updatedAt} du job de ce type s'il est DONE, sinon {@code null}. */
+    private Instant doneUpdatedAt(UUID caseFileId, JobType jobType) {
+        return analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, jobType)
                 .filter(j -> j.getStatus() == AnalysisStatus.DONE)
                 .map(AnalysisJob::getUpdatedAt)
                 .orElse(null);
