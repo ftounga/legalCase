@@ -23,6 +23,7 @@ public enum CasePhaseType {
     RECOURS_PREALABLE(1, "Recours préalable"),
     CONCILIATION(2, "Conciliation"),
     MISE_EN_ETAT(3, "Mise en état"),
+    CLOTURE(3, "Clôture de l'instruction"),
     FOND(4, "Jugement au fond"),
     JUGEMENT(5, "Jugement rendu"),
     APPEL(6, "Appel"),

@@ -17,13 +17,15 @@ class CasePhaseSuggestionCatalogTest {
     }
 
     @Test
-    void travailFrance_orderedEightPhases() {
+    void travailFrance_orderedPhases_withCloture() {
         List<CasePhaseSuggestion> s = CasePhaseSuggestionCatalog
                 .forDomainAndCountry("DROIT_DU_TRAVAIL", "FRANCE");
+        // SF-283-05 — « Clôture de l'instruction » insérée entre Mise en état et le fond
+        // (procédure écrite devant le CPH, ordonnance de clôture).
         assertThat(types(s)).containsExactly(
                 CasePhaseType.SAISINE, CasePhaseType.CONCILIATION, CasePhaseType.MISE_EN_ETAT,
-                CasePhaseType.FOND, CasePhaseType.JUGEMENT, CasePhaseType.APPEL,
-                CasePhaseType.CASSATION, CasePhaseType.EXECUTION);
+                CasePhaseType.CLOTURE, CasePhaseType.FOND, CasePhaseType.JUGEMENT,
+                CasePhaseType.APPEL, CasePhaseType.CASSATION, CasePhaseType.EXECUTION);
         assertThat(s.get(0).defaultLabel()).isEqualTo("Saisine du Conseil de prud'hommes");
     }
 
@@ -92,8 +94,8 @@ class CasePhaseSuggestionCatalogTest {
         // Nulls
         assertThat(CasePhaseSuggestionCatalog.forDomainAndCountry(null, null))
                 .isEqualTo(CasePhaseSuggestionCatalog.FALLBACK);
-        // Le fallback est bien la liste civile FR travail (8 phases)
-        assertThat(CasePhaseSuggestionCatalog.FALLBACK).hasSize(8);
+        // Le fallback est bien la liste civile FR travail (9 phases depuis SF-283-05 : + Clôture)
+        assertThat(CasePhaseSuggestionCatalog.FALLBACK).hasSize(9);
         assertThat(CasePhaseSuggestionCatalog.FALLBACK.get(0).type()).isEqualTo(CasePhaseType.SAISINE);
     }
 

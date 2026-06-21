@@ -9,6 +9,7 @@ export type CasePhaseType =
   | 'RECOURS_PREALABLE'
   | 'CONCILIATION'
   | 'MISE_EN_ETAT'
+  | 'CLOTURE'
   | 'FOND'
   | 'JUGEMENT'
   | 'TRIBUNAL_ADMINISTRATIF'
@@ -30,6 +31,7 @@ export const CASE_PHASE_LABELS: Readonly<Record<CasePhaseType, string>> = {
   RECOURS_PREALABLE: 'Recours préalable',
   CONCILIATION: 'Conciliation',
   MISE_EN_ETAT: 'Mise en état',
+  CLOTURE: 'Clôture de l’instruction',
   FOND: 'Jugement au fond',
   JUGEMENT: 'Jugement rendu',
   TRIBUNAL_ADMINISTRATIF: 'Tribunal administratif',
@@ -50,6 +52,7 @@ export const CASE_PHASE_OPTIONS: ReadonlyArray<{ value: CasePhaseType; label: st
   { value: 'SAISINE', label: 'Saisine' },
   { value: 'CONCILIATION', label: 'Conciliation (BCO)' },
   { value: 'MISE_EN_ETAT', label: 'Mise en état' },
+  { value: 'CLOTURE', label: 'Clôture de l’instruction' },
   { value: 'FOND', label: 'Jugement au fond' },
   { value: 'JUGEMENT', label: 'Jugement rendu' },
   { value: 'APPEL', label: 'Appel' },

@@ -169,8 +169,8 @@ describe('CasePhasesTimelineComponent', () => {
     flushSuggestions([]);
     fixture.detectChanges();
 
-    // CASE_PHASE_OPTIONS = 8 phases civiles FR travail
-    expect(component.phaseOptions().length).toBe(8);
+    // CASE_PHASE_OPTIONS = 9 phases civiles FR travail (SF-283-05 : + Clôture de l'instruction)
+    expect(component.phaseOptions().length).toBe(9);
     expect(component.phaseOptions()[0].value).toBe('SAISINE');
   });
 });

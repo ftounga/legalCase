@@ -35,6 +35,7 @@ public final class CasePhaseSuggestionCatalog {
             s(SAISINE, "Saisine du Conseil de prud'hommes"),
             s(CONCILIATION, "Audience de conciliation (BCO)"),
             s(MISE_EN_ETAT, "Mise en état"),
+            s(CLOTURE, "Clôture de l'instruction"),
             s(FOND, "Audience de jugement (bureau de jugement)"),
             s(JUGEMENT, "Jugement"),
             s(APPEL, "Appel (Cour d'appel — chambre sociale)"),
