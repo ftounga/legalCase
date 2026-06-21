@@ -232,10 +232,11 @@ class CasePhaseControllerIT {
         mockMvc.perform(get("/api/v1/case-files/{id}/phases/suggestions", caseFile.getId())
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(8))
+                .andExpect(jsonPath("$.length()").value(9))
                 .andExpect(jsonPath("$[0].type").value("SAISINE"))
                 .andExpect(jsonPath("$[0].defaultLabel").value("Saisine du Conseil de prud'hommes"))
-                .andExpect(jsonPath("$[7].type").value("EXECUTION"));
+                .andExpect(jsonPath("$[3].type").value("CLOTURE"))
+                .andExpect(jsonPath("$[8].type").value("EXECUTION"));
     }
 
     // I-12 : suggestions immigration × BELGIQUE → procédure administrative BE
