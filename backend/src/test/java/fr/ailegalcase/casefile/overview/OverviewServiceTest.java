@@ -11,6 +11,8 @@ import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.PieceManquanteAlignment;
 import fr.ailegalcase.analysis.PieceManquanteAlignmentService;
+import fr.ailegalcase.analysis.PieceManquanteStatus;
+import fr.ailegalcase.analysis.PieceManquanteStatusRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.AdmissibilityStatus;
 import fr.ailegalcase.casefile.CaseFile;
@@ -93,6 +95,7 @@ class OverviewServiceTest {
     @Mock private CaseConclusionRepository conclusionRepository;
     @Mock private CaseAnalysisRepository caseAnalysisRepository;
     @Mock private AiQuestionAnswerRepository aiQuestionAnswerRepository;
+    @Mock private PieceManquanteStatusRepository pieceManquanteStatusRepository;
     @Mock private OidcUser oidcUser;
     @Mock private Principal principal;
 
@@ -104,7 +107,8 @@ class OverviewServiceTest {
                 casePhaseService, contradictoireService, echeancierService, caseIntakeService,
                 piecesWaveService, dashboardService, pieceManquanteAlignmentService, aiQuestionQueryService,
                 analysisJobRepository, documentRepository, strategyRepository, conclusionRepository,
-                caseAnalysisRepository, aiQuestionAnswerRepository, new ObjectMapper());
+                caseAnalysisRepository, aiQuestionAnswerRepository, pieceManquanteStatusRepository,
+                new ObjectMapper());
 
         Workspace ws = new Workspace();
         ws.setId(WS_ID);
@@ -136,6 +140,8 @@ class OverviewServiceTest {
                 .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any())).thenReturn(false);
         lenient().when(documentRepository
                 .findByCaseFile_IdAndCreatedAtAfterOrderByCreatedAtDesc(any(), any())).thenReturn(List.of());
+        // SF-289-09 — par défaut : aucun statut live (pas d'overlay).
+        lenient().when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of());
     }
 
     @Test
@@ -427,6 +433,46 @@ class OverviewServiceTest {
 
     private static OverviewResponse.AttentionItem attentionOfType(OverviewResponse r, String type) {
         return r.attention().stream().filter(a -> type.equals(a.type())).findFirst().orElse(null);
+    }
+
+    // ── SF-289-09 — overlay du statut live (la pièce obtenue disparaît tout de suite) ──
+
+    private static PieceManquanteStatus liveStatus(String norm, String statut) {
+        PieceManquanteStatus s = new PieceManquanteStatus();
+        s.setPieceLibelleNormalise(norm);
+        s.setStatut(statut);
+        return s;
+    }
+
+    @Test
+    void pieceObtenueLive_isHiddenFromAttention_evenIfSnapshotSaysADemander() {
+        // L'alignement matérialisé (figé) dit encore A_DEMANDER…
+        when(pieceManquanteAlignmentService.getForLatestAnalysis(any(), any(), any())).thenReturn(List.of(
+                new PieceManquanteAlignment("Contrat de travail", "A_DEMANDER", null, null, null),
+                new PieceManquanteAlignment("Bulletin de paie", "A_DEMANDER", null, null, null)));
+        // …mais l'avocat vient de marquer « Contrat de travail » OBTENUE (statut live).
+        when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of(
+                liveStatus("contrat de travail", PieceManquanteStatus.STATUT_OBTENUE)));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        // Le contrat (obtenu live) disparaît ; le bulletin (toujours A_DEMANDER) reste.
+        assertThat(r.attention())
+                .filteredOn(a -> "PIECE_MANQUANTE".equals(a.type()))
+                .extracting(OverviewResponse.AttentionItem::pieceLibelle)
+                .containsExactly("Bulletin de paie");
+    }
+
+    @Test
+    void pieceNonApplicableLive_isAlsoHidden() {
+        when(pieceManquanteAlignmentService.getForLatestAnalysis(any(), any(), any())).thenReturn(List.of(
+                new PieceManquanteAlignment("Convention collective", "A_DEMANDER", null, null, null)));
+        when(pieceManquanteStatusRepository.findByCaseFileId(any())).thenReturn(List.of(
+                liveStatus("convention collective", PieceManquanteStatus.STATUT_NON_APPLICABLE)));
+
+        OverviewResponse r = service.overview(CASE_ID, oidcUser, principal);
+
+        assertThat(attentionOfType(r, "PIECE_MANQUANTE")).isNull();
     }
 
     @Test
