@@ -11,7 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -87,6 +89,13 @@ public class AdverseMoyenPersistenceService {
     public List<AdverseMoyenWithId> loadOrExtract(UUID caseFileId, String domain, String country) {
         try {
             if (adverseMoyenRepository.existsByCaseFileId(caseFileId)) {
+                // SF-261-06 — un acte adverse plus récent que le set figé (round adverse
+                // ajouté depuis la 1ʳᵉ extraction) → ré-extraire (replace-set) pour que la
+                // réplique réfute les VRAIS nouveaux moyens. Sinon set conservé (curation
+                // F-288 préservée, aucun appel LLM, aucun non-déterminisme).
+                if (hasAdverseDocumentNewerThanPersistedSet(caseFileId)) {
+                    return extractAndPersist(caseFileId, domain, country);
+                }
                 return findPersisted(caseFileId);
             }
             return extractAndPersist(caseFileId, domain, country);
@@ -95,6 +104,29 @@ public class AdverseMoyenPersistenceService {
                     + "génération sans section : {}", caseFileId, ex.getMessage());
             return List.of();
         }
+    }
+
+    /**
+     * SF-261-06 — un document marqué « écritures adverses » a-t-il une {@code createdAt}
+     * postérieure au set de moyens persisté ? (= acte adverse ajouté depuis l'extraction
+     * figée). Limite assumée : un document marqué adverse longtemps APRÈS son upload n'est
+     * pas détecté ({@code Document} n'a pas de timestamp de modification) — cas rare.
+     */
+    private boolean hasAdverseDocumentNewerThanPersistedSet(UUID caseFileId) {
+        Instant extractedAt = adverseMoyenRepository.findByCaseFileIdOrderByOrdreAsc(caseFileId).stream()
+                .map(AdverseMoyenEntity::getCreatedAt)
+                .filter(java.util.Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        if (extractedAt == null) {
+            return false;
+        }
+        for (Document d : documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId)) {
+            if (d.isAdversePleadings() && d.getCreatedAt() != null && d.getCreatedAt().isAfter(extractedAt)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
