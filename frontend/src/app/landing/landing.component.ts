@@ -21,6 +21,11 @@ export const DEMO_VIDEOS: DemoVideo[] = [
     subtitle: "De l'upload des pièces à la synthèse structurée",
   },
   {
+    videoId: '8C-h43fyanY',
+    title: 'Legal OCR + Legal Vision : tous vos formats',
+    subtitle: "Scans dégradés, fax administratifs, photos de SMS et manuscrits — lus et intégrés à l'analyse",
+  },
+  {
     videoId: 'I5EemkFR8NE',
     title: 'Synthèse enrichie et diff sourcé',
     subtitle: 'Comparez les versions d\'analyse, chaque point relié à sa pièce',
