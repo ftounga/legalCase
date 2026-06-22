@@ -47,6 +47,8 @@ class EnrichedAnalysisServiceTest {
             mock(fr.ailegalcase.document.DocumentRepository.class);
     private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository =
             mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
+    private final DocumentAnalysisRepository documentAnalysisRepository =
+            mock(DocumentAnalysisRepository.class);
     private final PiecesPromptContext piecesPromptContext = mock(PiecesPromptContext.class);
     private final StrategicOptionService strategicOptionService = mock(StrategicOptionService.class);
     private final RetainedPisteAlignmentService retainedPisteAlignmentService =
@@ -81,7 +83,7 @@ class EnrichedAnalysisServiceTest {
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             jurisprudenceVerificationService,
-            documentRepository, documentExtractionRepository, piecesPromptContext);
+            documentRepository, documentExtractionRepository, documentAnalysisRepository, piecesPromptContext);
 
     @BeforeEach
     void setUp() {
@@ -266,6 +268,29 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("Synthèse précédente");
         assertThat(prompt).contains("Questions et réponses");
         assertThat(prompt).doesNotContain("Échanges libres");
+    }
+
+    // SF-283-06 : la synthèse enrichie injecte l'analyse PROFONDE de chaque document
+    // (faits/points/risques) — y compris les docs ajoutés depuis l'analyse initiale.
+    @Test
+    void buildEnrichedPrompt_injectsDeepDocumentAnalyses() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID docId = UUID.randomUUID();
+        fr.ailegalcase.document.Document doc = mock(fr.ailegalcase.document.Document.class);
+        when(doc.getId()).thenReturn(docId);
+        when(doc.getOriginalFilename()).thenReturn("conclusions-adverses.pdf");
+        DocumentAnalysis da = mock(DocumentAnalysis.class);
+        when(da.getDocument()).thenReturn(doc);
+        when(da.getAnalysisResult()).thenReturn("{\"faits\":[\"prescription invoquee par l'adversaire\"]}");
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId)).thenReturn(List.of(doc));
+        when(documentAnalysisRepository.findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(List.of(da));
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), List.of(), List.of());
+
+        assertThat(prompt).contains("Analyses approfondies des documents");
+        assertThat(prompt).contains("conclusions-adverses.pdf (analyse)");
+        assertThat(prompt).contains("prescription invoquee par l'adversaire");
     }
 
     // U-07 : buildEnrichedPrompt avec résumé chat → section injectée

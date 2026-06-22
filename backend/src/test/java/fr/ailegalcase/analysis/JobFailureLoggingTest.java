@@ -111,7 +111,7 @@ class JobFailureLoggingTest {
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             jurisprudenceVerificationService,
-            documentRepository, documentExtractionRepository, piecesPromptContext);
+            documentRepository, documentExtractionRepository, documentAnalysisRepository, piecesPromptContext);
 
     private ListAppender<ILoggingEvent> caseAppender;
     private ListAppender<ILoggingEvent> enrichedAppender;
