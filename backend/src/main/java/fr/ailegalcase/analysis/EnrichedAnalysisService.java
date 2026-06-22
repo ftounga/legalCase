@@ -150,6 +150,8 @@ public class EnrichedAnalysisService {
     private final JurisprudenceVerificationService jurisprudenceVerificationService;
     private final fr.ailegalcase.document.DocumentRepository documentRepository;
     private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository;
+    /** SF-283-06 — analyses profondes par document (intègre les nouveaux docs à l'enrichie). */
+    private final DocumentAnalysisRepository documentAnalysisRepository;
     private final PiecesPromptContext piecesPromptContext;
 
     /** SF-35-03-bis : budget pour les extraits bruts injectés dans l'enrichie —
@@ -157,6 +159,10 @@ public class EnrichedAnalysisService {
      *  directement les pièces signées (ex. Convention de rupture) au lieu de
      *  s'appuyer sur la synthèse précédente qui peut avoir été biaisée. */
     static final int RAW_DOC_PREFIX_CHARS = 2_000;
+
+    /** SF-283-06 — cap par document de l'analyse profonde injectée dans le prompt enrichi
+     *  (le JSON par document est structuré ; on borne pour maîtriser les tokens). */
+    static final int DOC_ANALYSIS_PREFIX_CHARS = 3_000;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -190,6 +196,7 @@ public class EnrichedAnalysisService {
                                    JurisprudenceVerificationService jurisprudenceVerificationService,
                                    fr.ailegalcase.document.DocumentRepository documentRepository,
                                    fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository,
+                                   DocumentAnalysisRepository documentAnalysisRepository,
                                    PiecesPromptContext piecesPromptContext) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
@@ -220,6 +227,7 @@ public class EnrichedAnalysisService {
         this.jurisprudenceVerificationService = jurisprudenceVerificationService;
         this.documentRepository = documentRepository;
         this.documentExtractionRepository = documentExtractionRepository;
+        this.documentAnalysisRepository = documentAnalysisRepository;
         this.piecesPromptContext = piecesPromptContext;
     }
 
@@ -789,6 +797,17 @@ public class EnrichedAnalysisService {
                   .append(rawDocs).append("\n\n");
         }
 
+        // SF-283-06 — injecter l'ANALYSE PROFONDE par document (faits / points juridiques /
+        // risques produits à l'upload), pour que la synthèse enrichie intègre RÉELLEMENT les
+        // documents — notamment ceux ajoutés depuis l'analyse initiale (un nouveau doc a déjà
+        // sa DocumentAnalysis DONE avant le re-analyze). Sans ça, l'enrichie ne voyait les
+        // nouveaux docs qu'en extraits bruts tronqués (2000 car.). Fail-open.
+        String docAnalyses = buildDocumentAnalysesSection(caseFileId);
+        if (!docAnalyses.isEmpty()) {
+            prompt.append("[Analyses approfondies des documents — y compris ceux ajoutés depuis l'analyse initiale]\n")
+                  .append(docAnalyses).append("\n\n");
+        }
+
         prompt.append("[Questions et réponses de l'avocat]\n")
               .append(qaSection.isEmpty() ? "(aucune réponse)" : qaSection);
 
@@ -922,6 +941,38 @@ public class EnrichedAnalysisService {
                     ? text : text.substring(0, RAW_DOC_PREFIX_CHARS) + " [...]";
             sb.append("=== ").append(doc.getOriginalFilename()).append(" ===\n")
               .append(slice.replace("\n", " ").trim()).append("\n\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * SF-283-06 — section « analyses approfondies des documents » : le résultat de
+     * l'{@link DocumentAnalysis} (DONE) de CHAQUE document du dossier (faits, points
+     * juridiques, risques produits à l'upload), borné à {@link #DOC_ANALYSIS_PREFIX_CHARS}
+     * par document. Inclut les documents ajoutés depuis l'analyse initiale (déjà analysés
+     * en profondeur à l'upload) → la synthèse enrichie les intègre réellement.
+     *
+     * <p>Fail-open : aucune analyse → section vide ; ne déclenche AUCUNE nouvelle analyse,
+     * n'attend rien (les analyses existent déjà ou sont ignorées).</p>
+     */
+    private String buildDocumentAnalysesSection(UUID caseFileId) {
+        var docs = documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId);
+        if (docs.isEmpty()) return "";
+        var analysisByDocId = documentAnalysisRepository
+                .findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE).stream()
+                .filter(a -> a.getDocument() != null && a.getAnalysisResult() != null
+                        && !a.getAnalysisResult().isBlank())
+                .collect(java.util.stream.Collectors.toMap(
+                        a -> a.getDocument().getId(), a -> a, (a, b) -> a, java.util.HashMap::new));
+        StringBuilder sb = new StringBuilder();
+        for (var doc : docs) {
+            var analysis = analysisByDocId.get(doc.getId());
+            if (analysis == null) continue;
+            String result = analysis.getAnalysisResult();
+            String slice = result.length() <= DOC_ANALYSIS_PREFIX_CHARS
+                    ? result : result.substring(0, DOC_ANALYSIS_PREFIX_CHARS) + " [...]";
+            sb.append("=== ").append(doc.getOriginalFilename()).append(" (analyse) ===\n")
+              .append(slice.trim()).append("\n\n");
         }
         return sb.toString();
     }
