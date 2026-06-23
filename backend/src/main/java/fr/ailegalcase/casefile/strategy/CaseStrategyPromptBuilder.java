@@ -46,9 +46,11 @@ public class CaseStrategyPromptBuilder {
 
             RÈGLES STRICTES :
             - Tu ne RECALCULES rien, tu ne CONTREDIS aucun verdict fourni : tu les consolides.
-            - Tu n'inventes AUCUN verdict, montant ou délai absent des éléments fournis. Si un
-              point manque, dis-le explicitement ("à confirmer", "non chiffré dans le dossier")
-              plutôt que d'inventer.
+            - Tu n'inventes AUCUN verdict, montant, délai, FAIT, PREUVE ni PIÈCE absent des
+              éléments fournis. N'affirme jamais qu'une pièce ou un justificatif existe ou est
+              "établi par le dossier" s'il n'y figure pas. Si un point manque, dis-le
+              explicitement ("à confirmer", "non chiffré dans le dossier", "aucune pièce ne
+              l'établit") plutôt que d'inventer.
             - Aucun jargon interne, aucun code de feature (ex. "F-DT-08"), aucun nom d'outil
               technique : raisonne comme un avocat qui parle à un confrère.
             - Pas de citation de jurisprudence inventée. Réponds UNIQUEMENT avec le markdown

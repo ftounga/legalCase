@@ -1101,4 +1101,38 @@ class CaseConclusionPromptBuilderTest {
                 .doesNotContainIgnoringCase("F-DT-")
                 .doesNotContainIgnoringCase("SF-291");
     }
+
+    // ── F-291 / SF-291-03 — garde « fidélité factuelle » ─────────────────────
+
+    @Test
+    void buildSystemPrompt_includesFactualFidelityGuard() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        // En-tête de la garde + cœur du correctif : interdiction d'affirmer une preuve
+        // non versée comme « établie par le dossier », bascule sur la charge de la preuve.
+        assertThat(system).contains("Garde fidélité factuelle");
+        assertThat(system).contains("établi par les éléments du dossier");
+        assertThat(system).contains("CHARGE DE LA PREUVE");
+        assertThat(system).contains("N'invente");
+    }
+
+    @Test
+    void buildSystemPrompt_factualFidelityGuard_coexistsWithOtherGuards() {
+        // Non-régression : la garde s'ajoute sans remplacer les gardes existantes.
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        assertThat(system).contains("Garde fidélité factuelle");       // SF-291-03
+        assertThat(system).contains("Garde citations & chiffres");     // SF-291-02
+        assertThat(system).contains("Garde jurisprudence");            // F-242
+        assertThat(system).contains("Garde de qualité rédactionnelle");// SF-98-55
+    }
+
+    @Test
+    void factualFidelityGuard_doesNotLeakToolCodeOrFeatureId() {
+        // Anti-jargon (non-régression SF-98-55) : aucun code outil ni identifiant de feature.
+        assertThat(CaseConclusionPromptBuilder.FACTUAL_FIDELITY_GUARD)
+                .doesNotContainIgnoringCase("F-291")
+                .doesNotContainIgnoringCase("F-DT-")
+                .doesNotContainIgnoringCase("SF-291");
+    }
 }

@@ -33,6 +33,18 @@ class CaseStrategyPromptBuilderTest {
     }
 
     @Test
+    void systemPrompt_forbidsFabricatingFactsOrEvidence() {
+        // SF-291-03 — le garde anti-invention couvre aussi FAITS / PREUVES / PIÈCES,
+        // pas seulement verdicts/montants/délais (cas observé : pièce justificative inventée).
+        String sys = CaseStrategyPromptBuilder.SYSTEM_PROMPT;
+        assertThat(sys)
+                .contains("FAIT")
+                .contains("PREUVE")
+                .contains("PIÈCE")
+                .contains("établi par le dossier");
+    }
+
+    @Test
     void userMessage_includesCalculatedVerdicts() {
         String msg = builder.buildUserMessage(
                 "Dossier Durand",
