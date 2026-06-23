@@ -224,6 +224,12 @@ export const routes: Routes = [
       .then(m => m.EmployerLandingComponent)
   },
   {
+    // F-296 SF-296-01 — landing partenaire ACE + contact (no-auth, lazy).
+    path: 'ace',
+    loadComponent: () => import('./ace-landing/ace-landing.component')
+      .then(m => m.AceLandingComponent)
+  },
+  {
     path: 'blog',
     loadComponent: () => import('./blog/blog-list-page/blog-list-page.component')
       .then(m => m.BlogListPageComponent)
