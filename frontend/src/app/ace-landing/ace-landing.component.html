@@ -1,0 +1,136 @@
+<div class="ace-page">
+
+  <!-- HERO -->
+  <header class="ace-hero">
+    <div class="ace-hero__inner">
+      <span class="ace-badge">ACE × LegalCase · Offre adhérents 2026</span>
+      <h1 class="ace-hero__title">
+        De la pièce aux conclusions :<br>analysez <em>et</em> pilotez vos dossiers
+      </h1>
+      <p class="ace-hero__lead">
+        LegalCase analyse vos pièces, pilote le dossier dans la durée et vous accompagne
+        jusqu'aux conclusions sourcées — au service de votre jugement.
+      </p>
+      <div class="ace-hero__cta">
+        <a class="ace-btn ace-btn--gold" href="#contact">Activer mon offre adhérent</a>
+        <span class="ace-hero__note">30 jours d'essai supplémentaires · code <b>ACE2026</b></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- PILIERS -->
+  <section class="ace-section">
+    <div class="ace-section__head">
+      <span class="ace-eyebrow">Ce que LegalCase fait pour vous</span>
+      <h2 class="ace-h2">Un copilote pour tout le cycle du dossier prud'homal</h2>
+    </div>
+    <div class="ace-grid">
+      @for (item of valueItems; track item.title) {
+        <article class="ace-card">
+          <div class="ace-card__icon" aria-hidden="true">{{ item.icon }}</div>
+          <h3 class="ace-card__title">{{ item.title }}</h3>
+          <p class="ace-card__text">{{ item.text }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <!-- BANDEAU OFFRE -->
+  <section class="ace-offer">
+    <div class="ace-offer__inner">
+      <div class="ace-offer__txt">
+        <span class="ace-offer__title">30 jours d'essai supplémentaires</span>
+        Sur toutes les formules, sans engagement — valable jusqu'au 31 décembre 2026.
+      </div>
+      <div class="ace-offer__code">
+        <span class="ace-offer__code-label">Code adhérent</span>
+        <span class="ace-offer__code-val">ACE<span>2026</span></span>
+      </div>
+    </div>
+    <ul class="ace-trust">
+      @for (t of trustItems; track t) {
+        <li class="ace-trust__item">{{ t }}</li>
+      }
+    </ul>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="ace-contact" id="contact">
+    <div class="ace-contact__intro">
+      <span class="ace-eyebrow">Échangeons</span>
+      <h2 class="ace-h2">Une question, une démo, l'activation du code ?</h2>
+      <p class="ace-contact__sub">
+        Laissez-moi un message : je vous réponds personnellement, sous 24&nbsp;h ouvrées.
+      </p>
+    </div>
+
+    @if (sent()) {
+      <div class="ace-success" role="status">
+        <div class="ace-success__check" aria-hidden="true">✓</div>
+        <h3>Message bien reçu&nbsp;!</h3>
+        <p>Merci — je reviens vers vous très vite. Pensez à appliquer le code <b>ACE2026</b> dans votre espace pour activer vos 30 jours.</p>
+      </div>
+    } @else {
+      <form class="ace-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="ace-field">
+          <label for="ace-nom">Nom et prénom *</label>
+          <input id="ace-nom" type="text" formControlName="nom" autocomplete="name" />
+          @if (nom.touched && nom.invalid) {
+            <span class="ace-err">Votre nom est requis.</span>
+          }
+        </div>
+
+        <div class="ace-field">
+          <label for="ace-email">Email *</label>
+          <input id="ace-email" type="email" formControlName="email" autocomplete="email" />
+          @if (email.touched && email.invalid) {
+            <span class="ace-err">Une adresse email valide est requise.</span>
+          }
+        </div>
+
+        <div class="ace-field">
+          <label for="ace-cabinet">Cabinet / Barreau</label>
+          <input id="ace-cabinet" type="text" formControlName="cabinet" autocomplete="organization" />
+        </div>
+
+        <div class="ace-field">
+          <label for="ace-tel">Téléphone</label>
+          <input id="ace-tel" type="tel" formControlName="telephone" autocomplete="tel" />
+          @if (telephone.touched && telephone.invalid) {
+            <span class="ace-err">Format de téléphone invalide.</span>
+          }
+        </div>
+
+        <div class="ace-field ace-field--full">
+          <label for="ace-msg">Votre message *</label>
+          <textarea id="ace-msg" rows="5" formControlName="message"></textarea>
+          @if (message.touched && message.invalid) {
+            <span class="ace-err">Un message est requis.</span>
+          }
+        </div>
+
+        @if (errorMsg()) {
+          <p class="ace-form__error" role="alert">{{ errorMsg() }}</p>
+        }
+
+        <div class="ace-field--full ace-form__actions">
+          <button type="submit" class="ace-btn ace-btn--gold" [disabled]="sending()">
+            {{ sending() ? 'Envoi…' : 'Envoyer mon message' }}
+          </button>
+          <span class="ace-form__legal">Réservé aux adhérents de l'ACE · vos données ne sont jamais revendues.</span>
+        </div>
+      </form>
+    }
+  </section>
+
+  <!-- PIED -->
+  <footer class="ace-footer">
+    <div class="ace-footer__brand">LegalCase</div>
+    <div class="ace-footer__links">
+      <a href="https://legalcase.fr">legalcase.fr</a>
+      <a href="mailto:tounga.franck@ng-itconsulting.com">tounga.franck&#64;ng-itconsulting.com</a>
+    </div>
+    <div class="ace-footer__copy">© {{ currentYear }} LegalCase · Offre réservée aux adhérents de l'ACE</div>
+  </footer>
+
+</div>
