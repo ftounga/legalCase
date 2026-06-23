@@ -16,6 +16,9 @@ data:
   MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
   APP_STRIPE_ENABLED: "true"
   APP_MAIL_ENABLED: "true"
+  # Destination des leads des formulaires de contact (/contact + /ace, F-296).
+  # Boîte du fondateur (au lieu du défaut applicatif ai-legalcase@).
+  CONTACT_TEAM_EMAIL: "tounga.franck@ng-itconsulting.com"
   ANTHROPIC_MODEL: "claude-sonnet-4-6"
   ANTHROPIC_MODEL_FAST: "claude-haiku-4-5-20251001"
   BLOG_SCHEDULER_ENABLED: "true"
