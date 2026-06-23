@@ -256,6 +256,39 @@ public class CaseConclusionPromptBuilder {
                     + "du travail (jamais un article relatif à la rupture conventionnelle "
                     + "collective).";
 
+    /**
+     * F-291 / SF-291-03 — garde transverse « fidélité factuelle ». Symétrique de
+     * {@link #CITATIONS_FIGURES_GUARD} mais portant sur les AFFIRMATIONS DE FAIT (et non
+     * sur les citations juridiques) : interdit au modèle d'affirmer qu'une pièce, un
+     * justificatif, un témoignage ou un fait favorable au client EXISTE / est « établi par
+     * les éléments du dossier » s'il n'est pas étayé par une pièce réellement versée. Le
+     * force, quand un grief adverse repose sur un fait que le dossier ne tranche pas, à
+     * argumenter sur la CHARGE DE LA PREUVE plutôt qu'à fabriquer une preuve contraire
+     * inexistante. Corrige le cas observé (acte affirmant un « arrêt maladie / certificat
+     * médical » justifiant l'absence, alors qu'aucune pièce de ce type n'était au dossier).
+     * Principe « silence &gt; erreur » partagé avec F-179 / F-IA. Appliquée par-dessus le
+     * prompt de base, transverse à toutes les cellules, jamais dupliquée provider par provider.
+     */
+    static final String FACTUAL_FIDELITY_GUARD =
+            "Garde fidélité factuelle (impérative) :\n"
+                    + "1. N'affirme JAMAIS qu'une pièce, un document justificatif, un témoignage, "
+                    + "un certificat (médical, arrêt de travail...) ou un fait favorable au client "
+                    + "EXISTE, a été produit, ou est « établi par les éléments du dossier » s'il ne "
+                    + "figure pas explicitement dans les données du dossier ci-dessus. N'invente "
+                    + "AUCUNE pièce versée par le client.\n"
+                    + "2. Quand un grief adverse repose sur un fait que le dossier ne permet ni de "
+                    + "confirmer ni d'infirmer (absence reprochée, comportement reproché, etc.), ne "
+                    + "fabrique PAS de justification côté client. Argumente sur la CHARGE DE LA "
+                    + "PREUVE : il incombe à la partie qui invoque le fait d'en rapporter la preuve, "
+                    + "et aucune pièce du dossier ne l'établit — sans prétendre que le client a "
+                    + "produit une preuve contraire qui n'existe pas.\n"
+                    + "3. Ne qualifie de « démontré », « établi », « justifié » ou « prouvé » qu'un "
+                    + "fait réellement étayé par une pièce listée dans les données. À défaut, emploie "
+                    + "une formulation prudente (« il appartient à l'adversaire de démontrer... », "
+                    + "« aucune pièce du dossier n'établit... ») et marque [à vérifier] si une "
+                    + "vérification reste nécessaire.\n"
+                    + "4. N'invente AUCUN nom de témoin, date, lieu ni contenu de document non fourni.";
+
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
 
@@ -294,6 +327,9 @@ public class CaseConclusionPromptBuilder {
         // SF-291-02 — garde « citations & chiffres » (anti-affirmation non sourcée, articles
         // exécution provisoire / solde de tout compte épinglés), transverse à toutes les cellules.
         sb.append('\n').append(CITATIONS_FIGURES_GUARD).append('\n');
+        // SF-291-03 — garde « fidélité factuelle » (anti-fabrication de pièce/preuve/fait,
+        // bascule sur la charge de la preuve), transverse à toutes les cellules.
+        sb.append('\n').append(FACTUAL_FIDELITY_GUARD).append('\n');
         // SF-272-01 — ossature in limine litis (art. 74 CPC), uniquement défendeur FR.
         if (appliesProcedureOrderGuard(key)) {
             sb.append('\n').append(PROCEDURE_ORDER_GUARD).append('\n');
