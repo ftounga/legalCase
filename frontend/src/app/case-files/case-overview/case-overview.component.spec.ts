@@ -196,6 +196,20 @@ describe('CaseOverviewComponent', () => {
     expect(navs).toEqual([{ targetTab: 'suivi', anchor: 'section-deadlines', route: null }]);
   });
 
+  it('SF-289-08 — « Relancer l\'analyse » émet relaunchAnalysis et NE navigue PAS', async () => {
+    await setup();
+    const navs: OverviewNavigation[] = [];
+    let relaunched = 0;
+    component.navigate.subscribe(n => navs.push(n));
+    component.relaunchAnalysis.subscribe(() => relaunched++);
+
+    // Reproduit le contrat backend post-fix : aucune URL d'API dans `route`.
+    component.runAction({ kind: 'RELAUNCH_ANALYSIS', targetTab: 'analyse', anchor: null, route: null });
+
+    expect(relaunched).toBe(1);
+    expect(navs).toEqual([]); // pas de navigateByUrl vers /api/.../re-analyze
+  });
+
   it('un raccourci émet un routage ; l\'export appelle le service', async () => {
     await setup();
     const navs: OverviewNavigation[] = [];
