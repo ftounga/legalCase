@@ -369,8 +369,7 @@ public class OverviewService {
                     analyseObsoleteLabel(pendingPiecesCount, newAnswersSinceSynthesis, newDocumentsSinceSynthesis),
                     "INFO",
                     new OverviewResponse.Action(
-                            "RELAUNCH_ANALYSIS", "analyse", null,
-                            "/api/v1/case-files/{caseFileId}/re-analyze"),
+                            "RELAUNCH_ANALYSIS", "analyse", null, null),
                     null, null, null));
         }
 
@@ -533,8 +532,7 @@ public class OverviewService {
             fil.add(new OverviewResponse.TimelineEvent(
                     date, "PIECES", "OURS", titre, "En attente d'analyse",
                     temps(date, today), null, attachments,
-                    new OverviewResponse.Action("RELAUNCH_ANALYSIS", "analyse", null,
-                            "/api/v1/case-files/{caseFileId}/re-analyze")));
+                    new OverviewResponse.Action("RELAUNCH_ANALYSIS", "analyse", null, null)));
         }
 
         // Production : analyse DONE, stratégie, versions de conclusions.

@@ -104,7 +104,8 @@
         <app-case-overview
           [caseFileId]="caseFile()!.id"
           [caseTitle]="caseFile()!.title"
-          (navigate)="onOverviewNavigate($event)">
+          (navigate)="onOverviewNavigate($event)"
+          (relaunchAnalysis)="onWaveAnalyzeRequested()">
         </app-case-overview>
       </div>
     </section>

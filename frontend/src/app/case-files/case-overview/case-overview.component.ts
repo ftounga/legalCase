@@ -97,6 +97,14 @@ export class CaseOverviewComponent implements OnInit {
   /** Routage inter-onglets demandé par une action (le parent exécute). */
   @Output() navigate = new EventEmitter<OverviewNavigation>();
 
+  /**
+   * SF-289-08 (fix) — l'action `RELAUNCH_ANALYSIS` ne navigue PAS vers une URL :
+   * elle demande au parent de relancer l'analyse existante (même chemin que la
+   * carte « vague de pièces », `onWaveAnalyzeRequested`). Évite la navigation
+   * fautive vers `/api/v1/case-files/{caseFileId}/re-analyze` (page introuvable).
+   */
+  @Output() relaunchAnalysis = new EventEmitter<void>();
+
   private readonly overviewService = inject(OverviewService);
   private readonly documentService = inject(DocumentService);
   private readonly caseFileService = inject(CaseFileService);
@@ -398,6 +406,12 @@ export class CaseOverviewComponent implements OnInit {
   /** Exécute une action : route vers l'onglet/ancre ou la route dédiée. */
   runAction(action: OverviewAction | null | undefined): void {
     if (!action) return;
+    // SF-289-08 (fix) — « Relancer l'analyse » est une intention métier, pas une
+    // navigation : le parent relance l'analyse existante (cf. onWaveAnalyzeRequested).
+    if (action.kind === 'RELAUNCH_ANALYSIS') {
+      this.relaunchAnalysis.emit();
+      return;
+    }
     this.navigate.emit({
       targetTab: action.targetTab ?? null,
       anchor: action.anchor ?? null,
