@@ -38,6 +38,15 @@ configMapGenerator:
       - JURISPRUDENCE_WATCH_ENABLED=true
 
 patches:
+  # Pas de HPA en staging (incident cluster du 2026-10-10) : les pics CPU au
+  # démarrage des JVM le faisaient monter à 4 répliques, saturant la mémoire
+  # des nœuds t3.medium partagés et faisant tomber la production en cascade.
+  - patch: |-
+      $patch: delete
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: legalcase-backend
   - path: service-account-patch.yaml
     target:
       kind: ServiceAccount
