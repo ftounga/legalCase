@@ -64,6 +64,11 @@ patches:
       - op: replace
         path: /spec/minReplicas
         value: 2
+      # Plafond à 2 (incident cluster du 2026-10-10) : au-delà, les JVM
+      # saturent la mémoire des nœuds t3.medium partagés.
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
     target:
       kind: HorizontalPodAutoscaler
       name: legalcase-backend
