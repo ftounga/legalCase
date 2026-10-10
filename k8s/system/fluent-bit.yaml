@@ -1,4 +1,5 @@
 # Fluent Bit DaemonSet — ship pods stdout (production + staging) → CloudWatch Logs
+# + claude-gateway-staging → groupe dédié /aws/eks/legalcase-shared/claude-gateway (claude-gateway F-186)
 # Provisionne tout dans le namespace amazon-cloudwatch (convention AWS).
 # Pré-requis IRSA, log group et metric filter dans le repo legalcase-infra
 # (modules/eks/, SF-INFRA-07a) — fluent_bit_role_arn et applications_log_group_name.
@@ -112,6 +113,18 @@ data:
         Use_Kubelet         Off
         Buffer_Size         0
 
+    # claude-gateway (F-186 / SF-186-01, 2026-10-10) : ses pods vivent dans le namespace
+    # claude-gateway-staging, que le grep ci-dessous jette. On les RETAGUE avant lui en cgw.*
+    # (original non gardé) : ils échappent au grep de legalcase et partent dans LEUR groupe
+    # (rétention 30 j), sans rien changer au flux production/staging.
+    [FILTER]
+        Name                rewrite_tag
+        Match               application.*
+        Rule                $kubernetes['namespace_name'] ^claude-gateway-staging$ cgw.$TAG false
+        Emitter_Name        cgw_emitter
+        Emitter_Storage.type filesystem
+        Emitter_Mem_Buf_Limit 10MB
+
     # Ne shipper QUE les pods des namespaces production et staging
     # (les pods system kube-system, amazon-cloudwatch, ingress-nginx etc. sont
     # exclus pour limiter le volume de logs ingérés dans CloudWatch).
@@ -126,6 +139,17 @@ data:
         region              eu-west-3
         log_group_name      /aws/eks/legalcase-shared/applications
         log_stream_prefix   from-fluent-bit-
+        auto_create_group   false
+        extra_user_agent    container-insights
+
+    # claude-gateway (F-186 / SF-186-01) : groupe dédié, créé hors manifeste avec une rétention de
+    # 30 jours (aws logs create-log-group + put-retention-policy).
+    [OUTPUT]
+        Name                cloudwatch_logs
+        Match               cgw.*
+        region              eu-west-3
+        log_group_name      /aws/eks/legalcase-shared/claude-gateway
+        log_stream_prefix   cgw-
         auto_create_group   false
         extra_user_agent    container-insights
 
